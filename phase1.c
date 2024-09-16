@@ -1,9 +1,11 @@
 #include "phase1.h"
 #include "process.h"
 
-ProcessTable *table = NULL;      /* the process table */
+Process table[MAXPROC + 1];     /* the process table; note there is
+one extra slot in the table, which is so the first index in the array
+is empty, allowing init to be the first process in the table. */
+int nextOpenSlot = 1;   /* stores next open index in process table */
 Process *curr = NULL;      /* the current running process */
-int nextID = 1;        /* next ID to assign */
 
 void phase1_init() {
     /* TODO */
@@ -16,7 +18,7 @@ void TEMP_switchTo(int pid) {
 int spork(char *name, int(*func)(void *), void *arg, int stacksize, int priority) {
     /* TODO - fork esque fxn
     Russ's instructions for the function:
-    - Look for a slot in the process table and assign an ID
+    - Look for a slot in the process table and assign an ID (numProcesses + 1)
     - Fill in the details of the process
     - Set up the context structure so that we can (later) context switch to the new process
     - PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch

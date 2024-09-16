@@ -55,11 +55,14 @@ typedef struct Process {
 
 /*
  * Represents a process table which manages all currently existing processes 
+ Russ says we shouldn't do this.
  */
+/*
 typedef struct ProcessTable {
 
 	Process* processTable;
+	int numProcesses;
 
-} ProcessTable;
+} ProcessTable;*/
 
 #endif
