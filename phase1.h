@@ -5,7 +5,7 @@
 #ifndef _PHASE1_H
 #define _PHASE1_H
 
-#include <usloss.h>
+#include "../include/usloss.h"
 
 /*
  * Maximum number of processes. 

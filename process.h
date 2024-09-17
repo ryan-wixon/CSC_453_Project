@@ -34,35 +34,28 @@ typedef struct Process {
 	char* name;
 	int processID;
 
-	CPUState* cpuState;
+	// CPUState* cpuState;
 	int processState;
 	int priority;
 
-	char* memory; // might require a custom struct, not sure yet
+	// char* memory; // might require a custom struct, not sure yet
 
-	SchedulingInformation* schedulingInformation;
+	//SchedulingInformation* schedulingInformation;
 	// AccountingInfromation* accountingInformation;
 	
 	// ??? openFiles;
 	// ??? otherResources;
 
-	Process* parent;
-	Process* children;
-	Process* olderSibling;
-	Process* youngerSibling;
+	struct Process* parent;
+	struct Process* children;
+	struct Process* olderSibling;
+	struct Process* youngerSibling;
 		
 } Process;
 
 /*
- * Represents a process table which manages all currently existing processes 
- Russ says we shouldn't do this.
+ * Prints information for a given process, used for debugging
  */
-/*
-typedef struct ProcessTable {
-
-	Process* processTable;
-	int numProcesses;
-
-} ProcessTable;*/
+void printProcess(Process* process);
 
 #endif
