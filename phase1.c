@@ -15,6 +15,8 @@ int processIDCounter = 1;  /* stores the next PID to be used */
 
 Process *currentProcess = NULL;      /* the current running process */
 
+char initStack[USLOSS_MIN_STACK];	/* stack for init */
+
 void phase1_init() {
     
 	// set every table entry to vacant
@@ -69,6 +71,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 
 	// spec says to allocate this but not sure what to do with it
 	void *stack = malloc(stackSize);
+
+	// TODO: USLOSS_ContextInit
 	
 	return newProcess.processID;
 }
@@ -82,7 +86,7 @@ void quit_phase_1a(int status, int switchToPid) {
 }
 
 void quit(int status) {
-    /* This is part of Phase 1b. */
+    /* This is part of Phase 1b and is NOP for now. */
 }
 
 /* 
@@ -113,6 +117,21 @@ void dumpProcesses() {
 		}
 		printf("\n------------------------------\n");    
 	}
+}
+
+/* init's "main" function */
+void initProcessMain() {
+	/* call service processes for other phases (for now these are NOPs ) */
+	phase2_start_service_processes();
+	phase3_start_service_processes();
+	phase4_start_service_processes();
+	phase5_start_service_processes();
+
+	/* TODO
+	   create testcase_main (need to use spork once it's done)
+	   enter join loop (need completed join)
+	   if join returns an error, terminate the program
+	*/
 }
 
 
