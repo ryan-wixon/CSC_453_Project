@@ -103,7 +103,7 @@ int getpid() {
  */
 void dumpProcesses() {
 	printf("Process Dump\n------------------------------\n");
-	for (int i = 1; i < MAXPROC + 1; i++) {
+	for (int i = 1; i < MAXPROC; i++) {
 		printf("  Table Index: %d\n\n", i);
 		if (tableOccupancies[i] == 1) {
 			printProcess(&table[i]);
