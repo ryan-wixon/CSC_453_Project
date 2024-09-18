@@ -31,5 +31,6 @@ void printProcess(Process* process) {
 	while (currentChild != NULL) {
 		printf(" Child %d Name: %s\n", childNum, currentChild->name);
 		printf("  Child %d PID: %d\n", childNum, currentChild->processID);
+		currentChild = currentChild->olderSibling;
 	}
 }

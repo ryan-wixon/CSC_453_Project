@@ -27,6 +27,8 @@ void phase1_init() {
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
+	
+	// add init process into the table
 	table[0] = init;
 	tableOccupancies[0] = 1;
 
@@ -63,11 +65,15 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		processIDCounter++;
 	}
    	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
-			       .parent = currentProcess, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL}; 
-   	
-	// add process into table
+			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL};
+
+	// link the process up with its parent and older sibling, and add it into the table
 	table[processIDCounter % MAXPROC] = newProcess;
 	tableOccupancies[processIDCounter % MAXPROC] = 1;
+	if (currentProcess->children != NULL) {
+		currentProcess->children->youngerSibling = &table[processIDCounter % MAXPROC];
+	}
+	currentProcess->children = &table[processIDCounter % MAXPROC];
 
 	// spec says to allocate this but not sure what to do with it
 	void *stack = malloc(stackSize);
@@ -135,7 +141,6 @@ void initProcessMain() {
 	*/
 }
 
-
 // delete this later, using to test spork 
 int dummy() {
 	return 0;
@@ -145,6 +150,8 @@ int dummy() {
 int main() {
 
 	phase1_init();
+
+	currentProcess = &table[0];
 	spork("sporkTest", &dummy, NULL, USLOSS_MIN_STACK, 3);
 
 	dumpProcesses();
