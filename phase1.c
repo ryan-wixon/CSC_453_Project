@@ -38,7 +38,10 @@ void phase1_init() {
 }
 
 void TEMP_switchTo(int pid) {
-    /* TODO - temporary context switch fxn */
+    /* TODO - temporary context switch fxn
+	   before doing the context switch, switch curr to the new process!
+	   (do the same thing in dispatcher in phase 1b)
+	 */
 }
 
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
@@ -63,16 +66,25 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		processIDCounter++;
 	}
    	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
-			       .parent = currentProcess, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL}; 
+					.processMain = func, .mainArgs = arg, .parent = currentProcess, .children = NULL, 
+					.olderSibling = NULL, .youngerSibling = NULL}; 
    	
+	// spec says to allocate this but not sure what to do with it
+	void *stack = malloc(stackSize);
+
+	// initialize the USLOSS_Context
+	USLOSS_ContextInit(newProcess->context, stack, stackSize, NULL, processWrapper);
+
 	// add process into table
 	table[processIDCounter % MAXPROC] = newProcess;
 	tableOccupancies[processIDCounter % MAXPROC] = 1;
 
-	// spec says to allocate this but not sure what to do with it
-	void *stack = malloc(stackSize);
-
-	// TODO: USLOSS_ContextInit
+	// make new process the child of current process and sibling of
+	// current process children
+	Process *firstChild = currentProcess->children;
+	newProcess->olderSibling = firstChild;
+	firstChild->youngerSibling = newProcess;
+	currentProcess->children = newProcess;
 	
 	return newProcess.processID;
 }
@@ -119,7 +131,22 @@ void dumpProcesses() {
 	}
 }
 
-/* init's "main" function */
+/*
+  Wrapper function for process main functions. Requires setting the new
+  process that is about to be run as the current process.
+
+  Arguments: None
+  Returns: void
+ */
+void processWrapper() {
+	/* before context switching, MUST change current process to new process!*/
+	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
+
+	/* when a process's main function is over, it has quit, so call quit */
+	quit_phase_1a(endStatus, currentProcess->processID);
+}
+
+/* init's "main" function (TODO: replace comment) */
 void initProcessMain() {
 	/* call service processes for other phases (for now these are NOPs ) */
 	phase2_start_service_processes();

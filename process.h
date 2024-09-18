@@ -9,6 +9,7 @@
 
 /*
  * Represents the state of the CPU at a given moment in time
+ * NOT NEEDED - USLOSS_Context handles this for us.
  */
 typedef struct CPUState {
 	
@@ -16,12 +17,14 @@ typedef struct CPUState {
 
 } CPUState;
 
+/* not needed - I think USLOSS_Context handles it for us */
 typedef struct SchedulingInformation {
 
 	// TODO not yet sure how to structure this
 
 } SchedulingInformation;
 
+/* not needed, as stated in office hours */
 typedef struct AccountingInformation {
 	
 	// TODO not yet sure how to structure this
@@ -36,19 +39,12 @@ typedef struct Process {
 	char* name;
 	int processID;
 
-	// CPUState* cpuState;
 	int processState;
 	int priority;
 
-	// char* memory; // might require a custom struct, not sure yet
-
-	//SchedulingInformation* schedulingInformation;
-	// AccountingInfromation* accountingInformation;
-	
-	// ??? openFiles;
-	// ??? otherResources;
-
 	USLOSS_Context* context;
+	int(*processMain)(void *);	/* start function for the process */
+	void* mainArgs;		/* args for the process main function */
 
 	struct Process* parent;
 	struct Process* children;
