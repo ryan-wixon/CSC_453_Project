@@ -5,15 +5,13 @@
 #include "phase1.h"
 #include "process.h"
 
-/* the process table */
-Process table[MAXPROC];     
-int tableOccupancies[MAXPROC];
+Process table[MAXPROC];     	/* the process table */
+int tableOccupancies[MAXPROC]; 	/* keeps track of which process table slots are empty and which are full */
 
-int numProcesses = 0;	   /* stores number of currently running processes */
-int nextOpenSlot = 0;      /* stores next open index in process table */ // I don't think we need this because of the modulo rule
-int processIDCounter = 0;  /* stores the next PID to be used */
+int numProcesses = 1;	   	/* stores number of currently existing processes; starts at 1 because of init */
+int processIDCounter = 2;  	/* stores the next PID to be used; starts at 2 because init is PID 1 */
 
-Process *currentProcess = NULL;      /* the current running process */
+Process *currentProcess = NULL;      	/* the current running process */
 
 char initStack[USLOSS_MIN_STACK];	/* stack for init */
 
@@ -27,20 +25,19 @@ void phase1_init() {
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
-	
-	// add init process into the table
-	table[0] = init;
-	tableOccupancies[0] = 1;
 
-	numProcesses++;
-	nextOpenSlot++;
-	processIDCounter++;
+	// because of the moduulo rule, we need to make the index 1 here
+	table[1] = init;	
+	tableOccupancies[1] = 1;
 
 	//TODO more things
 }
 
 void TEMP_switchTo(int pid) {
-    /* TODO - temporary context switch fxn */
+    /* TODO - temporary context switch fxn
+	   before doing the context switch, switch curr to the new process!
+	   (do the same thing in dispatcher in phase 1b)
+	 */
 }
 
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
@@ -64,22 +61,23 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	while (tableOccupancies[processIDCounter % MAXPROC] != 0) {
 		processIDCounter++;
 	}
-   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
+   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority,
 			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL};
-
-	// link the process up with its parent and older sibling, and add it into the table
+   	
+	// add process into table and link with parent and older sibling
 	table[processIDCounter % MAXPROC] = newProcess;
 	tableOccupancies[processIDCounter % MAXPROC] = 1;
 	if (currentProcess->children != NULL) {
 		currentProcess->children->youngerSibling = &table[processIDCounter % MAXPROC];
 	}
 	currentProcess->children = &table[processIDCounter % MAXPROC];
-
+	
 	// spec says to allocate this but not sure what to do with it
 	void *stack = malloc(stackSize);
 
-	// TODO: USLOSS_ContextInit
-	
+	// initialize the USLOSS_Context
+	// USLOSS_ContextInit(newProcess->context, stack, stackSize, NULL, processWrapper);
+
 	return newProcess.processID;
 }
 
@@ -125,7 +123,22 @@ void dumpProcesses() {
 	}
 }
 
-/* init's "main" function */
+/*
+  Wrapper function for process main functions. Requires setting the new
+  process that is about to be run as the current process.
+
+  Arguments: None
+  Returns: void
+ */
+void processWrapper() {
+	/* before context switching, MUST change current process to new process!*/
+	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
+
+	/* when a process's main function is over, it has quit, so call quit */
+	quit_phase_1a(endStatus, currentProcess->processID);
+}
+
+/* init's "main" function (TODO: replace comment) */
 void initProcessMain() {
 	/* call service processes for other phases (for now these are NOPs ) */
 	
@@ -151,7 +164,7 @@ int main() {
 
 	phase1_init();
 
-	currentProcess = &table[0];
+	currentProcess = &table[1];
 	spork("sporkTest", &dummy, NULL, USLOSS_MIN_STACK, 3);
 
 	dumpProcesses();
