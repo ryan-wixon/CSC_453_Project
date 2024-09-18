@@ -122,10 +122,11 @@ void dumpProcesses() {
 /* init's "main" function */
 void initProcessMain() {
 	/* call service processes for other phases (for now these are NOPs ) */
-	phase2_start_service_processes();
-	phase3_start_service_processes();
-	phase4_start_service_processes();
-	phase5_start_service_processes();
+	
+	// phase2_start_service_processes();
+	// phase3_start_service_processes();
+	// phase4_start_service_processes();
+	// phase5_start_service_processes();
 
 	/* TODO
 	   create testcase_main (need to use spork once it's done)
