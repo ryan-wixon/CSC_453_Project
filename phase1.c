@@ -10,8 +10,7 @@ Process table[MAXPROC];
 int tableOccupancies[MAXPROC];
 
 int numProcesses = 0;	   /* stores number of currently running processes */
-int nextOpenSlot = 0;      /* stores next open index in process table */ // I don't think we need this because of the modulo rule
-int processIDCounter = 0;  /* stores the next PID to be used */
+int processIDCounter = 2;  /* stores the next PID to be used; starts at 2 because init is PID 1 */
 
 Process *currentProcess = NULL;      /* the current running process */
 
@@ -27,11 +26,10 @@ void phase1_init() {
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
-	table[0] = init;
-	tableOccupancies[0] = 1;
+	table[1] = init;	/* because of the modulo rule, we need to make the index 1 here */
+	tableOccupancies[1] = 1;
 
 	numProcesses++;
-	nextOpenSlot++;
 	processIDCounter++;
 
 	//TODO more things
