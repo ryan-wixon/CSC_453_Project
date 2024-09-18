@@ -5,11 +5,9 @@
 #include "phase1.h"
 #include "process.h"
 
-/* the process table; note there is
-one extra slot in the table, which is so the first index in the array
-is empty, allowing init to be the first process in the table. */
-Process table[MAXPROC + 1];     
-int tableOccupancies[MAXPROC + 1];
+/* the process table */
+Process table[MAXPROC];     
+int tableOccupancies[MAXPROC];
 
 int numProcesses = 0;	   /* stores number of currently running processes */
 int nextOpenSlot = 1;      /* stores next open index in process table */ // I don't think we need this because of the modulo rule
@@ -20,7 +18,7 @@ Process *currentProcess = NULL;      /* the current running process */
 void phase1_init() {
     
 	// set every table entry to vacant
-	for (int i = 1; i < MAXPROC + 1; i++) {
+	for (int i = 1; i < MAXPROC; i++) {
 		tableOccupancies[i] = 0;
 	}
 
@@ -59,7 +57,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	}
 
 	// find the next process ID to use (0 and multiples of MAXPROC are not allowed due to the modulo rule) and create process
-	while (processIDCounter % MAXPROC != 0 && tableOccupancies[processIDCounter % MAXPROC] != 0) {
+	while (tableOccupancies[processIDCounter % MAXPROC] != 0) {
 		processIDCounter++;
 	}
    	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
