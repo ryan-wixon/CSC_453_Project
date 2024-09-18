@@ -5,6 +5,8 @@
 #ifndef _PROCESS_H_
 #define _PROCESS_H_
 
+#include "../include/usloss.h"
+
 /*
  * Represents the state of the CPU at a given moment in time
  */
@@ -45,6 +47,8 @@ typedef struct Process {
 	
 	// ??? openFiles;
 	// ??? otherResources;
+
+	USLOSS_Context* context;
 
 	struct Process* parent;
 	struct Process* children;
