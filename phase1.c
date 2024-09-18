@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include "phase1.h"
 #include "process.h"
 
@@ -9,8 +11,11 @@ is empty, allowing init to be the first process in the table. */
 Process table[MAXPROC + 1];     
 int tableOccupancies[MAXPROC + 1];
 
-int nextOpenSlot = 1;   /* stores next open index in process table */
-Process *curr = NULL;      /* the current running process */
+int numProcesses = 0;	   /* stores number of currently running processes */
+int nextOpenSlot = 1;      /* stores next open index in process table */ // I don't think we need this because of the modulo rule
+int processIDCounter = 1;  /* stores the next PID to be used */
+
+Process *currentProcess = NULL;      /* the current running process */
 
 void phase1_init() {
     
@@ -19,15 +24,24 @@ void phase1_init() {
 		tableOccupancies[i] = 0;
 	}
 
-	//TODO more things
+	// create the init process (will not run yet)
+	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
+			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
+	table[1] = init;
+	tableOccupancies[1] = 1;
 
+	numProcesses++;
+	nextOpenSlot++;
+	processIDCounter++;
+
+	//TODO more things
 }
 
 void TEMP_switchTo(int pid) {
     /* TODO - temporary context switch fxn */
 }
 
-int spork(char *name, int(*func)(void *), void *arg, int stacksize, int priority) {
+int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
     /* TODO - fork esque fxn
     Russ's instructions for the function:
     - Look for a slot in the process table and assign an ID (numProcesses + 1)
@@ -35,7 +49,30 @@ int spork(char *name, int(*func)(void *), void *arg, int stacksize, int priority
     - Set up the context structure so that we can (later) context switch to the new process
     - PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
     */
-    return 0;   /* temp return - replace with return statement as spec described */
+
+	// check for errors; return -2 if stack size is too small and -1 for all else
+	if (stackSize < USLOSS_MIN_STACK) {
+		return -2;
+	}
+	if (numProcesses == MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
+		return -1;
+	}
+
+	// find the next process ID to use (0 and multiples of MAXPROC are not allowed due to the modulo rule) and create process
+	while (processIDCounter % MAXPROC != 0 && tableOccupancies[processIDCounter % MAXPROC] != 0) {
+		processIDCounter++;
+	}
+   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
+			       .parent = currentProcess, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL}; 
+   	
+	// add process into table
+	table[processIDCounter % MAXPROC] = newProcess;
+	tableOccupancies[processIDCounter % MAXPROC] = 1;
+
+	// spec says to allocate this but not sure what to do with it
+	void *stack = malloc(stackSize);
+	
+	return newProcess.processID;
 }
 
 int join(int *status) {
@@ -57,9 +94,15 @@ void quit(int status) {
    Returns: integer representing the PID of the current process.
  */
 int getpid() {
-    return curr->processID;
+    return currentProcess->processID;
 }
 
+/*
+ * Prints the current process table.
+ *
+ * Arguments: None
+ *   Returns: Void 
+ */
 void dumpProcesses() {
 	printf("Process Dump\n------------------------------\n");
 	for (int i = 1; i < MAXPROC + 1; i++) {
@@ -74,15 +117,19 @@ void dumpProcesses() {
 	}
 }
 
-// just using for testing for now
+
+// delete this later, using to test spork 
+int dummy() {
+	return 0;
+}
+
+// nothing in here is final, just using for testing
 int main() {
 
 	phase1_init();
-
-	Process testProc = { .name = "Process1\0", .processID = 1, .processState = 0, .priority = 3, .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
-	table[1] = testProc;
-	tableOccupancies[1] = 1;
+	spork("sporkTest", &dummy, NULL, USLOSS_MIN_STACK, 3);
 
 	dumpProcesses();
+
 	return 0;
 }
