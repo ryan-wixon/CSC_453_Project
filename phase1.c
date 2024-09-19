@@ -108,6 +108,15 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 }
 
 int join(int *status) {
+	if(status == NULL) {
+		/* invalid argument */
+		return -3;
+	}
+	else if(currentProcess.children == NULL) {
+		/* the process has no children */
+		return -2;
+	}
+	/* TODO - check if any dead children */
     return 0;     /* temp return - replace! */
 }
 
@@ -190,7 +199,7 @@ void initProcessMain() {
 	   if join returns an error, terminate the program
 	*/
 	int endStatus = 1;
-	int *processStatus = 0;	// TODO - might need to replace with something else?
+	int *processStatus = 0;	// keep track of process status
 	while(endStatus != -2) {
 		endStatus = join(processStatus);
 	}
