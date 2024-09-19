@@ -34,7 +34,7 @@ void phase1_init() {
 
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, 
-				.priority = 6, .context = NULL, .processMain = &initProcessMain, 
+				.priority = 6, .processMain = &initProcessMain, 
 				.mainArgs = NULL, .parent = NULL, .children = NULL, 
 				.olderSibling = NULL, .youngerSibling = NULL};
 	
@@ -61,18 +61,17 @@ void TEMP_switchTo(int pid) {
 
 	USLOSS_Context* oldContext = NULL;	
 	if (currentProcess != NULL) {
-		USLOSS_Context* oldContext = currentProcess->context;
+		oldContext = &currentProcess->context;
 	}
 
 	for (int i = 0; i < MAXPROC; i++) {
 		if (table[i].processID == pid) {
-			printf("found and set\n");
 			currentProcess = &table[i];
 			break;
 		}
 	}
 
-	USLOSS_ContextSwitch(oldContext, currentProcess->context);
+	USLOSS_ContextSwitch(oldContext, &currentProcess->context);
 
 	printf("EXITING: TEMP_switchTo(%d)\n", pid);
 }
@@ -115,7 +114,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	void *stack = malloc(stackSize);
 
 	// initialize the USLOSS_Context
-	USLOSS_ContextInit(newProcess.context, stack, stackSize, NULL, &processWrapper);
+	USLOSS_ContextInit(&newProcess.context, stack, stackSize, NULL, &processWrapper);
 
 	return newProcess.processID;
 }
