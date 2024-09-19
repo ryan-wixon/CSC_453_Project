@@ -1,3 +1,11 @@
+/* 
+ * phase1.c
+ * Ryan Wixon and Adrianna Koppes
+ * CSC 452
+ * 
+ * TODO: header comment (maybe?)
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,14 +31,19 @@ void phase1_init() {
 	}
 
 	// create the init process (will not run yet)
-	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
-			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL};
+	Process init = { .name = "init\0", .processID = 1, .processState = 0, 
+				.priority = 6, .context = NULL, .processMain = initProcessMain, 
+				.mainArgs = NULL, .parent = NULL, .children = NULL, 
+				.olderSibling = NULL, .youngerSibling = NULL};
+
+	// initialize context for init process
+	USLOSS_ContextInit(init.context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
 
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
 
-	//TODO more things
+	//TODO more things - maybe?
 }
 
 void TEMP_switchTo(int pid) {
@@ -72,8 +85,10 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	while (tableOccupancies[processIDCounter % MAXPROC] != 0) {
 		processIDCounter++;
 	}
-   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, .context = NULL, 
-			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL};
+   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, 
+					.priority = priority, .context = NULL, .processMain = func, 
+					.mainArgs = arg, .parent = currentProcess, .children = NULL, 
+					.olderSibling = currentProcess->children, .youngerSibling = NULL};
    	
 	// add process into table and link with parent and older sibling
 	table[processIDCounter % MAXPROC] = newProcess;
@@ -150,7 +165,16 @@ void processWrapper() {
 	quit_phase_1a(endStatus, currentProcess->processID);
 }
 
-/* init's "main" function (TODO: replace comment) */
+/* 
+ * The function that includes the init process's functionality. It 
+ * starts all the necessary service processes, then creates the 
+ * testcase_main process, before finally entering a (basically) infinite
+ * loop calling join() until there are no more child processes left. Once
+ * that happens, the simulation concludes.
+ * 
+ * Arguments: None.
+ * Returns: None.
+ */
 void initProcessMain() {
 	/* call service processes for other phases (for now these are NOPs ) */
 	// Uncomment once we start using the testcases; the definitions are in there. For now it just causes a compile error. 
@@ -161,9 +185,16 @@ void initProcessMain() {
 
 	spork("testcase_main", &testcase_main, NULL, USLOSS_MIN_STACK, 3);
 
-	/* TODO
-	   create testcase_main (need to use spork once it's done)
+	/* 
 	   enter join loop (need completed join)
 	   if join returns an error, terminate the program
 	*/
+	int endStatus = 1;
+	int *processStatus = 0;	// TODO - might need to replace with something else?
+	while(endStatus != -2) {
+		endStatus = join(processStatus);
+	}
+	// loop exited...no more children!
+	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
+	exit(endStatus);	// might need to change this to something else??
 }
