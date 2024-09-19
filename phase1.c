@@ -33,17 +33,16 @@ void phase1_init() {
 	}
 
 	// create the init process (will not run yet)
-	Process init = { .name = "init\0", .processID = 1, .processState = 0, 
-				.priority = 6, .processMain = &initProcessMain, 
-				.mainArgs = NULL, .parent = NULL, .children = NULL, 
-				.olderSibling = NULL, .youngerSibling = NULL};
+	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
+			 .processMain = &initProcessMain, .mainArgs = NULL, 
+			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL
+		       };
 	
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
 
 	// initialize context for init process
-	// TODO I don't think the & for the first argument is correct (it generates a warning) but if you don't have it there is a immediate crash
 	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
 	
 	//TODO more things - maybe?
@@ -70,7 +69,7 @@ void TEMP_switchTo(int pid) {
 			break;
 		}
 	}
-
+	
 	USLOSS_ContextSwitch(oldContext, &currentProcess->context);
 
 	printf("EXITING: TEMP_switchTo(%d)\n", pid);
@@ -85,6 +84,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
     - PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
     */
 
+	printf("TRYING TO SPORK %s\n", name);
+
 	// check for errors; return -2 if stack size is too small and -1 for all else
 	if (stackSize < USLOSS_MIN_STACK) {
 		return -2;
@@ -97,11 +98,11 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	while (tableOccupancies[processIDCounter % MAXPROC] != 0) {
 		processIDCounter++;
 	}
-   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, 
-					.priority = priority, .context = NULL, .processMain = func, 
-					.mainArgs = arg, .parent = currentProcess, .children = NULL, 
-					.olderSibling = currentProcess->children, .youngerSibling = NULL};
-   	
+   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
+			       .processMain = func, .mainArgs = arg, 
+			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL 
+			     };
+		
 	// add process into table and link with parent and older sibling
 	table[processIDCounter % MAXPROC] = newProcess;
 	tableOccupancies[processIDCounter % MAXPROC] = 1;
@@ -116,6 +117,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	// initialize the USLOSS_Context
 	USLOSS_ContextInit(&newProcess.context, stack, stackSize, NULL, &processWrapper);
 
+	printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
+
 	return newProcess.processID;
 }
 
@@ -128,12 +131,27 @@ int join(int *status) {
 		/* the process has no children */
 		return -2;
 	}
-	/* TODO - check if any dead children */
-    return 0;     /* temp return - replace! */
+	
+	// check for dead children, return the first one found
+	Process* curr = currentProcess->children;
+	while (curr != NULL) {
+		if (curr->processState == -1) {
+			*status = curr->exitStatus;
+			return curr->processID;
+		}  
+	}
+	
+	// if a parent has no dead children, it blocks to wait for them to die
+	// this won't happen in phase1a, so here's a dummy return value (should never see this returned)
+    	return -1;
 }
 
 void quit_phase_1a(int status, int switchToPid) {
-    /* TODO */
+    
+	currentProcess->processState = -1;
+	currentProcess->exitStatus = status;
+	
+	TEMP_switchTo(switchToPid);
 }
 
 void quit(int status) {
@@ -197,6 +215,9 @@ void processWrapper() {
  * Returns: None.
  */
 void initProcessMain() {
+	
+	printf("ENTERING: initProcessMain()\n");	
+
 	/* call service processes for other phases (for now these are NOPs ) */
 	// Uncomment once we start using the testcases; the definitions are in there. For now it just causes a compile error. 
 	// phase2_start_service_processes();
@@ -204,7 +225,7 @@ void initProcessMain() {
 	// phase4_start_service_processes();
 	// phase5_start_service_processes();
 
-	spork("testcase_main", &testcase_main, NULL, USLOSS_MIN_STACK, 3);
+	spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3);
 
 	/* 
 	   enter join loop (need completed join)
@@ -212,9 +233,12 @@ void initProcessMain() {
 	*/
 	int endStatus = 1;
 	int *processStatus = 0;	// keep track of process status
+
+	printf("ENTERING JOIN LOOP\n");
 	while(endStatus != -2) {
 		endStatus = join(processStatus);
 	}
+	
 	// loop exited...no more children!
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
 	exit(endStatus);	// might need to change this to something else??

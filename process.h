@@ -15,8 +15,9 @@ typedef struct Process {
 	char* name;
 	int processID;
 
-	int processState;
-	int priority;
+	int processState;		/* determines what state the process is in (running, blocked, etc.) */
+	int exitStatus;			/* value set after process quits; cannot be safely read beforehand */
+	int priority;			
 
 	USLOSS_Context context;
 	
