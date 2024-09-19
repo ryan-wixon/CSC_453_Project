@@ -19,11 +19,13 @@ int tableOccupancies[MAXPROC]; 	/* keeps track of which process table slots are 
 int numProcesses = 1;	   	/* stores number of currently existing processes; starts at 1 because of init */
 int processIDCounter = 2;  	/* stores the next PID to be used; starts at 2 because init is PID 1 */
 
-Process *currentProcess = NULL;      	/* the current running process */
+Process *currentProcess = NULL; 	/* the current running process */
 
-char initStack[USLOSS_MIN_STACK];	/* stack for init */
+char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 void phase1_init() {
+
+	printf("ENTERING: phase1_init()\n");
     
 	// set every table entry to vacant
 	for (int i = 0; i < MAXPROC; i++) {
@@ -32,18 +34,21 @@ void phase1_init() {
 
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, 
-				.priority = 6, .context = NULL, .processMain = initProcessMain, 
+				.priority = 6, .context = NULL, .processMain = &initProcessMain, 
 				.mainArgs = NULL, .parent = NULL, .children = NULL, 
 				.olderSibling = NULL, .youngerSibling = NULL};
-
-	// initialize context for init process
-	USLOSS_ContextInit(init.context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
-
+	
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
 
+	// initialize context for init process
+	// TODO I don't think the & for the first argument is correct (it generates a warning) but if you don't have it there is a immediate crash
+	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
+	
 	//TODO more things - maybe?
+	
+	printf("EXITING: phase1_init()\n");
 }
 
 void TEMP_switchTo(int pid) {
@@ -52,16 +57,24 @@ void TEMP_switchTo(int pid) {
 	   (do the same thing in dispatcher in phase 1b)
 	 */
 
-	USLOSS_Context* oldContext = currentProcess->context;
+	printf("ENTERING: TEMP_switchTo(%d)\n", pid);
+
+	USLOSS_Context* oldContext = NULL;	
+	if (currentProcess != NULL) {
+		USLOSS_Context* oldContext = currentProcess->context;
+	}
 
 	for (int i = 0; i < MAXPROC; i++) {
 		if (table[i].processID == pid) {
+			printf("found and set\n");
 			currentProcess = &table[i];
 			break;
 		}
 	}
 
 	USLOSS_ContextSwitch(oldContext, currentProcess->context);
+
+	printf("EXITING: TEMP_switchTo(%d)\n", pid);
 }
 
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
@@ -108,11 +121,11 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 }
 
 int join(int *status) {
-	if(status == NULL) {
+	if (status == NULL) {
 		/* invalid argument */
 		return -3;
 	}
-	else if(currentProcess.children == NULL) {
+	else if (currentProcess->children == NULL) {
 		/* the process has no children */
 		return -2;
 	}
