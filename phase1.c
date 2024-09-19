@@ -62,9 +62,9 @@ void TEMP_switchTo(int pid) {
 	if (currentProcess != NULL) {
 		oldContext = &currentProcess->context;
 	}
-
+	
 	for (int i = 0; i < MAXPROC; i++) {
-		if (table[i].processID == pid) {
+		if (tableOccupancies[i] == 1 && table[i].processID == pid) {
 			currentProcess = &table[i];
 			break;
 		}
@@ -138,7 +138,8 @@ int join(int *status) {
 		if (curr->processState == -1) {
 			*status = curr->exitStatus;
 			return curr->processID;
-		}  
+		}
+		curr =  curr->olderSibling;  
 	}
 	
 	// if a parent has no dead children, it blocks to wait for them to die
@@ -219,24 +220,25 @@ void initProcessMain() {
 	printf("ENTERING: initProcessMain()\n");	
 
 	/* call service processes for other phases (for now these are NOPs ) */
-	// Uncomment once we start using the testcases; the definitions are in there. For now it just causes a compile error. 
 	// phase2_start_service_processes();
 	// phase3_start_service_processes();
 	// phase4_start_service_processes();
 	// phase5_start_service_processes();
 
-	spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3);
+	// create testcase main and switch to it (in phase1b, only call spork)
+	TEMP_switchTo(spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3));
 
 	/* 
 	   enter join loop (need completed join)
 	   if join returns an error, terminate the program
 	*/
 	int endStatus = 1;
-	int *processStatus = 0;	// keep track of process status
+	int processStatus = 0;	// keep track of process status
 
 	printf("ENTERING JOIN LOOP\n");
 	while(endStatus != -2) {
-		endStatus = join(processStatus);
+		endStatus = join(&processStatus);
+		//printf("RETURNED %d\n", endStatus);
 	}
 	
 	// loop exited...no more children!
