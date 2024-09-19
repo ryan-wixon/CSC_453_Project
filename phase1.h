@@ -5,7 +5,7 @@
 #ifndef _PHASE1_H
 #define _PHASE1_H
 
-#include "../include/usloss.h"
+#include <usloss.h>
 
 /*
  * Maximum number of processes. 
@@ -72,5 +72,17 @@ extern void phase5_start_service_processes(void);
  * called by the Phase 1 code (nonzero means error).
  */
 extern int testcase_main(void);
+
+/*
+  Wrapper function for process main functions. Requires setting the new
+  process that is about to be run as the current process.
+
+  Arguments: None
+  Returns: Void
+ */
+void processWrapper();
+
+/* init's "main" function */
+void initProcessMain();
 
 #endif /* _PHASE1_H */

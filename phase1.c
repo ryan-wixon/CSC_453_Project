@@ -38,6 +38,17 @@ void TEMP_switchTo(int pid) {
 	   before doing the context switch, switch curr to the new process!
 	   (do the same thing in dispatcher in phase 1b)
 	 */
+
+	USLOSS_Context* oldContext = currentProcess->context;
+
+	for (int i = 0; i < MAXPROC; i++) {
+		if (table[i].processID == pid) {
+			currentProcess = &table[i];
+			break;
+		}
+	}
+
+	USLOSS_ContextSwitch(oldContext, currentProcess->context);
 }
 
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
@@ -61,7 +72,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	while (tableOccupancies[processIDCounter % MAXPROC] != 0) {
 		processIDCounter++;
 	}
-   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority,
+   	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, .context = NULL, 
 			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL};
    	
 	// add process into table and link with parent and older sibling
@@ -76,7 +87,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	void *stack = malloc(stackSize);
 
 	// initialize the USLOSS_Context
-	// USLOSS_ContextInit(newProcess->context, stack, stackSize, NULL, processWrapper);
+	USLOSS_ContextInit(newProcess.context, stack, stackSize, NULL, &processWrapper);
 
 	return newProcess.processID;
 }
@@ -100,7 +111,7 @@ void quit(int status) {
    Returns: integer representing the PID of the current process.
  */
 int getpid() {
-    return currentProcess->processID;
+	return currentProcess->processID;
 }
 
 /*
@@ -128,9 +139,10 @@ void dumpProcesses() {
   process that is about to be run as the current process.
 
   Arguments: None
-  Returns: void
+  Returns: Void
  */
 void processWrapper() {
+	
 	/* before context switching, MUST change current process to new process!*/
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
@@ -141,33 +153,17 @@ void processWrapper() {
 /* init's "main" function (TODO: replace comment) */
 void initProcessMain() {
 	/* call service processes for other phases (for now these are NOPs ) */
-	
+	// Uncomment once we start using the testcases; the definitions are in there. For now it just causes a compile error. 
 	// phase2_start_service_processes();
 	// phase3_start_service_processes();
 	// phase4_start_service_processes();
 	// phase5_start_service_processes();
+
+	spork("testcase_main", &testcase_main, NULL, USLOSS_MIN_STACK, 3);
 
 	/* TODO
 	   create testcase_main (need to use spork once it's done)
 	   enter join loop (need completed join)
 	   if join returns an error, terminate the program
 	*/
-}
-
-// delete this later, using to test spork 
-int dummy() {
-	return 0;
-}
-
-// nothing in here is final, just using for testing
-int main() {
-
-	phase1_init();
-
-	currentProcess = &table[1];
-	spork("sporkTest", &dummy, NULL, USLOSS_MIN_STACK, 3);
-
-	dumpProcesses();
-
-	return 0;
 }
