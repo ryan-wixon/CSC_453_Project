@@ -25,7 +25,7 @@ char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 void phase1_init() {
 
-	printf("ENTERING: phase1_init()\n");
+	//printf("ENTERING: phase1_init()\n");
     
 	// set every table entry to vacant
 	for (int i = 0; i < MAXPROC; i++) {
@@ -49,7 +49,7 @@ void phase1_init() {
 	
 	//TODO more things - maybe?
 	
-	printf("EXITING: phase1_init()\n");
+	//printf("EXITING: phase1_init()\n");
 }
 
 void TEMP_switchTo(int pid) {
@@ -58,7 +58,7 @@ void TEMP_switchTo(int pid) {
 	   (do the same thing in dispatcher in phase 1b)
 	 */
 
-	printf("ENTERING: TEMP_switchTo(%d)\n", pid);
+	//printf("ENTERING: TEMP_switchTo(%d)\n", pid);
 
 	USLOSS_Context* oldContext = NULL;	
 	if (currentProcess != NULL) {
@@ -74,7 +74,7 @@ void TEMP_switchTo(int pid) {
 	
 	USLOSS_ContextSwitch(oldContext, &currentProcess->context);
 
-	printf("EXITING: TEMP_switchTo(%d)\n", pid);
+	//printf("EXITING: TEMP_switchTo(%d)\n", pid);
 }
 
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
@@ -86,7 +86,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
     - PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
     */
 
-	printf("TRYING TO SPORK %s\n", name);
+	//printf("TRYING TO SPORK %s\n", name);
 
 	// check for errors; return -2 if stack size is too small and -1 for all else
 	if (stackSize < USLOSS_MIN_STACK) {
@@ -116,10 +116,11 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	// spec says to allocate this but not sure what to do with it
 	void *stack = malloc(stackSize);
 
-	// initialize the USLOSS_Context
+	// initialize the USLOSS_Context and save the pointer to the stack
 	USLOSS_ContextInit(&newProcess.context, stack, stackSize, NULL, &processWrapper);
+	newProcess.contextStack = stack;
 
-	printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
+	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
 
 	return newProcess.processID;
 }
@@ -139,6 +140,7 @@ int join(int *status) {
 	while (curr != NULL) {
 		if (curr->processState == -1) {
 			*status = curr->exitStatus;
+			
 			/* reset relationships between dead process and live processes */
 			if(curr->processID == currentProcess->children->processID) {
 				if(curr->olderSibling == NULL) {
@@ -165,8 +167,8 @@ int join(int *status) {
 			curr->olderSibling = NULL;
 			curr->parent = NULL;
 			/* free the dead process's memory */
-			free(curr->context->stack);
-			memset(table[curr->processID % MAXPROC], 0, sizeof(curr));
+			free(curr->contextStack);
+			memset(&table[curr->processID % MAXPROC], 0, sizeof(curr));
 			tableOccupancies[curr->processID % MAXPROC] = 0;
 			return curr->processID;
 		}
@@ -264,10 +266,10 @@ void initProcessMain() {
 	printf("ENTERING: initProcessMain()\n");	
 
 	/* call service processes for other phases (for now these are NOPs ) */
-	// phase2_start_service_processes();
-	// phase3_start_service_processes();
-	// phase4_start_service_processes();
-	// phase5_start_service_processes();
+	phase2_start_service_processes();
+	phase3_start_service_processes();
+	phase4_start_service_processes();
+	phase5_start_service_processes();
 
 	// create testcase main and switch to it (in phase1b, only call spork)
 	TEMP_switchTo(spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3));
@@ -279,7 +281,7 @@ void initProcessMain() {
 	int endStatus = 1;
 	int processStatus = 0;	// keep track of process status
 
-	printf("ENTERING JOIN LOOP\n");
+	//printf("ENTERING JOIN LOOP\n");
 	while(endStatus != -2) {
 		endStatus = join(&processStatus);
 		//printf("RETURNED %d\n", endStatus);

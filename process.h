@@ -20,7 +20,8 @@ typedef struct Process {
 	int priority;			
 
 	USLOSS_Context context;
-	
+	void* contextStack; 
+		
 	int(*processMain)(void *);	/* start function for the process */
 	void* mainArgs;			/* args for the process main function */
 
