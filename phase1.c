@@ -137,6 +137,34 @@ int join(int *status) {
 	while (curr != NULL) {
 		if (curr->processState == -1) {
 			*status = curr->exitStatus;
+			/* reset relationships between dead process and live processes */
+			if(curr->processID == currentProcess->children->processID) {
+				if(curr->olderSibling == NULL) {
+					/* all children have died */
+					currentProcess->children = NULL;
+				}
+				else {
+					/* make sure the child list still connects to parent */
+					currentProcess->children = curr->olderSibling;
+					curr->olderSibling->youngerSibling = NULL;
+				}
+			}
+			else if(curr->olderSibling == NULL) {
+				/* oldest process in the child list */
+				curr->youngerSibling->olderSibling = NULL;
+			}
+			else {
+				/* delete from middle of child list */
+				curr->olderSibling->youngerSibling = curr->youngerSibling;
+				curr->youngerSibling->olderSibling = curr->olderSibling;
+			}
+			/* sever ties to related processes so no potential dangling pointers */
+			curr->youngerSibling = NULL;
+			curr->olderSibling = NULL;
+			curr->parent = NULL;
+			/* free the dead process's memory */
+			free(curr->context->stack);
+			memset(table[curr->processID % MAXPROC], 0, sizeof(curr));
 			return curr->processID;
 		}
 		curr =  curr->olderSibling;  
