@@ -31,6 +31,8 @@ void phase1_init() {
 	for (int i = 0; i < MAXPROC; i++) {
 		tableOccupancies[i] = 0;
 	}
+	/* null out the entire table to prepare for filling */
+	memset(table, 0, sizeof(table));
 
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
@@ -179,6 +181,16 @@ void quit_phase_1a(int status, int switchToPid) {
     
 	currentProcess->processState = -1;
 	currentProcess->exitStatus = status;
+
+	if(strcmp(currentProcess->name, "testcase_main") == 0) {
+		/* testcase_main has terminated; halt the simulation */
+		/* we use the name to find testcase_main, since it doesn't have
+		   a designated PID */
+		if(status != 0) {
+			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
+		}
+		USLOSS_Halt(status);
+	}
 	
 	TEMP_switchTo(switchToPid);
 }
@@ -230,7 +242,10 @@ void processWrapper() {
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
 	/* when a process's main function is over, it has quit, so call quit */
-	quit_phase_1a(endStatus, currentProcess->processID);
+	/* for now, in Phase 1A, we don't have to worry about quitting on behalf 
+	   of the process if it just returns. So if it happens, for now, just
+	   switch to init because the process to switch to cannot be known. */
+	quit_phase_1a(endStatus, 1);
 }
 
 /* 
@@ -269,7 +284,7 @@ void initProcessMain() {
 		//printf("RETURNED %d\n", endStatus);
 	}
 	
-	// loop exited...no more children!
+	// loop exited...no more children! (this should never be reached)
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
-	exit(endStatus);	// might need to change this to something else??
+	exit(endStatus);
 }
