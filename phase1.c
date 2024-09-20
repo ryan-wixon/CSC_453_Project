@@ -167,6 +167,7 @@ int join(int *status) {
 			/* free the dead process's memory */
 			free(curr->context->stack);
 			memset(table[curr->processID % MAXPROC], 0, sizeof(curr));
+			tableOccupancies[curr->processID % MAXPROC] = 0;
 			return curr->processID;
 		}
 		curr =  curr->olderSibling;  
