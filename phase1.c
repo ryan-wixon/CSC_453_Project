@@ -57,6 +57,13 @@ void TEMP_switchTo(int pid) {
 	   before doing the context switch, switch curr to the new process!
 	   (do the same thing in dispatcher in phase 1b)
 	 */
+	
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in TEMP_switchTo\n");
+		}
+	}
 
 	//printf("ENTERING: TEMP_switchTo(%d)\n", pid);
 
@@ -73,6 +80,10 @@ void TEMP_switchTo(int pid) {
 	}
 	
 	USLOSS_ContextSwitch(oldContext, &currentProcess->context);
+	
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in TEMP_switchTo\n");
+	}
 
 	//printf("EXITING: TEMP_switchTo(%d)\n", pid);
 }
@@ -88,11 +99,24 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 
 	//printf("TRYING TO SPORK %s\n", name);
 
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in spork\n");
+		}
+	}
+
 	// check for errors; return -2 if stack size is too small and -1 for all else
 	if (stackSize < USLOSS_MIN_STACK) {
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in spork\n");
+		}
 		return -2;
 	}
 	if (numProcesses == MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in spork\n");
+		}
 		return -1;
 	}
 
@@ -122,16 +146,36 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 
 	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
 
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in spork\n");
+	}
 	return newProcess.processID;
 }
 
 int join(int *status) {
+	
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in join\n");
+		}
+
+	}
+
 	if (status == NULL) {
+		
 		/* invalid argument */
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in join\n");
+		}
 		return -3;
 	}
 	else if (currentProcess->children == NULL) {
-		/* the process has no children */
+		
+		/* the process has no children */		
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in join\n");
+		}
 		return -2;
 	}
 	
@@ -170,6 +214,10 @@ int join(int *status) {
 			free(curr->contextStack);
 			memset(&table[curr->processID % MAXPROC], 0, sizeof(curr));
 			tableOccupancies[curr->processID % MAXPROC] = 0;
+			
+			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+				fprintf(stderr, "Bad PSR restored in join\n");
+			}
 			return curr->processID;
 		}
 		curr =  curr->olderSibling;  
@@ -177,11 +225,22 @@ int join(int *status) {
 	
 	// if a parent has no dead children, it blocks to wait for them to die
 	// this won't happen in phase1a, so here's a dummy return value (should never see this returned)
-    	return -1;
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in join\n");
+	}
+	return -1;
 }
 
 void quit_phase_1a(int status, int switchToPid) {
     
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in quit_phase_1a\n");
+		}
+
+	}
+
 	currentProcess->processState = -1;
 	currentProcess->exitStatus = status;
 
@@ -196,6 +255,10 @@ void quit_phase_1a(int status, int switchToPid) {
 	}
 	
 	TEMP_switchTo(switchToPid);
+	
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in quit_phase_1a\n");
+	}
 }
 
 void quit(int status) {
@@ -219,6 +282,15 @@ int getpid() {
  *   Returns: Void 
  */
 void dumpProcesses() {
+	
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in dumpProcesses\n");
+		}
+	}
+
+
 	printf("Process Dump\n------------------------------\n");
 	for (int i = 0; i < MAXPROC; i++) {
 		printf("  Table Index: %d\n\n", i);
@@ -229,6 +301,10 @@ void dumpProcesses() {
 			printf("  EMPTY\n");
 		}
 		printf("\n------------------------------\n");    
+	}
+	
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in dumpProcesses\n");
 	}
 }
 
@@ -241,6 +317,13 @@ void dumpProcesses() {
  */
 void processWrapper() {
 	
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in processWrapper\n");
+		}
+	}
+
 	/* before context switching, MUST change current process to new process!*/
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
@@ -249,6 +332,11 @@ void processWrapper() {
 	   of the process if it just returns. So if it happens, for now, just
 	   switch to init because the process to switch to cannot be known. */
 	quit_phase_1a(endStatus, 1);
+
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in processWrapper\n");
+	}
+
 }
 
 /* 
@@ -263,7 +351,15 @@ void processWrapper() {
  */
 void initProcessMain() {
 	
-	printf("ENTERING: initProcessMain()\n");	
+	//printf("ENTERING: initProcessMain()\n");	
+
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in initProcessMain\n");
+		}
+
+	}
 
 	/* call service processes for other phases (for now these are NOPs ) */
 	phase2_start_service_processes();
@@ -287,6 +383,10 @@ void initProcessMain() {
 		//printf("RETURNED %d\n", endStatus);
 	}
 	
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in initProcessMain\n");
+	}
+
 	// loop exited...no more children! (this should never be reached)
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
 	exit(endStatus);

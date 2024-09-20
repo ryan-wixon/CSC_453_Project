@@ -1,5 +1,4 @@
 Phase 1A TEMPORARY HACK: init() manually switching to PID 1.
-ENTERING: initProcessMain()
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
