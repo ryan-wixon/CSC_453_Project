@@ -8,6 +8,4 @@ EXPECTATION: The simulation should be terminated as soon as quit() is called, si
 Phase 1A TEMPORARY HACK: Manually switching to XXp1()
 XXp1(): started
 XXp1(): arg = 'XXp1'
-testcase_main: USLOSS_PsrSet returned 1
-Halting...
-finish(): The simulation is now terminating.
+INTERNAL ERROR: USLOSS_IllegalInstruction: invoking raise() with SIGUSR1 blocked.

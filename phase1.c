@@ -87,9 +87,18 @@ void TEMP_switchTo(int pid) {
 	}
 
 	if (oldProcess == NULL) {
+
+		// set the new process to running
+		currentProcess->processState = 1;
 		USLOSS_ContextSwitch(NULL, &currentProcess->context);
 	}
 	else {
+
+		// update the old process state if it hasn't just terminated, and set the new process to running
+		if (oldProcess->processState == 1) {
+			oldProcess->processState = 0;
+		} 
+		currentProcess->processState = 1;
 		USLOSS_ContextSwitch(&oldProcess->context, &currentProcess->context);
 	}
 	
@@ -313,17 +322,11 @@ void dumpProcesses() {
 		}
 	}
 
-
-	printf("Process Dump\n------------------------------\n");
+	printf(" PID  PPID  NAME              PRIORITY  STATE\n");
 	for (int i = 0; i < MAXPROC; i++) {
-		printf("  Table Index: %d\n\n", i);
 		if (tableOccupancies[i] == 1) {
 			printProcess(&table[i]);
 		}
-		else {
-			printf("  EMPTY\n");
-		}
-		printf("\n------------------------------\n");    
 	}
 	
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {

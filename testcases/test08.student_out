@@ -5,5 +5,4 @@ phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 testcase_main(): started
 EXPECTATION: The simulation should be terminated as soon as spork() is called, since we are not in kernel mode.
-ERROR: It looks like you are running testcase_main() with interrupts disabled, instead of enabled.  Fix that!
-finish(): The simulation is now terminating.
+INTERNAL ERROR: USLOSS_IllegalInstruction: invoking raise() with SIGUSR1 blocked.
