@@ -25,7 +25,7 @@ char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 void phase1_init() {
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in phase1_init\n");
 		}
@@ -69,7 +69,7 @@ void TEMP_switchTo(int pid) {
 	 */
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in TEMP_switchTo\n");
 		}
@@ -112,7 +112,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	//printf("TRYING TO SPORK %s\n", name);
 
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in spork\n");
 		}
@@ -170,7 +170,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 int join(int *status) {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in join\n");
 		}
@@ -249,7 +249,7 @@ int join(int *status) {
 void quit_phase_1a(int status, int switchToPid) {
     
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in quit_phase_1a\n");
 		}
@@ -307,7 +307,7 @@ int getpid() {
 void dumpProcesses() {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in dumpProcesses\n");
 		}
@@ -342,9 +342,7 @@ void processWrapper() {
 	
 	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
-	printf("the psr is: %u\n", oldPSR);
-	printf("psr current int is: %d\n", USLOSS_PSR_CURRENT_INT);
-	if (USLOSS_PSR_CURRENT_INT == 0) {
+	if (oldPSR == 1) {
 		if (USLOSS_PsrSet(oldPSR + 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in processWrapper\n");
 		}
@@ -380,7 +378,7 @@ void initProcessMain() {
 	//printf("ENTERING: initProcessMain()\n");	
 
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
+	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in initProcessMain\n");
 		}
