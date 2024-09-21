@@ -6,33 +6,44 @@
  * Prints information for a given process, used for debugging
  */
 void printProcess(Process* process) {
-
+	
+	// print the PID, must align correctly
 	if (process->processID < 10) {
 		printf("   %d", process->processID);
 	}
-	else {
+	else if (process->processID < 100) {
 		printf("  %d", process->processID);
 	}
+	else {
+		printf(" %d", process->processID);
+	}
 
+	// print the PPID, also must align correctly
 	if (process->parent != NULL) {
 		if (process->parent->processID < 10) {
 			printf("     %d", process->parent->processID);
 		}
-		else {
+		else if (process->parent->processID < 100){
 			printf("    %d", process->parent->processID);
+		}
+		else {
+			printf("   %d", process->parent->processID);
 		}
 	}
 	else {
 		printf("     0");
 	}
 
+	// print the process name
 	printf("  %s", process->name);
 	
+	// align the text pointer to where it needs to be based on the name length
 	int nameLength = strlen(process->name);
 	for (int i = 0; i < 18 - nameLength; i++) {
 		printf(" ");
 	}
 	
+	// print the priority, yet again must alighn correctly
 	if (process->priority < 10) {
 		printf("%d         ", process->priority);
 	}
@@ -40,6 +51,7 @@ void printProcess(Process* process) {
 		printf("%d        ", process->priority);
 	}
 
+	// print process status
 	switch(process->processState) {
 		case -1:
 			printf("Terminated(%d)\n", process->exitStatus);

@@ -54,7 +54,7 @@ Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-testcase_main(): spork() failed: i=48, pid is -2147483648.
+testcase_main(): spork() failed: i=48, pid is -1.
 testcase_main(): spork() failed: i=49, pid is -1.
 testcase_main(): spork() failed: i=50, pid is -1.
 testcase_main(): spork() failed: i=51, pid is -1.
@@ -110,11 +110,10 @@ testcase_main(): spork() failed: i=51, pid is -1.
   48     2  XXp1              2         Terminated(2)
   49     2  XXp1              2         Terminated(2)
 testcase_main(): Calling join() on 52 processes.  The number of 'failed' calls here should be the same as the number of 'failed' spork() calls.
-testcase_main(): join() failed: i=48, pid is -1.
-testcase_main(): join() failed: i=49, pid is -1.
-testcase_main(): join() failed: i=50, pid is -1.
-testcase_main(): join() failed: i=51, pid is -1.
-Error: testcase_main tried to quit while it still had children.
+testcase_main(): join() failed: i=48, pid is -2.
+testcase_main(): join() failed: i=49, pid is -2.
+testcase_main(): join() failed: i=50, pid is -2.
+testcase_main(): join() failed: i=51, pid is -2.
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Running

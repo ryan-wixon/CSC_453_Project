@@ -134,7 +134,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		}
 		return -2;
 	}
-	if (numProcesses > MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
+	if (numProcesses == MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR restored in spork\n");
 		}
@@ -242,6 +242,8 @@ int join(int *status) {
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 				fprintf(stderr, "Bad PSR restored in join\n");
 			}
+
+			numProcesses--;
 			return curr->processID;
 		}
 		curr =  curr->olderSibling;  
