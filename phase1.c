@@ -30,7 +30,6 @@ void phase1_init() {
 			fprintf(stderr, "Bad PSR set in phase1_init\n");
 		}
 	}
-	printf("the psr is: %u\n", oldPSR);
 
 	//printf("ENTERING: phase1_init()\n");
     
@@ -78,10 +77,7 @@ void TEMP_switchTo(int pid) {
 
 	//printf("ENTERING: TEMP_switchTo(%d)\n", pid);
 
-	Process *oldProcess = NULL;
-	if (currentProcess != NULL) {
-		oldProcess = currentProcess;
-	}
+	Process *oldProcess = currentProcess;
 	
 	for (int i = 0; i < MAXPROC; i++) {
 		if (tableOccupancies[i] == 1 && table[i].processID == pid) {
@@ -90,11 +86,10 @@ void TEMP_switchTo(int pid) {
 		}
 	}
 
-	if(oldProcess == NULL) {
+	if (oldProcess == NULL) {
 		USLOSS_ContextSwitch(NULL, &currentProcess->context);
 	}
 	else {
-		printf("made it to right before context switch\n");
 		USLOSS_ContextSwitch(&oldProcess->context, &currentProcess->context);
 	}
 	
@@ -147,19 +142,20 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 			     };
 		
 	// add process into table and link with parent and older sibling
-	table[processIDCounter % MAXPROC] = newProcess;
-	tableOccupancies[processIDCounter % MAXPROC] = 1;
+	int newProcessIndex = processIDCounter % MAXPROC;
+	table[newProcessIndex] = newProcess;
+	tableOccupancies[newProcessIndex] = 1;
 	if (currentProcess->children != NULL) {
-		currentProcess->children->youngerSibling = &table[processIDCounter % MAXPROC];
-		table[processIDCounter % MAXPROC].olderSibling = currentProcess->children;
+		currentProcess->children->youngerSibling = &table[newProcessIndex];
+		table[newProcessIndex].olderSibling = currentProcess->children;
 	}
-	currentProcess->children = &table[processIDCounter % MAXPROC];
+	currentProcess->children = &table[newProcessIndex];
 	
 	// spec says to allocate this but not sure what to do with it
 	void *stack = malloc(stackSize);
 
 	// initialize the USLOSS_Context and save the pointer to the stack
-	USLOSS_ContextInit(&newProcess.context, stack, stackSize, NULL, &processWrapper);
+	USLOSS_ContextInit(&table[newProcessIndex].context, stack, stackSize, NULL, &processWrapper);
 	newProcess.contextStack = stack;
 	numProcesses++;
 

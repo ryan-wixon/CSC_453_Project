@@ -3,3 +3,853 @@ phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+EXPECTATION: main() creates many XXp1 children, and join()s all of them; then repeats twice.  Process count is large enough to fill process table - meaning that students must free old process table entries.
+
+*** Start of round 0 of the spork()/join() operations ***
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 3
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 3 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 4
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 4 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 5
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 5 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 6
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 6 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 7
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 7 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 8
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 8 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 9
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 9 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 10
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 10 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 11
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 11 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 12
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 12 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 13
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 13 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 14
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 14 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 15
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 15 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 16
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 16 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 17
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 17 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 18
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 18 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 19
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 19 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 20
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 20 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 21
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 21 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 22
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 22 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 23
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 23 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 24
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 24 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 25
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 25 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 26
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 26 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 27
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 27 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 28
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 28 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 29
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 29 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 30
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 30 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 31
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 31 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 32
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 32 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 33
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 33 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 34
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 34 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 35
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 35 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 36
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 36 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 37
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 37 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 38
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 38 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 39
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 39 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 40
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 40 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 41
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 41 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 42
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 42 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 43
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 43 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 44
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 44 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+
+**************** Calling dumpProcesses() *******************
+Process Dump
+------------------------------
+  Table Index: 0
+
+  EMPTY
+
+------------------------------
+  Table Index: 1
+
+         Name: init
+          PID: 1
+Process State: 0
+     Priority: 6
+ Child 0 Name: testcase_main
+  Child 0 PID: 2
+
+------------------------------
+  Table Index: 2
+
+         Name: testcase_main
+          PID: 2
+Process State: 0
+     Priority: 3
+  Parent Name: init
+   Parent PID: 1
+ Child 0 Name: XXp1
+  Child 0 PID: 44
+ Child 0 Name: XXp1
+  Child 0 PID: 43
+ Child 0 Name: XXp1
+  Child 0 PID: 42
+ Child 0 Name: XXp1
+  Child 0 PID: 41
+ Child 0 Name: XXp1
+  Child 0 PID: 40
+ Child 0 Name: XXp1
+  Child 0 PID: 39
+ Child 0 Name: XXp1
+  Child 0 PID: 38
+ Child 0 Name: XXp1
+  Child 0 PID: 37
+ Child 0 Name: XXp1
+  Child 0 PID: 36
+ Child 0 Name: XXp1
+  Child 0 PID: 35
+ Child 0 Name: XXp1
+  Child 0 PID: 34
+ Child 0 Name: XXp1
+  Child 0 PID: 33
+ Child 0 Name: XXp1
+  Child 0 PID: 32
+ Child 0 Name: XXp1
+  Child 0 PID: 31
+ Child 0 Name: XXp1
+  Child 0 PID: 30
+ Child 0 Name: XXp1
+  Child 0 PID: 29
+ Child 0 Name: XXp1
+  Child 0 PID: 28
+ Child 0 Name: XXp1
+  Child 0 PID: 27
+ Child 0 Name: XXp1
+  Child 0 PID: 26
+ Child 0 Name: XXp1
+  Child 0 PID: 25
+ Child 0 Name: XXp1
+  Child 0 PID: 24
+ Child 0 Name: XXp1
+  Child 0 PID: 23
+ Child 0 Name: XXp1
+  Child 0 PID: 22
+ Child 0 Name: XXp1
+  Child 0 PID: 21
+ Child 0 Name: XXp1
+  Child 0 PID: 20
+ Child 0 Name: XXp1
+  Child 0 PID: 19
+ Child 0 Name: XXp1
+  Child 0 PID: 18
+ Child 0 Name: XXp1
+  Child 0 PID: 17
+ Child 0 Name: XXp1
+  Child 0 PID: 16
+ Child 0 Name: XXp1
+  Child 0 PID: 15
+ Child 0 Name: XXp1
+  Child 0 PID: 14
+ Child 0 Name: XXp1
+  Child 0 PID: 13
+ Child 0 Name: XXp1
+  Child 0 PID: 12
+ Child 0 Name: XXp1
+  Child 0 PID: 11
+ Child 0 Name: XXp1
+  Child 0 PID: 10
+ Child 0 Name: XXp1
+  Child 0 PID: 9
+ Child 0 Name: XXp1
+  Child 0 PID: 8
+ Child 0 Name: XXp1
+  Child 0 PID: 7
+ Child 0 Name: XXp1
+  Child 0 PID: 6
+ Child 0 Name: XXp1
+  Child 0 PID: 5
+ Child 0 Name: XXp1
+  Child 0 PID: 4
+ Child 0 Name: XXp1
+  Child 0 PID: 3
+
+------------------------------
+  Table Index: 3
+
+         Name: XXp1
+          PID: 3
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 4
+
+         Name: XXp1
+          PID: 4
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 5
+
+         Name: XXp1
+          PID: 5
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 6
+
+         Name: XXp1
+          PID: 6
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 7
+
+         Name: XXp1
+          PID: 7
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 8
+
+         Name: XXp1
+          PID: 8
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 9
+
+         Name: XXp1
+          PID: 9
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 10
+
+         Name: XXp1
+          PID: 10
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 11
+
+         Name: XXp1
+          PID: 11
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 12
+
+         Name: XXp1
+          PID: 12
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 13
+
+         Name: XXp1
+          PID: 13
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 14
+
+         Name: XXp1
+          PID: 14
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 15
+
+         Name: XXp1
+          PID: 15
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 16
+
+         Name: XXp1
+          PID: 16
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 17
+
+         Name: XXp1
+          PID: 17
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 18
+
+         Name: XXp1
+          PID: 18
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 19
+
+         Name: XXp1
+          PID: 19
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 20
+
+         Name: XXp1
+          PID: 20
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 21
+
+         Name: XXp1
+          PID: 21
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 22
+
+         Name: XXp1
+          PID: 22
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 23
+
+         Name: XXp1
+          PID: 23
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 24
+
+         Name: XXp1
+          PID: 24
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 25
+
+         Name: XXp1
+          PID: 25
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 26
+
+         Name: XXp1
+          PID: 26
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 27
+
+         Name: XXp1
+          PID: 27
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 28
+
+         Name: XXp1
+          PID: 28
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 29
+
+         Name: XXp1
+          PID: 29
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 30
+
+         Name: XXp1
+          PID: 30
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 31
+
+         Name: XXp1
+          PID: 31
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 32
+
+         Name: XXp1
+          PID: 32
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 33
+
+         Name: XXp1
+          PID: 33
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 34
+
+         Name: XXp1
+          PID: 34
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 35
+
+         Name: XXp1
+          PID: 35
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 36
+
+         Name: XXp1
+          PID: 36
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 37
+
+         Name: XXp1
+          PID: 37
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 38
+
+         Name: XXp1
+          PID: 38
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 39
+
+         Name: XXp1
+          PID: 39
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 40
+
+         Name: XXp1
+          PID: 40
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 41
+
+         Name: XXp1
+          PID: 41
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 42
+
+         Name: XXp1
+          PID: 42
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 43
+
+         Name: XXp1
+          PID: 43
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 44
+
+         Name: XXp1
+          PID: 44
+Process State: -1
+     Priority: 2
+  Parent Name: testcase_main
+   Parent PID: 2
+
+------------------------------
+  Table Index: 45
+
+  EMPTY
+
+------------------------------
+  Table Index: 46
+
+  EMPTY
+
+------------------------------
+  Table Index: 47
+
+  EMPTY
+
+------------------------------
+  Table Index: 48
+
+  EMPTY
+
+------------------------------
+  Table Index: 49
+
+  EMPTY
+
+------------------------------
+**************** end dumpProcesses() *******************
+
+testcase_main(): after join of child 44, status = 44
+testcase_main(): after join of child 43, status = 43
+testcase_main(): after join of child 42, status = 42
+testcase_main(): after join of child 41, status = 41
+testcase_main(): after join of child 40, status = 40
+testcase_main(): after join of child 39, status = 39
+testcase_main(): after join of child 38, status = 38
+testcase_main(): after join of child 37, status = 37
+testcase_main(): after join of child 36, status = 36
+testcase_main(): after join of child 35, status = 35
+testcase_main(): after join of child 34, status = 34
+testcase_main(): after join of child 33, status = 33
+testcase_main(): after join of child 32, status = 32
+testcase_main(): after join of child 31, status = 31
+testcase_main(): after join of child 30, status = 30
+testcase_main(): after join of child 29, status = 29
+testcase_main(): after join of child 28, status = 28
+testcase_main(): after join of child 27, status = 27
+testcase_main(): after join of child 26, status = 26
+testcase_main(): after join of child 25, status = 25
+testcase_main(): after join of child 24, status = 24
+testcase_main(): after join of child 23, status = 23
+testcase_main(): after join of child 22, status = 22
+testcase_main(): after join of child 21, status = 21
+testcase_main(): after join of child 20, status = 20
+testcase_main(): after join of child 19, status = 19
+testcase_main(): after join of child 18, status = 18
+testcase_main(): after join of child 17, status = 17
+testcase_main(): after join of child 16, status = 16
+testcase_main(): after join of child 15, status = 15
+testcase_main(): after join of child 14, status = 14
+testcase_main(): after join of child 13, status = 13
+testcase_main(): after join of child 12, status = 12
+testcase_main(): after join of child 11, status = 11
+testcase_main(): after join of child 10, status = 10
+testcase_main(): after join of child 9, status = 9
+testcase_main(): after join of child 8, status = 8
+testcase_main(): after join of child 7, status = 7
+testcase_main(): after join of child 6, status = 6
+testcase_main(): after join of child 5, status = 5
+testcase_main(): after join of child 4, status = 4
+testcase_main(): after join of child 3, status = 3
+
+*** Start of round 1 of the spork()/join() operations ***
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 44
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 44 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 45
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 45 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 46
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 46 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 47
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 47 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 48
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 48 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 49
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 49 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+ERROR: testcase_main(): spork() failed!!!  rc=-1
+finish(): The simulation is now terminating.
