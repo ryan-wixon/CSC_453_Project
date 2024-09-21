@@ -851,5 +851,10 @@ XXp1(): started, pid = 49
 XXp1(): arg = 'XXp1'
 XXp1(): this process will terminate immediately.
 testcase_main(): after spork of child 49 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 50
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 50 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
 ERROR: testcase_main(): spork() failed!!!  rc=-1
 finish(): The simulation is now terminating.

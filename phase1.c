@@ -125,7 +125,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		}
 		return -2;
 	}
-	if (numProcesses == MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
+	if (numProcesses > MAXPROC || priority < 0 || priority > 7 || func == NULL || name == NULL || strlen(name) > pow(MAXNAME, 7)) {
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR restored in spork\n");
 		}
@@ -256,6 +256,11 @@ void quit_phase_1a(int status, int switchToPid) {
 
 	}
 
+	if(currentProcess->children != NULL) {
+		fprintf(stderr, "Error: %s tried to quit while it still had children.\n", currentProcess->name);
+		USLOSS_Halt(1);
+	}
+
 	currentProcess->processState = -1;
 	currentProcess->exitStatus = status;
 
@@ -335,9 +340,12 @@ void dumpProcesses() {
  */
 void processWrapper() {
 	
+	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
-	if (USLOSS_PSR_CURRENT_INT == 1) {
-		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+	printf("the psr is: %u\n", oldPSR);
+	printf("psr current int is: %d\n", USLOSS_PSR_CURRENT_INT);
+	if (USLOSS_PSR_CURRENT_INT == 0) {
+		if (USLOSS_PsrSet(oldPSR + 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in processWrapper\n");
 		}
 	}

@@ -54,7 +54,7 @@ Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-testcase_main(): spork() failed: i=48, pid is -1.
+testcase_main(): spork() failed: i=48, pid is -2147483648.
 testcase_main(): spork() failed: i=49, pid is -1.
 testcase_main(): spork() failed: i=50, pid is -1.
 testcase_main(): spork() failed: i=51, pid is -1.
@@ -88,6 +88,8 @@ Process State: 0
      Priority: 3
   Parent Name: init
    Parent PID: 1
+ Child 0 Name: XXp1
+  Child 0 PID: -2147483648
  Child 0 Name: XXp1
   Child 0 PID: 50
  Child 0 Name: XXp1
@@ -657,10 +659,10 @@ Process State: -1
 
 ------------------------------
 testcase_main(): Calling join() on 52 processes.  The number of 'failed' calls here should be the same as the number of 'failed' spork() calls.
-testcase_main(): join() failed: i=48, pid is -2.
-testcase_main(): join() failed: i=49, pid is -2.
-testcase_main(): join() failed: i=50, pid is -2.
-testcase_main(): join() failed: i=51, pid is -2.
+testcase_main(): join() failed: i=48, pid is -1.
+testcase_main(): join() failed: i=49, pid is -1.
+testcase_main(): join() failed: i=50, pid is -1.
+testcase_main(): join() failed: i=51, pid is -1.
 Process Dump
 ------------------------------
   Table Index: 0
@@ -686,6 +688,8 @@ Process State: 0
      Priority: 3
   Parent Name: init
    Parent PID: 1
+ Child 0 Name: XXp1
+  Child 0 PID: -2147483648
 
 ------------------------------
   Table Index: 3
