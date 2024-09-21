@@ -9,6 +9,7 @@ int tm_pid = -1;
 
 int testcase_main()
 {
+    printf("made it to right after context switch\n");
     int status, pid1, kidpid;
 
     tm_pid = getpid();

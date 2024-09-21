@@ -24,6 +24,13 @@ Process *currentProcess = NULL; 	/* the current running process */
 char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 void phase1_init() {
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PSR_CURRENT_INT == 1) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in phase1_init\n");
+		}
+	}
+	printf("the psr is: %u\n", oldPSR);
 
 	//printf("ENTERING: phase1_init()\n");
     
@@ -36,7 +43,7 @@ void phase1_init() {
 
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
-			 .processMain = &initProcessMain, .mainArgs = NULL, 
+			 .processMain = initProcessMain, .mainArgs = NULL, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL
 		       };
 	
@@ -50,6 +57,10 @@ void phase1_init() {
 	//TODO more things - maybe?
 	
 	//printf("EXITING: phase1_init()\n");
+
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in phase1_init\n");
+	}
 }
 
 void TEMP_switchTo(int pid) {
@@ -67,9 +78,9 @@ void TEMP_switchTo(int pid) {
 
 	//printf("ENTERING: TEMP_switchTo(%d)\n", pid);
 
-	USLOSS_Context* oldContext = NULL;	
+	Process *oldProcess = NULL;
 	if (currentProcess != NULL) {
-		oldContext = &currentProcess->context;
+		oldProcess = currentProcess;
 	}
 	
 	for (int i = 0; i < MAXPROC; i++) {
@@ -78,8 +89,14 @@ void TEMP_switchTo(int pid) {
 			break;
 		}
 	}
-	
-	USLOSS_ContextSwitch(oldContext, &currentProcess->context);
+
+	if(oldProcess == NULL) {
+		USLOSS_ContextSwitch(NULL, &currentProcess->context);
+	}
+	else {
+		printf("made it to right before context switch\n");
+		USLOSS_ContextSwitch(&oldProcess->context, &currentProcess->context);
+	}
 	
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in TEMP_switchTo\n");
@@ -134,6 +151,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	tableOccupancies[processIDCounter % MAXPROC] = 1;
 	if (currentProcess->children != NULL) {
 		currentProcess->children->youngerSibling = &table[processIDCounter % MAXPROC];
+		table[processIDCounter % MAXPROC].olderSibling = currentProcess->children;
 	}
 	currentProcess->children = &table[processIDCounter % MAXPROC];
 	
@@ -143,6 +161,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	// initialize the USLOSS_Context and save the pointer to the stack
 	USLOSS_ContextInit(&newProcess.context, stack, stackSize, NULL, &processWrapper);
 	newProcess.contextStack = stack;
+	numProcesses++;
 
 	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
 
@@ -251,6 +270,9 @@ void quit_phase_1a(int status, int switchToPid) {
 		if(status != 0) {
 			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
 		}
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in quit_phase_1a\n");
+	}
 		USLOSS_Halt(status);
 	}
 	
