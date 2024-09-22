@@ -1,9 +1,20 @@
+/* 
+ * process.c
+ * Ryan Wixon and Adrianna Koppes
+ * CSC 452
+ * 
+ * Implements the functions defined in process.c in order ot manipulate Process structs
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include "process.h"
 
 /*
  * Prints information for a given process, used for debugging
+ *
+ * Arguments: process = A pointer to the process to print information about
+ *   Returns: Void 
  */
 void printProcess(Process* process) {
 	

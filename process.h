@@ -1,5 +1,9 @@
 /*
- * These are the definitions for structures related to processes 
+ * process.h
+ * Ryan Wixon and Adriana Koppes 
+ * CSC 452
+ *
+ * Defines a struct for representing an indiviudal process and several methods for manipulating them 
  */
 
 #ifndef _PROCESS_H_
@@ -22,7 +26,7 @@ typedef struct Process {
 	USLOSS_Context context;
 	void* contextStack; 
 		
-	int(*processMain)(void *);	/* start function for the process */
+	int (*processMain) (void *);	/* start function for the process */
 	void* mainArgs;			/* args for the process main function */
 
 	struct Process* parent;
@@ -34,6 +38,9 @@ typedef struct Process {
 
 /*
  * Prints information for a given process, used for debugging
+ *
+ * Arguments: process = A pointer to the process to print information about
+ *   Returns: Void 
  */
 void printProcess(Process* process);
 

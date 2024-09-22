@@ -3,7 +3,7 @@
  * Ryan Wixon and Adrianna Koppes
  * CSC 452
  * 
- * TODO: header comment (maybe?)
+ * Implements the functions defined in phase1.h in order to simulate an operating system kernel
  */
 
 #include <stdio.h>
@@ -23,9 +23,17 @@ Process *currentProcess = NULL; 	/* the current running process */
 
 char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
+/*
+ * Startup code for phase 1
+ *
+ * Arguments: None
+ *   Returns: Void
+ */
 void phase1_init() {
+	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call phase1_init() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call phase1_init while in user mode!\n");
 		USLOSS_Halt(1);
@@ -35,14 +43,13 @@ void phase1_init() {
 			fprintf(stderr, "Bad PSR set in phase1_init\n");
 		}
 	}
-
-	//printf("ENTERING: phase1_init()\n");
-    
+ 
 	// set every table entry to vacant
 	for (int i = 0; i < MAXPROC; i++) {
 		tableOccupancies[i] = 0;
 	}
-	/* null out the entire table to prepare for filling */
+	
+	// null out the entire table to prepare for filling
 	memset(table, 0, sizeof(table));
 
 	// create the init process (will not run yet)
@@ -58,23 +65,26 @@ void phase1_init() {
 	// initialize context for init process
 	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
 	
-	//TODO more things - maybe?
-	
-	//printf("EXITING: phase1_init()\n");
-
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in phase1_init\n");
 	}
 }
 
+/*
+ * Temporary context switching function for phase 1a
+ *
+ * Arguments: pid = The PID of the process to switch to
+ *   Returns: Void
+ */
 void TEMP_switchTo(int pid) {
-    /* temporary context switch fxn
+    	/* temporary context switch fxn
 	   before doing the context switch, switch curr to the new process!
 	   (do the same thing in dispatcher in phase 1b)
-	 */
+	*/
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call TEMP_switchTo() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call TEMP_switchTo while in user mode!\n");
 		USLOSS_Halt(1);
@@ -85,10 +95,9 @@ void TEMP_switchTo(int pid) {
 		}
 	}
 
-	//printf("ENTERING: TEMP_switchTo(%d)\n", pid);
-
 	Process *oldProcess = currentProcess;
 	
+	// find the process to switch to
 	for (int i = 0; i < MAXPROC; i++) {
 		if (tableOccupancies[i] == 1 && table[i].processID == pid) {
 			currentProcess = &table[i];
@@ -96,6 +105,7 @@ void TEMP_switchTo(int pid) {
 		}
 	}
 
+	// perform the switch
 	if (oldProcess == NULL) {
 
 		// set the new process to running
@@ -115,20 +125,24 @@ void TEMP_switchTo(int pid) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in TEMP_switchTo\n");
 	}
-
-	//printf("EXITING: TEMP_switchTo(%d)\n", pid);
 }
 
+/*
+ * Creates a new child of the currently running process
+ *
+ * Arguments: name = The name of the process to be created; func = A function pointer to the process' main method;
+	      arg = A pointer to the process' main method arguments; stackSize = The size of the process' stack space, in bytes;
+	      priority = An integer representing the process' starting priority 
+ *   Returns: Integer representing the PID of the newly created process
+ */
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
-    /* TODO - fork esque fxn
-    Russ's instructions for the function:
-    - Look for a slot in the process table and assign an ID (numProcesses + 1)
-    - Fill in the details of the process
-    - Set up the context structure so that we can (later) context switch to the new process
-    - PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
-    */
-
-	//printf("TRYING TO SPORK %s\n", name);
+    	/* 
+    	Russ's instructions for the function:
+    	- Look for a slot in the process table and assign an ID (numProcesses + 1)
+    	- Fill in the details of the process
+    	- Set up the context structure so that we can (later) context switch to the new process
+    	- PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
+	*/
 
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -181,8 +195,10 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	// initialize the USLOSS_Context and save the pointer to the stack
 	USLOSS_ContextInit(&table[newProcessIndex].context, stack, stackSize, NULL, &processWrapper);
 	newProcess.contextStack = stack;
+	
+	// ensure processes never repeat IDs
 	numProcesses++;
-	processIDCounter++;		// ensure processes never repeat IDs
+	processIDCounter++;
 
 	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
 
@@ -192,10 +208,17 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	return newProcess.processID;
 }
 
+/*
+ * Finds and returns the first dead child of the current process, or blocks if all children are alive
+ *
+ * Arguments: status = A pointer to an integer to write the dead child's return status to 
+ *   Returns: Integer representing the PID of the dead child collected
+ */
 int join(int *status) {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call join() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call join while in user mode!\n");
 		USLOSS_Halt(1);
@@ -207,17 +230,18 @@ int join(int *status) {
 
 	}
 
+	
 	if (status == NULL) {
 		
-		/* invalid argument */
+		// invalid argument
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR restored in join\n");
 		}
 		return -3;
 	}
-	else if (currentProcess->children == NULL) {
+	if (currentProcess->children == NULL) {
 		
-		/* the process has no children */		
+		// the process has no children		
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR restored in join\n");
 		}
@@ -230,34 +254,37 @@ int join(int *status) {
 		if (curr->processState == -1) {
 			*status = curr->exitStatus;
 			
-			/* reset relationships between dead process and live processes */
-			if(curr->processID == currentProcess->children->processID) {
-				if(curr->olderSibling == NULL) {
-					/* all children have died */
+			// reset relationships between dead process and live processes
+			if (curr->processID == currentProcess->children->processID) {
+				if (curr->olderSibling == NULL) {
+					
+					// all children have died
 					currentProcess->children = NULL;
 				}
 				else {
-					/* make sure the child list still connects to parent */
+					// make sure the child list still connects to parent
 					currentProcess->children = curr->olderSibling;
 					curr->olderSibling->youngerSibling = NULL;
 				}
 			}
-			else if(curr->olderSibling == NULL) {
-				/* oldest process in the child list */
+			else if (curr->olderSibling == NULL) {
+				
+				// oldest process in the child list
 				curr->youngerSibling->olderSibling = NULL;
 			}
 			else {
-				/* delete from middle of child list */
+				// delete from middle of child list
 				curr->olderSibling->youngerSibling = curr->youngerSibling;
 				curr->youngerSibling->olderSibling = curr->olderSibling;
 			}
-			/* sever ties to related processes so no potential dangling pointers */
+			
+			// sever ties to related processes so no potential dangling pointers
 			curr->youngerSibling = NULL;
 			curr->olderSibling = NULL;
 			curr->parent = NULL;
-			/* free the dead process's memory */
+			
+			// free the dead process's memory
 			free(curr->contextStack);
-			memset(&table[curr->processID % MAXPROC], 0, sizeof(curr));
 			tableOccupancies[curr->processID % MAXPROC] = 0;
 			
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -265,9 +292,9 @@ int join(int *status) {
 			}
 
 			numProcesses--;
-			return curr->processID;
+			return curr-> processID;
 		}
-		curr =  curr->olderSibling;  
+		curr = curr->olderSibling;  
 	}
 	
 	// if a parent has no dead children, it blocks to wait for them to die
@@ -278,10 +305,17 @@ int join(int *status) {
 	return -1;
 }
 
+/* 
+ * Temportary quit function for phase 1a 
+ *
+ * Arguments: status = The return status for the current process; switchToPid = The PID of the process to manually switch to
+ *   Returns: Void
+ */
 void quit_phase_1a(int status, int switchToPid) {
     
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+
 		// you cannot call quit() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call quit_phase_1a while in user mode!\n");
 		USLOSS_Halt(1);
@@ -326,10 +360,10 @@ void quit(int status) {
 }
 
 /* 
-   Returns the PID of the current process.
-
-   Arguments: None.
-   Returns: integer representing the PID of the current process.
+ * Returns the PID of the current process.
+ *
+ * Arguments: None
+ *   Returns: Integer representing the PID of the current process.
  */
 int getpid() {
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -351,6 +385,7 @@ void dumpProcesses() {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call dumpProcesses() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call dumpProcesses while in user mode!\n");
 		USLOSS_Halt(1);
@@ -374,16 +409,17 @@ void dumpProcesses() {
 }
 
 /*
-  Wrapper function for process main functions. Requires setting the new
-  process that is about to be run as the current process.
-
-  Arguments: None
-  Returns: Void
+ * Wrapper function for process main functions. Requires setting the new
+ * process that is about to be run as the current process.
+ *
+ * Arguments: None
+ *   Returns: Void
  */
 void processWrapper() {
 	
 	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
+	
 	// processes may run in user mode, so don't halt if you're in user mode here
 	if (oldPSR == 1) {
 		if (USLOSS_PsrSet(oldPSR + 2) == USLOSS_ERR_INVALID_PSR) {
@@ -418,15 +454,14 @@ void processWrapper() {
  * loop calling join() until there are no more child processes left. Once
  * that happens, the simulation concludes.
  * 
- * Arguments: None.
- * Returns: None.
+ * Arguments: None
+ *   Returns: None
  */
 void initProcessMain() {
 	
-	//printf("ENTERING: initProcessMain()\n");	
-
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot run init in user mode
 		fprintf(stderr, "ERROR: Someone attempted to run init while in user mode!\n");
 		USLOSS_Halt(1);
@@ -438,7 +473,7 @@ void initProcessMain() {
 
 	}
 
-	/* call service processes for other phases (for now these are NOPs ) */
+	// call service processes for other phases (for now these are NOPs)
 	phase2_start_service_processes();
 	phase3_start_service_processes();
 	phase4_start_service_processes();
@@ -449,17 +484,11 @@ void initProcessMain() {
 	// create testcase main and switch to it (in phase1b, only call spork)
 	TEMP_switchTo(spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3));
 
-	/* 
-	   enter join loop (need completed join)
-	   if join returns an error, terminate the program
-	*/
+	// enter join loop; if it returns an error quit the program
 	int endStatus = 1;
 	int processStatus = 0;	// keep track of process status
-
-	//printf("ENTERING JOIN LOOP\n");
 	while(endStatus != -2) {
 		endStatus = join(&processStatus);
-		//printf("RETURNED %d\n", endStatus);
 	}
 	
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
