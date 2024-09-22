@@ -497,5 +497,5 @@ void initProcessMain() {
 
 	// loop exited...no more children! (this should never be reached)
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
-	exit(1);
+	USLOSS_Halt(1);
 }
