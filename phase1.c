@@ -121,6 +121,11 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	//printf("TRYING TO SPORK %s\n", name);
 
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call spork() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call spork while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in spork\n");
@@ -167,6 +172,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	USLOSS_ContextInit(&table[newProcessIndex].context, stack, stackSize, NULL, &processWrapper);
 	newProcess.contextStack = stack;
 	numProcesses++;
+	processIDCounter++;		// ensure processes never repeat IDs
 
 	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
 
@@ -260,6 +266,11 @@ int join(int *status) {
 void quit_phase_1a(int status, int switchToPid) {
     
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call quit() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call quit_phase_1a while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in quit_phase_1a\n");
@@ -268,7 +279,7 @@ void quit_phase_1a(int status, int switchToPid) {
 	}
 
 	if(currentProcess->children != NULL) {
-		fprintf(stderr, "Error: %s tried to quit while it still had children.\n", currentProcess->name);
+		fprintf(stderr, "ERROR: Process pid %d called quit() while it still had children.\n", currentProcess->processID);
 		USLOSS_Halt(1);
 	}
 

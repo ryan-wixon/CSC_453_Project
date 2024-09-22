@@ -311,11 +311,6 @@ testcase_main(): after join of child 3, status = 3
 
 *** Start of round 1 of the spork()/join() operations ***
 Phase 1A TEMPORARY HACK: Manually switching to XXp1()
-XXp1(): started, pid = 44
-XXp1(): arg = 'XXp1'
-XXp1(): this process will terminate immediately.
-testcase_main(): after spork of child 44 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
-Phase 1A TEMPORARY HACK: Manually switching to XXp1()
 XXp1(): started, pid = 45
 XXp1(): arg = 'XXp1'
 XXp1(): this process will terminate immediately.
@@ -520,6 +515,11 @@ XXp1(): started, pid = 87
 XXp1(): arg = 'XXp1'
 XXp1(): this process will terminate immediately.
 testcase_main(): after spork of child 87 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 88
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 88 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
 
 **************** Calling dumpProcesses() *******************
  PID  PPID  NAME              PRIORITY  STATE
@@ -561,7 +561,7 @@ testcase_main(): after spork of child 87 -- you will see this after the just-cre
   85     2  XXp1              2         Terminated(85)
   86     2  XXp1              2         Terminated(86)
   87     2  XXp1              2         Terminated(87)
-  44     2  XXp1              2         Terminated(44)
+  88     2  XXp1              2         Terminated(88)
   45     2  XXp1              2         Terminated(45)
   46     2  XXp1              2         Terminated(46)
   47     2  XXp1              2         Terminated(47)
@@ -569,6 +569,7 @@ testcase_main(): after spork of child 87 -- you will see this after the just-cre
   49     2  XXp1              2         Terminated(49)
 **************** end dumpProcesses() *******************
 
+testcase_main(): after join of child 88, status = 88
 testcase_main(): after join of child 87, status = 87
 testcase_main(): after join of child 86, status = 86
 testcase_main(): after join of child 85, status = 85
@@ -610,19 +611,8 @@ testcase_main(): after join of child 48, status = 48
 testcase_main(): after join of child 47, status = 47
 testcase_main(): after join of child 46, status = 46
 testcase_main(): after join of child 45, status = 45
-testcase_main(): after join of child 44, status = 44
 
 *** Start of round 2 of the spork()/join() operations ***
-Phase 1A TEMPORARY HACK: Manually switching to XXp1()
-XXp1(): started, pid = 87
-XXp1(): arg = 'XXp1'
-XXp1(): this process will terminate immediately.
-testcase_main(): after spork of child 87 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
-Phase 1A TEMPORARY HACK: Manually switching to XXp1()
-XXp1(): started, pid = 88
-XXp1(): arg = 'XXp1'
-XXp1(): this process will terminate immediately.
-testcase_main(): after spork of child 88 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
 Phase 1A TEMPORARY HACK: Manually switching to XXp1()
 XXp1(): started, pid = 89
 XXp1(): arg = 'XXp1'
@@ -823,6 +813,16 @@ XXp1(): started, pid = 130
 XXp1(): arg = 'XXp1'
 XXp1(): this process will terminate immediately.
 testcase_main(): after spork of child 130 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 131
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 131 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
+Phase 1A TEMPORARY HACK: Manually switching to XXp1()
+XXp1(): started, pid = 132
+XXp1(): arg = 'XXp1'
+XXp1(): this process will terminate immediately.
+testcase_main(): after spork of child 132 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.
 
 **************** Calling dumpProcesses() *******************
  PID  PPID  NAME              PRIORITY  STATE
@@ -857,8 +857,8 @@ testcase_main(): after spork of child 130 -- you will see this after the just-cr
  128     2  XXp1              2         Terminated(128)
  129     2  XXp1              2         Terminated(129)
  130     2  XXp1              2         Terminated(130)
-  87     2  XXp1              2         Terminated(87)
-  88     2  XXp1              2         Terminated(88)
+ 131     2  XXp1              2         Terminated(131)
+ 132     2  XXp1              2         Terminated(132)
   89     2  XXp1              2         Terminated(89)
   90     2  XXp1              2         Terminated(90)
   91     2  XXp1              2         Terminated(91)
@@ -872,6 +872,8 @@ testcase_main(): after spork of child 130 -- you will see this after the just-cr
   99     2  XXp1              2         Terminated(99)
 **************** end dumpProcesses() *******************
 
+testcase_main(): after join of child 132, status = 132
+testcase_main(): after join of child 131, status = 131
 testcase_main(): after join of child 130, status = 130
 testcase_main(): after join of child 129, status = 129
 testcase_main(): after join of child 128, status = 128
@@ -912,6 +914,4 @@ testcase_main(): after join of child 92, status = 92
 testcase_main(): after join of child 91, status = 91
 testcase_main(): after join of child 90, status = 90
 testcase_main(): after join of child 89, status = 89
-testcase_main(): after join of child 88, status = 88
-testcase_main(): after join of child 87, status = 87
 finish(): The simulation is now terminating.
