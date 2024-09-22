@@ -3,6 +3,7 @@ phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
+Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.
 testcase_main(): started
 EXPECTATION: The simulation should be terminated as soon as quit() is called, since we are not in kernel mode.
 Phase 1A TEMPORARY HACK: Manually switching to XXp1()

@@ -25,6 +25,11 @@ char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 void phase1_init() {
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call phase1_init() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call phase1_init while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in phase1_init\n");
@@ -63,12 +68,17 @@ void phase1_init() {
 }
 
 void TEMP_switchTo(int pid) {
-    /* TODO - temporary context switch fxn
+    /* temporary context switch fxn
 	   before doing the context switch, switch curr to the new process!
 	   (do the same thing in dispatcher in phase 1b)
 	 */
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call TEMP_switchTo() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call TEMP_switchTo while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in TEMP_switchTo\n");
@@ -185,6 +195,11 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 int join(int *status) {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call join() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call join while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in join\n");
@@ -294,8 +309,8 @@ void quit_phase_1a(int status, int switchToPid) {
 			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
 		}
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-		fprintf(stderr, "Bad PSR restored in quit_phase_1a\n");
-	}
+			fprintf(stderr, "Bad PSR restored in quit_phase_1a\n");
+		}
 		USLOSS_Halt(status);
 	}
 	
@@ -317,6 +332,12 @@ void quit(int status) {
    Returns: integer representing the PID of the current process.
  */
 int getpid() {
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call getpid() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call getpid while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	return currentProcess->processID;
 }
 
@@ -329,6 +350,11 @@ int getpid() {
 void dumpProcesses() {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call dumpProcesses() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call dumpProcesses while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in dumpProcesses\n");
@@ -358,6 +384,7 @@ void processWrapper() {
 	
 	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
+	// processes may run in user mode, so don't halt if you're in user mode here
 	if (oldPSR == 1) {
 		if (USLOSS_PsrSet(oldPSR + 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in processWrapper\n");
@@ -367,11 +394,16 @@ void processWrapper() {
 	/* before context switching, MUST change current process to new process!*/
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
-	/* when a process's main function is over, it has quit, so call quit */
-	/* for now, in Phase 1A, we don't have to worry about quitting on behalf 
-	   of the process if it just returns. So if it happens, for now, just
-	   switch to init because the process to switch to cannot be known. */
-	quit_phase_1a(endStatus, 1);
+	/* special handling: testcase_main returning calls quit, normal process
+	   returning is an error. */
+	if(strcmp(currentProcess->name, "testcase_main") == 0) {
+		printf("Phase 1A TEMPORARY HACK: testcase_main() returned, simulation will now halt.\n");
+		quit_phase_1a(endStatus, 1);	// switch to parent process init
+	}
+	else {
+		fprintf(stderr, "ERROR: Process with pid %d returned instead of calling quit_phase_1a!\n", currentProcess->processID);
+		USLOSS_Halt(1);
+	}
 
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in processWrapper\n");
@@ -394,6 +426,11 @@ void initProcessMain() {
 	//printf("ENTERING: initProcessMain()\n");	
 
 	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot run init in user mode
+		fprintf(stderr, "ERROR: Someone attempted to run init while in user mode!\n");
+		USLOSS_Halt(1);
+	}
 	if (oldPSR == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in initProcessMain\n");
@@ -406,6 +443,8 @@ void initProcessMain() {
 	phase3_start_service_processes();
 	phase4_start_service_processes();
 	phase5_start_service_processes();
+
+	printf("Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.\n");
 
 	// create testcase main and switch to it (in phase1b, only call spork)
 	TEMP_switchTo(spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3));
@@ -429,5 +468,5 @@ void initProcessMain() {
 
 	// loop exited...no more children! (this should never be reached)
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
-	exit(endStatus);
+	exit(1);
 }
