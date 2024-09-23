@@ -194,8 +194,6 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	numProcesses++;
 	processIDCounter++;
 
-	//printf("SPORKED NEW PROCESS %s WITH PID %d\n", name, newProcess.processID);
-
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in spork\n");
 	}
