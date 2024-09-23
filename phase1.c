@@ -3,7 +3,9 @@
  * Ryan Wixon and Adrianna Koppes
  * CSC 452
  * 
- * Implements the functions defined in phase1.h in order to simulate an operating system kernel
+ * Implements the functions defined in phase1.h in order to simulate an operating system kernel.
+ * This phase deals with process control and ensuring that the operating system can create new
+ * processes, run them, switch to new processes, and then destroy them when they finish.
  */
 
 #include <stdio.h>
@@ -24,7 +26,8 @@ Process *currentProcess = NULL; 	/* the current running process */
 char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
 /*
- * Startup code for phase 1
+ * Startup code for phase 1. Initializes necessary data structures for process
+ * handling and creates the init process.
  *
  * Arguments: None
  *   Returns: Void
@@ -71,16 +74,13 @@ void phase1_init() {
 }
 
 /*
- * Temporary context switching function for phase 1a
+ * Temporary context switching function for phase 1a. Switches to the
+ * specified process. The new process is also set as the current process.
  *
  * Arguments: pid = The PID of the process to switch to
  *   Returns: Void
  */
 void TEMP_switchTo(int pid) {
-    	/* temporary context switch fxn
-	   before doing the context switch, switch curr to the new process!
-	   (do the same thing in dispatcher in phase 1b)
-	*/
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -136,14 +136,8 @@ void TEMP_switchTo(int pid) {
  *   Returns: Integer representing the PID of the newly created process
  */
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
-    	/* 
-    	Russ's instructions for the function:
-    	- Look for a slot in the process table and assign an ID (numProcesses + 1)
-    	- Fill in the details of the process
-    	- Set up the context structure so that we can (later) context switch to the new process
-    	- PART 1B ONLY: Call the dispatcher to see if it wants to do a context switch
-	*/
 
+	// check to ensure we are in user mode with interrupts disabled
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
 		// you cannot call spork() in user mode
@@ -410,7 +404,8 @@ void dumpProcesses() {
 
 /*
  * Wrapper function for process main functions. Requires setting the new
- * process that is about to be run as the current process.
+ * process that is about to be run as the current process. Runs the current
+ * process.
  *
  * Arguments: None
  *   Returns: Void
