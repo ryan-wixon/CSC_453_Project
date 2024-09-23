@@ -82,6 +82,18 @@ extern int testcase_main(void);
  */
 void processWrapper();
 
+/*
+ * The second wrapper function for testcase_main, necessary because
+ * the regular testcase_main function (in the testcases) does not have
+ * an argument, but our process table function requires the use of a
+ * main function with an argument. Should just call testcase_main() and
+ * then return the testcase's return code.
+ * 
+ * Arguments: void pointer ignored, which is an unused argument.
+ * Returns: integer representing the return code of testcase_main
+ */
+int testcaseMainWrapper(void* ignored);
+
 /* init's "main" function */
 int initProcessMain(void* ignored);
 
