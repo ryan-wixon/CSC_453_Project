@@ -66,7 +66,7 @@ void phase1_init() {
 	tableOccupancies[1] = 1;
 
 	// initialize context for init process
-	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, initProcessMain);
+	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, processWrapper);
 	
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in phase1_init\n");
@@ -440,6 +440,21 @@ void processWrapper() {
 
 }
 
+/*
+ * The second wrapper function for testcase_main, necessary because
+ * the regular testcase_main function (in the testcases) does not have
+ * an argument, but our process table function requires the use of a
+ * main function with an argument. It just calls testcase_main() and
+ * then returns the testcase's return code.
+ * 
+ * Arguments: void pointer ignored, which is an unused argument.
+ * Returns: integer representing the return code of testcase_main
+ */
+int testcaseMainWrapper(void* ignored) {
+	int returnCode = testcase_main();
+	return returnCode;
+}
+
 /* 
  * The function that includes the init process's functionality. It 
  * starts all the necessary service processes, then creates the 
@@ -447,10 +462,11 @@ void processWrapper() {
  * loop calling join() until there are no more child processes left. Once
  * that happens, the simulation concludes.
  * 
- * Arguments: None
- *   Returns: None
+ * Arguments: void pointer ignored, which is an unused argument.
+ *   Returns: integer representing the return code of init (but in 
+ *   practicality, should never actually return).
  */
-void initProcessMain() {
+int initProcessMain(void* ignored) {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -475,7 +491,7 @@ void initProcessMain() {
 	printf("Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.\n");
 
 	// create testcase main and switch to it (in phase1b, only call spork)
-	TEMP_switchTo(spork("testcase_main", testcase_main, NULL, USLOSS_MIN_STACK, 3));
+	TEMP_switchTo(spork("testcase_main", testcaseMainWrapper, NULL, USLOSS_MIN_STACK, 3));
 
 	// enter join loop; if it returns an error quit the program
 	int endStatus = 1;
@@ -491,4 +507,6 @@ void initProcessMain() {
 	// loop exited...no more children! (this should never be reached)
 	fprintf(stderr, "Error: All child processes have been terminated. The simulation will now conclude.\n");
 	USLOSS_Halt(1);
+
+	return -1;	// should never be reached
 }

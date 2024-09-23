@@ -83,6 +83,6 @@ extern int testcase_main(void);
 void processWrapper();
 
 /* init's "main" function */
-void initProcessMain();
+int initProcessMain(void* ignored);
 
 #endif /* _PHASE1_H */
