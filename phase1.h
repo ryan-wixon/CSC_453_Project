@@ -31,28 +31,38 @@
 
 #define MAXSYSCALLS  50
 
+
 /* 
  * These functions must be provided by Phase 1.
  */
-extern void phase1_init(void);
-extern int  spork(char *name, int(*func)(void *), void *arg, int stacksize, int priority);
-extern int  join(int *status);
 
-extern void quit_phase_1a(int status, int switchToPid) __attribute__((__noreturn__));
-extern void quit         (int status)                  __attribute__((__noreturn__));
+extern void phase1_init(void);
+extern int  spork(char *name, int(*func)(void *), void *arg,
+                  int stacksize, int priority);
+extern int  join(int *status);
+extern void quit(int status) __attribute__((__noreturn__));
+extern void zap(int pid);
+extern void blockMe(void);
+extern int  unblockProc(int pid);
+
+extern void dispatcher(void);
+
+extern int  currentTime(void);
 
 extern int  getpid(void);
 extern void dumpProcesses(void);
 
-void TEMP_switchTo(int pid);
 
 /*
  * These functions are called *BY* Phase 1 code, and are implemented in
  * Phase 5.  If we are testing code before Phase 5 is written, then the
  * testcase must provide a NOP implementation of each.
  */
+
 extern USLOSS_PTE *phase5_mmu_pageTable_alloc(int pid);
 extern void        phase5_mmu_pageTable_free (int pid, USLOSS_PTE*);
+
+
 
 /* these functions are also called by the phase 1 code, from inside
  * init_main().  They are called first; after they return, init()
@@ -73,28 +83,6 @@ extern void phase5_start_service_processes(void);
  */
 extern int testcase_main(void);
 
-/*
-  Wrapper function for process main functions. Requires setting the new
-  process that is about to be run as the current process.
 
-  Arguments: None
-  Returns: Void
- */
-void processWrapper();
-
-/*
- * The second wrapper function for testcase_main, necessary because
- * the regular testcase_main function (in the testcases) does not have
- * an argument, but our process table function requires the use of a
- * main function with an argument. Should just call testcase_main() and
- * then return the testcase's return code.
- * 
- * Arguments: void pointer ignored, which is an unused argument.
- * Returns: integer representing the return code of testcase_main
- */
-int testcaseMainWrapper(void* ignored);
-
-/* init's "main" function */
-int initProcessMain(void* ignored);
 
 #endif /* _PHASE1_H */

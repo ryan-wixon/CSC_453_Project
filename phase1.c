@@ -348,7 +348,29 @@ void quit_phase_1a(int status, int switchToPid) {
 }
 
 void quit(int status) {
-    /* This is part of Phase 1b and is NOP for now. */
+    /* TODO */
+}
+
+void zap(int pid) {
+	/* TODO */
+}
+
+void blockMe(void) {
+	/* TODO */
+}
+
+int unblockProc(int pid) {
+	/* TODO */
+	return -1;	// remove this! temp return.
+}
+
+void dispatcher(void) {
+	/* TODO */
+}
+
+int currentTime(void) {
+	/* TODO */
+	return -1 // remove this! temp return.
 }
 
 /* 

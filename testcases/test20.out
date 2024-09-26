@@ -1,60 +1,10 @@
-Phase 1A TEMPORARY HACK: init() manually switching to PID 1.
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.
 testcase_main(): started
 EXPECTATION: Attempt to create MAXPROC+2 processes (without calling join() on any of them).  This will work many times but eventually fail because all of the procTable slots are full.  We will only print out info about the failed ones.
 testcase_main(): start 52 processes
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
-Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()
 testcase_main(): spork() failed: i=48, pid is -1.
 testcase_main(): spork() failed: i=49, pid is -1.
 testcase_main(): spork() failed: i=50, pid is -1.
@@ -118,5 +68,4 @@ testcase_main(): join() failed: i=51, pid is -2.
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Running
-Phase 1A TEMPORARY HACK: testcase_main() returned, simulation will now halt.
 finish(): The simulation is now terminating.

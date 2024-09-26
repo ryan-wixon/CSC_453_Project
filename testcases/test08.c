@@ -1,4 +1,4 @@
-/* This test is to check whether spork tests for the mode being == kernel */
+/* This test is to check whether fork tests for the mode being == kernel */
 
 #include <stdio.h>
 #include <usloss.h>
@@ -12,7 +12,7 @@ int testcase_main()
     int result;
 
     USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: The simulation should be terminated as soon as spork() is called, since we are not in kernel mode.\n");
+    USLOSS_Console("EXPECTATION: The simulation should be terminated as soon as fork() is called, since we are not in kernel mode.\n");
 
     /* sanity check: are interrupts enabled so far? */
     if ( (USLOSS_PsrGet() & USLOSS_PSR_CURRENT_INT) == 0)
@@ -28,7 +28,7 @@ int testcase_main()
         USLOSS_Halt(1);
     }
     pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("testcase_main(): after spork of child %d\n", pid1);
+    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
     USLOSS_Console("testcase_main(): performing join\n");
     kidpid = join(&status);
     USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 

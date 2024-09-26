@@ -4,13 +4,9 @@
 
 int XXp1(void *);
 
-int tm_pid = -1;
-
 int testcase_main()
 {
     int status, kidpid, i, j;
-
-    tm_pid = getpid();
 
     USLOSS_Console("testcase_main(): started\n");
     USLOSS_Console("EXPECTATION: main() creates many XXp1 children, and join()s all of them; then repeats twice.  Process count is large enough to fill process table - meaning that students must free old process table entries.\n");
@@ -22,20 +18,17 @@ int testcase_main()
     int PROC_COUNT = MAXPROC-8;
 
     for (j = 0; j < 3; j++) {
-        USLOSS_Console("\n*** Start of round %d of the spork()/join() operations ***\n", j);
+        USLOSS_Console("\n*** Start of round %d of the fork()/join() operations ***\n", j);
 
         for (i = 0; i < PROC_COUNT; i++) {
             kidpid = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
             if (kidpid < 0)
             {
-                USLOSS_Console("ERROR: testcase_main(): spork() failed!!!  rc=%d\n", kidpid);
+                USLOSS_Console("ERROR: testcase_main(): fork() failed!!!  rc=%d\n", kidpid);
                 USLOSS_Halt(1);
             }
 
-            USLOSS_Console("Phase 1A TEMPORARY HACK: Manually switching to XXp1()\n");
-            TEMP_switchTo(kidpid);
-
-            USLOSS_Console("testcase_main(): after spork of child %d -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these spork messages.\n", kidpid);
+            USLOSS_Console("testcase_main(): after fork of child %d -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these fork messages.\n", kidpid);
         }
 
         USLOSS_Console("\n**************** Calling dumpProcesses() *******************\n");
@@ -69,6 +62,6 @@ int XXp1(void *arg)
     USLOSS_Console("XXp1(): started, pid = %d\n", getpid());
     USLOSS_Console("XXp1(): arg = '%s'\n", arg);
     USLOSS_Console("XXp1(): this process will terminate immediately.\n");
-    quit_phase_1a(getpid(), tm_pid);
+    quit(getpid());
 }
 

@@ -6,25 +6,18 @@
 
 
 
-/* make sure that we don't hit clock interrupts.  The student is not
- * required to implement a clock handler in Phase 1a
- */
-static void dummy_clock_handler(int dev,void *arg)
+/* we need to run the dispatcher if the clock interrupt fires */
+static void trivial_clock_handler(int dev,void *arg)
 {
-    /* NOP */
+    dispatcher();
 }
 
 void startup(int argc, char **argv)
 {
-    /* make sure that we don't hit clock interrupts.  The student is not
-     * required to implement a clock handler in Phase 1a
-     */
-    USLOSS_IntVec[USLOSS_CLOCK_INT] = dummy_clock_handler;
+    USLOSS_IntVec[USLOSS_CLOCK_INT] = trivial_clock_handler;
 
     phase1_init();
-
-    USLOSS_Console("Phase 1A TEMPORARY HACK: init() manually switching to PID 1.\n");
-    TEMP_switchTo(1);
+    dispatcher();
 }
 
 
@@ -88,4 +81,12 @@ void finish(int argc, char **argv)
 
 void test_setup  (int argc, char **argv) {}
 void test_cleanup(int argc, char **argv) {}
+
+
+
+void TEMP_switchTo(int pid)
+{
+    USLOSS_Console("This function must never be called!  I simply implemented it to make sure that you had *removed* it from your phase 1 code.\n");
+    assert(0);
+}
 

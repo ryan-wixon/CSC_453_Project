@@ -5,21 +5,15 @@
 
 int XXp1(void *);
 
-int tm_pid = -1;
-
 int testcase_main()
 {
     int status, pid1, kidpid;
 
-    tm_pid = getpid();
-
     USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: Simple spork()/join() should complete.\n");
+    USLOSS_Console("EXPECTATION: Simple fork()/join() should complete.\n");
 
     pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()\n");
-    TEMP_switchTo(pid1);
-    USLOSS_Console("testcase_main(): after spork of child %d\n", pid1);
+    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
 
     USLOSS_Console("testcase_main(): performing join\n");
     kidpid = join(&status);
@@ -43,6 +37,6 @@ int XXp1(void *arg)
     for(i = 0; i < 100; i++)
         ;
 
-    quit_phase_1a(3, tm_pid);
+    quit(3);
 }
 

@@ -9,8 +9,8 @@
  *
  * Expected output:
  * testcase_main(): started
- * testcase_main(): after spork of child 3
- * testcase_main(): after spork of child 4
+ * testcase_main(): after fork of child 3
+ * testcase_main(): after fork of child 4
  * testcase_main(): performing first join
  * XXp1(): started
  * XXp1(): arg = 'XXp1'
@@ -25,29 +25,21 @@
  * testcase_main(): value returned by join is -2 expected value was -2
  */
 
-int XXp1(void *), XXp2(void *);
-
-int   tm_pid = -1;
+int XXp1(void *), XXp2(void *), XXp3(void *);
 
 int testcase_main()
 {
     int status, pid1, pid2, kidpid;
-
-    tm_pid = getpid();
 
     USLOSS_Console("testcase_main(): started\n");
 // TODO    USLOSS_Console("EXPECTATION: TBD\n");
     USLOSS_Console("QUICK SUMMARY: Checking to see what happens when you call join() with no children at all.\n");
 
     pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()\n");
-    TEMP_switchTo(pid1);
-    USLOSS_Console("testcase_main(): after spork of child %d\n", pid1);
+    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
 
     pid2 = spork("XXp2", XXp2, "XXp2", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()\n");
-    TEMP_switchTo(pid2);
-    USLOSS_Console("testcase_main(): after spork of child %d\n", pid2);
+    USLOSS_Console("testcase_main(): after fork of child %d\n", pid2);
 
     USLOSS_Console("testcase_main(): performing first join\n");
     kidpid = join(&status);
@@ -75,7 +67,7 @@ int XXp1(void *arg)
     kidpid = join(&status);
     USLOSS_Console("XXp1(): value returned by join is %d expected value was -2\n", kidpid);
 
-    quit_phase_1a(1, tm_pid);
+    quit(1);
 }
 
 int XXp2(void *arg)
@@ -83,6 +75,6 @@ int XXp2(void *arg)
     USLOSS_Console("XXp2(): started\n");
     USLOSS_Console("XXp2(): arg = '%s'\n", arg);
 
-    quit_phase_1a(2, tm_pid);
+    quit(2);
 }
 

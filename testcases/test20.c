@@ -10,15 +10,11 @@
 #include <usloss.h>
 #include <phase1.h>
 
-int XXp1(void *);
-
-int   tm_pid = -1;
+int XXp1(void *), XXp2(void *), XXp3(void *), XXp4(void *);
 
 int testcase_main()
 {
     int i, pid1;
-
-    tm_pid = getpid();
 
     USLOSS_Console("testcase_main(): started\n");
     USLOSS_Console("EXPECTATION: Attempt to create MAXPROC+2 processes (without calling join() on any of them).  This will work many times but eventually fail because all of the procTable slots are full.  We will only print out info about the failed ones.\n");
@@ -30,11 +26,6 @@ int testcase_main()
         pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
         if (pid1 < 0)
             USLOSS_Console("testcase_main(): spork() failed: i=%d, pid is %d.\n", i,pid1);
-        else
-        {
-            USLOSS_Console("Phase 1A TEMPORARY HACK: Manually switching to the recently created XXp1()\n");
-            TEMP_switchTo(pid1);
-        }
     }
 
     dumpProcesses();
@@ -55,6 +46,6 @@ int testcase_main()
 
 int XXp1(void *arg)
 {
-    quit_phase_1a(2, tm_pid);
+    quit(2);
 }
 
