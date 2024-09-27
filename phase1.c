@@ -66,9 +66,10 @@ void phase1_init() {
 
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
+			 .childDeathWait = 0, .zapWait = 0, 
 			 .processMain = initProcessMain, .mainArgs = NULL, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL, 
-			 .nextInQueue = NULL
+			 .zappers = NULL, .nextInQueue = NULL, .prevInQueue = NULL
 		       };
 	
 	// because of the moduulo rule, we need to make the index 1 here
@@ -186,9 +187,10 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		processIDCounter++;
 	}
    	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
-			       .processMain = func, .mainArgs = arg, 
+			       .childDeathWait = 0, .zapWait = 0, 
+				   .processMain = func, .mainArgs = arg, 
 			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL, 
-				   .nextInQueue = NULL
+				   .zappers = NULL, .nextInQueue = NULL, .prevInQueue = NULL
 			     };
 		
 	// add process into table and link with parent and older sibling
@@ -201,7 +203,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	}
 	currentProcess->children = &table[newProcessIndex];
 	
-	// spec says to allocate this
+	// make stack for a process (used in USLOSS_Context)
 	void *stack = malloc(stackSize);
 
 	// initialize the USLOSS_Context and save the pointer to the stack
@@ -217,12 +219,16 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	else {
 		// add new process to existing queue
 		newProcess->nextInQueue = runQueues[priority]->newest;
+		runQueues[priority]->newest->prevInQueue = newProcess;
 		runQueues[priority]->newest = newProcess;
 	}
 	
 	// ensure processes never repeat IDs
 	numProcesses++;
 	processIDCounter++;
+
+	// possibly run the child if it is high enough priority
+	dispatcher();
 
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in spork\n");
@@ -319,16 +325,20 @@ int join(int *status) {
 		curr = curr->olderSibling;  
 	}
 	
-	// if a parent has no dead children, it blocks to wait for them to die
-	// this won't happen in phase1a, so here's a dummy return value (should never see this returned)
+	// parent has no dead children - block to wait for them to die
+	currentProcess->childDeathWait = 1;
+	blockMe();
+
+	// reset PSR to old value
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in join\n");
 	}
-	return -1;
 }
 
 /* 
  * Temportary quit function for phase 1a 
+ * 
+ * TODO: Remove this function and replace it with regular quit()
  *
  * Arguments: status = The return status for the current process; switchToPid = The PID of the process to manually switch to
  *   Returns: Void
@@ -378,11 +388,36 @@ void quit_phase_1a(int status, int switchToPid) {
 }
 
 void quit(int status) {
-    /* TODO */
+    /* TODO - basically build this function based on quit_phase_1a, but with dispatcher */
 }
 
 void zap(int pid) {
-	/* TODO */
+	// check PSR, disable interrupts if needed
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+
+		// you cannot call zap() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call zap while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in zap\n");
+		}
+
+	}
+
+	/* TODO - implement remaining zap functionality */
+
+	// block and wait for the zap target to die (it cannot 
+	// do anything to make the target die)
+	currentProcess->zapWait = 1;
+	blockMe();
+
+	// reset PSR to its previous value, possibly restoring interrupts
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in zap\n");
+	}
 }
 
 void blockMe(void) {
@@ -395,7 +430,27 @@ int unblockProc(int pid) {
 }
 
 void dispatcher(void) {
-	/* TODO */
+	// check PSR, disable interrupts if needed
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+
+		// you cannot call dispatcher() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call dispatcher while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in dispatcher\n");
+		}
+
+	}
+
+	/* TODO - actual implementation of dispatcher code */
+
+	// reset PSR to its previous value, possibly restoring interrupts
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in dispatcher\n");
+	}
 }
 
 int currentTime(void) {

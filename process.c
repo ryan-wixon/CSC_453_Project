@@ -73,6 +73,21 @@ void printProcess(Process* process) {
 		case 1:
 			printf("Running\n");
 			break;
+		case 2:
+			printf("Blocked");
+			if(process->childDeathWait == 1) {
+				/* waiting for child to die */
+				printf("(waiting for child to quit)\n");
+			}
+			else if(process->zapWait == 1) {
+				/* waiting for zap target to die */
+				printf("(waiting for zap target to quit)\n");
+			}
+			else {
+				/* we are blocked for some other reason */
+				printf("\n");
+			}
+			break;
 		default:
 			printf("Unknown\n");
 	}
