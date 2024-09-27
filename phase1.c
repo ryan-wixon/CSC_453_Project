@@ -25,6 +25,9 @@ Process *currentProcess = NULL; 	/* the current running process */
 
 char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
+/* as per spec, need separate run queue for each priority */
+RunQueue runQueues[7];	/* index 0 is not used, only 1-6 */
+
 /*
  * Startup code for phase 1. Initializes necessary data structures for process
  * handling and creates the init process.
@@ -51,6 +54,12 @@ void phase1_init() {
 	for (int i = 0; i < MAXPROC; i++) {
 		tableOccupancies[i] = 0;
 	}
+
+	// set up the run queues (recall: index 0 never used)
+	for(int j = 1; j < 7; j++) {
+		RunQueue queue = { .newest = NULL, .oldest = NULL };
+		runQueues[j] = queue;
+	}
 	
 	// null out the entire table to prepare for filling
 	memset(table, 0, sizeof(table));
@@ -58,12 +67,15 @@ void phase1_init() {
 	// create the init process (will not run yet)
 	Process init = { .name = "init\0", .processID = 1, .processState = 0, .priority = 6, 
 			 .processMain = initProcessMain, .mainArgs = NULL, 
-			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL
+			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL, 
+			 .nextInQueue = NULL
 		       };
 	
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
+	runQueues[6]->newest = init;	// put init in its specified run queue
+	runQueues[6]->oldest = init;
 
 	// initialize context for init process
 	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, processWrapper);
@@ -76,6 +88,11 @@ void phase1_init() {
 /*
  * Temporary context switching function for phase 1a. Switches to the
  * specified process. The new process is also set as the current process.
+ * 
+ * TODO: Adapt this code into the code for dispatcher (see below). We will
+ * also need to adapt the code to take run queues into account.
+ * This function will eventually be deleted. But don't delete it until we
+ * have dispatcher() written.
  *
  * Arguments: pid = The PID of the process to switch to
  *   Returns: Void
@@ -170,7 +187,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	}
    	Process newProcess = { .name = name, .processID = processIDCounter, .processState = 0, .priority = priority, 
 			       .processMain = func, .mainArgs = arg, 
-			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL 
+			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL, 
+				   .nextInQueue = NULL
 			     };
 		
 	// add process into table and link with parent and older sibling
@@ -183,12 +201,24 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	}
 	currentProcess->children = &table[newProcessIndex];
 	
-	// spec says to allocate this but not sure what to do with it
+	// spec says to allocate this
 	void *stack = malloc(stackSize);
 
 	// initialize the USLOSS_Context and save the pointer to the stack
 	USLOSS_ContextInit(&table[newProcessIndex].context, stack, stackSize, NULL, &processWrapper);
 	newProcess.contextStack = stack;
+
+	// add the process to the given run queue
+	if(runQueues[priority]->newest == NULL && runQueues[priority]->oldest == NULL) {
+		// new process is the first one in the queue
+		runQueues[priority]->newest = newProcess;
+		runQueues[priority]->oldest = newProcess;
+	}
+	else {
+		// add new process to existing queue
+		newProcess->nextInQueue = runQueues[priority]->newest;
+		runQueues[priority]->newest = newProcess;
+	}
 	
 	// ensure processes never repeat IDs
 	numProcesses++;
@@ -503,6 +533,10 @@ int initProcessMain(void* ignored) {
 		}
 
 	}
+
+	// init is running; take it off the run queue for priority 6
+	runQueues[6]->newest = NULL;
+	runQueues[6]->oldest = NULL;
 
 	// call service processes for other phases (for now these are NOPs)
 	phase2_start_service_processes();

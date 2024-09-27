@@ -33,8 +33,18 @@ typedef struct Process {
 	struct Process* children;
 	struct Process* olderSibling;
 	struct Process* youngerSibling;
+
+	struct Process* nextInQueue;	/* for use in run queues */
 		
 } Process;
+
+/* 
+ * Represents a run queue of priority given by the array index
+ */
+typedef struct RunQueue {
+	struct Process* newest;	/* process most recently added to run queue */
+	struct Process* oldest; /* earliest process in run queue */
+} RunQueue;
 
 /*
  * Prints information for a given process, used for debugging
