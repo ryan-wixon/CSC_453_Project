@@ -47,6 +47,7 @@ typedef struct Process {
 	int priority;			
 	int childDeathWait;		/* 1 if process waiting for child to die to join; 0 otherwise */
 	int zapWait;			/* 1 if process waiting for zap target to die; 0 otherwise */
+	int zapped;			/* 1 if process is being zapped by 1 or more processes; 0 otherwise */
 
 	USLOSS_Context context;
 	void* contextStack; 

@@ -454,6 +454,7 @@ void quit(int status) {
 	}
 }
 
+// TODO Test, I think this function is done.
 void zap(int pid) {
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -470,7 +471,26 @@ void zap(int pid) {
 
 	}
 
-	/* TODO - implement remaining zap functionality */
+	// error checking; a process should not be able to zap init or itself
+	if (pid == 1) {
+		printf("ERROR: Process %s attempted to zap init\n", currentProcess->name);
+		USLOSS_Halt(1);
+	}
+	if (pid == currentProcess->processID) {
+		printf("ERROR: Process %s attempted to zap itself\n", currentProcess->name);
+	}
+
+	// set the target process as zapped
+	table[pid % MAXPROC].zapped = 1;
+		
+	// add the current process to the target's zapper list
+	if (table[pid % MAXPROC].zappers == NULL) {
+		table[pid % MAXPROC].zappers = currentProcess;
+	}
+	else {
+		currentProcess->nextZapper = table[pid % MAXPROC];
+		table[pid % MAXPROC] = currentProcess;
+	}
 
 	// block and wait for the zap target to die (it cannot 
 	// do anything to make the target die)
@@ -483,7 +503,9 @@ void zap(int pid) {
 	}
 }
 
+// TODO Test, this function is actually very simple but I don't think there's anything else to do here
 void blockMe(void) {
+	
 	/* check PSR to ensure we are in kernel mode; disable interrupts */
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -499,7 +521,8 @@ void blockMe(void) {
 
 	}
 
-	/* TODO - implement actual functionality of blockMe */
+	currentProcess->processState = BLOCKED;
+	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -523,7 +546,8 @@ int unblockProc(int pid) {
 
 	}
 
-	/* TODO - implement actual functionality of unblockProc */
+	table[pid % MAXPROC].processState = RUNNABLE;
+	// TODO add to run queue
 
 	// reset PSR to its previous value, possibly restoring interrupts
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
