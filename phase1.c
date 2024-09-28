@@ -15,6 +15,10 @@
 #include "phase1.h"
 #include "process.h"
 
+// function headers for helpers, since we can't edit phase1.h
+int initProcessMain(void*);
+void processWrapper(void);
+
 Process table[MAXPROC];     	/* the process table */
 int tableOccupancies[MAXPROC]; 	/* keeps track of which process table slots are empty and which are full */
 
@@ -75,8 +79,8 @@ void phase1_init() {
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
-	runQueues[6]->newest = init;	// put init in its specified run queue
-	runQueues[6]->oldest = init;
+	runQueues[6].newest = &table[1];	// put init in its specified run queue
+	runQueues[6].oldest = &table[1];
 
 	// initialize context for init process
 	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, processWrapper);
@@ -98,6 +102,8 @@ void phase1_init() {
  * Arguments: pid = The PID of the process to switch to
  *   Returns: Void
  */
+
+/*
 void TEMP_switchTo(int pid) {
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -144,6 +150,7 @@ void TEMP_switchTo(int pid) {
 		fprintf(stderr, "Bad PSR restored in TEMP_switchTo\n");
 	}
 }
+*/
 
 /*
  * Creates a new child of the currently running process
@@ -211,16 +218,16 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	newProcess.contextStack = stack;
 
 	// add the process to the given run queue
-	if(runQueues[priority]->newest == NULL && runQueues[priority]->oldest == NULL) {
+	if(runQueues[priority].newest == NULL && runQueues[priority].oldest == NULL) {
 		// new process is the first one in the queue
-		runQueues[priority]->newest = newProcess;
-		runQueues[priority]->oldest = newProcess;
+		runQueues[priority].newest = &table[newProcessIndex];
+		runQueues[priority].oldest = &table[newProcessIndex];
 	}
 	else {
 		// add new process to existing queue
-		newProcess->nextInQueue = runQueues[priority]->newest;
-		runQueues[priority]->newest->prevInQueue = newProcess;
-		runQueues[priority]->newest = newProcess;
+		table[newProcessIndex].prevInQueue = runQueues[priority].newest;
+		runQueues[priority].newest-> nextInQueue = &table[newProcessIndex];
+		runQueues[priority].newest = &table[newProcessIndex];
 	}
 	
 	// ensure processes never repeat IDs
@@ -343,6 +350,8 @@ int join(int *status) {
  * Arguments: status = The return status for the current process; switchToPid = The PID of the process to manually switch to
  *   Returns: Void
  */
+
+/*
 void quit_phase_1a(int status, int switchToPid) {
     
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -371,6 +380,7 @@ void quit_phase_1a(int status, int switchToPid) {
 		/* testcase_main has terminated; halt the simulation */
 		/* we use the name to find testcase_main, since it doesn't have
 		   a designated PID */
+		/*
 		if(status != 0) {
 			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
 		}
@@ -386,6 +396,8 @@ void quit_phase_1a(int status, int switchToPid) {
 		fprintf(stderr, "Bad PSR restored in quit_phase_1a\n");
 	}
 }
+*/
+
 
 // TODO: test this function! I think it is done but not sure.
 void quit(int status) {
@@ -488,8 +500,8 @@ void zap(int pid) {
 		table[pid % MAXPROC].zappers = currentProcess;
 	}
 	else {
-		currentProcess->nextZapper = table[pid % MAXPROC];
-		table[pid % MAXPROC] = currentProcess;
+		currentProcess->nextZapper = table[pid % MAXPROC].zappers;
+		table[pid % MAXPROC].zappers = currentProcess;
 	}
 
 	// block and wait for the zap target to die (it cannot 
@@ -545,9 +557,19 @@ int unblockProc(int pid) {
 		}
 
 	}
-
+	
+	// unblocked processes become runnable
 	table[pid % MAXPROC].processState = RUNNABLE;
-	// TODO add to run queue
+	
+	// add to the run queue
+	int unblockPriority = table[pid % MAXPROC].priority;
+	table[pid % MAXPROC].prevInQueue = runQueues[unblockPriority].newest;
+	runQueues[unblockPriority].newest->nextInQueue = &table[pid % MAXPROC];
+	runQueues[unblockPriority].newest = &table[pid % MAXPROC];
+	
+
+	// call the dispatcher in the case that the newly unblocked process needs to run immediately
+	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -579,11 +601,6 @@ void dispatcher(void) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in dispatcher\n");
 	}
-}
-
-int currentTime(void) {
-	/* TODO - ask about this since it's not in the spec at all */
-	return -1 // remove this! temp return.
 }
 
 /* 
@@ -711,8 +728,8 @@ int initProcessMain(void* ignored) {
 	}
 
 	// init is running; take it off the run queue for priority 6
-	runQueues[6]->newest = NULL;
-	runQueues[6]->oldest = NULL;
+	runQueues[6].newest = NULL;
+	runQueues[6].oldest = NULL;
 
 	// call service processes for other phases (for now these are NOPs)
 	phase2_start_service_processes();
