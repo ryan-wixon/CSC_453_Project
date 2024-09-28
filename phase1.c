@@ -69,7 +69,7 @@ void phase1_init() {
 			 .childDeathWait = 0, .zapWait = 0, 
 			 .processMain = initProcessMain, .mainArgs = NULL, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL, 
-			 .zappers = NULL, .nextInQueue = NULL, .prevInQueue = NULL
+			 .zappers = NULL, .nextZapper = NULL, .nextInQueue = NULL, .prevInQueue = NULL
 		       };
 	
 	// because of the moduulo rule, we need to make the index 1 here
@@ -190,7 +190,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 			       .childDeathWait = 0, .zapWait = 0, 
 				   .processMain = func, .mainArgs = arg, 
 			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL, 
-				   .zappers = NULL, .nextInQueue = NULL, .prevInQueue = NULL
+				   .zappers = NULL, .nextZapper = NULL, .nextInQueue = NULL, .prevInQueue = NULL
 			     };
 		
 	// add process into table and link with parent and older sibling
@@ -338,7 +338,7 @@ int join(int *status) {
 /* 
  * Temportary quit function for phase 1a 
  * 
- * TODO: Remove this function and replace it with regular quit()
+ * TODO: Remove this function once we know for sure that quit() works
  *
  * Arguments: status = The return status for the current process; switchToPid = The PID of the process to manually switch to
  *   Returns: Void
@@ -387,8 +387,71 @@ void quit_phase_1a(int status, int switchToPid) {
 	}
 }
 
+// TODO: test this function! I think it is done but not sure.
 void quit(int status) {
-    /* TODO - basically build this function based on quit_phase_1a, but with dispatcher */
+	/* check PSR to ensure we are in kernel mode; disable interrupts */
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+
+		// you cannot call quit() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call quit while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in quit\n");
+		}
+
+	}
+
+	/* you cannot call quit() when you still have children */
+	if(currentProcess->children != NULL) {
+		fprintf(stderr, "ERROR: Process pid %d called quit() while it still had children.\n", currentProcess->processID);
+		USLOSS_Halt(1);
+	}
+
+	/* show current process has terminated */
+	currentProcess->processState = -1;
+	currentProcess->exitStatus = status;
+
+	if(strcmp(currentProcess->name, "testcase_main") == 0) {
+		/* testcase_main has terminated; halt the simulation */
+		/* we use the name to find testcase_main, since it doesn't have
+		   a designated PID like init does */
+		if(status != 0) {
+			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
+		}
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in quit\n");
+		}
+		USLOSS_Halt(status);
+	}
+
+	/* if parent blocked waiting for child to die, inform it */
+	Process *parent = currentProcess->parent;
+	if(parent->processState == 2 && parent->childDeathWait == 1) {
+		currentProcess->parent->childDeathWait = 0;
+		unblockProc(parent->processID);
+	}
+
+	/* if zappers waiting for process to die, inform it */
+	Process *currZapper = currentProcess->zappers;
+	while(currZapper != NULL) {
+		if(currZapper->processState == 2 && currZapper->zapWait == 1) {
+			currentProcess->zappers = currZapper->nextZapper;
+			currZapper->nextZapper = NULL;
+			unblockProc(currZapper->processID);
+		}
+		currZapper = currentProcess->zappers;	/* move to next zapper */
+	}
+
+	/* if we still haven't switched to new process, call dispatcher */
+	dispatcher();
+
+	/* restore old PSR */
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in quit\n");
+	}
 }
 
 void zap(int pid) {
@@ -421,12 +484,53 @@ void zap(int pid) {
 }
 
 void blockMe(void) {
-	/* TODO */
+	/* check PSR to ensure we are in kernel mode; disable interrupts */
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+
+		// you cannot call blockMe() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call blockMe while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in blockMe\n");
+		}
+
+	}
+
+	/* TODO - implement actual functionality of blockMe */
+
+	// reset PSR to its previous value, possibly restoring interrupts
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in blockMe\n");
+	}
 }
 
 int unblockProc(int pid) {
-	/* TODO */
-	return -1;	// remove this! temp return.
+	// check PSR, disable interrupts if needed
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+
+		// you cannot call unblockProc() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call unblockProc while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in unblockProc\n");
+		}
+
+	}
+
+	/* TODO - implement actual functionality of unblockProc */
+
+	// reset PSR to its previous value, possibly restoring interrupts
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in unblockProc\n");
+	}
+
+	return -1;	// remove this when implementing functionality! temp return.
 }
 
 void dispatcher(void) {
@@ -454,7 +558,7 @@ void dispatcher(void) {
 }
 
 int currentTime(void) {
-	/* TODO */
+	/* TODO - ask about this since it's not in the spec at all */
 	return -1 // remove this! temp return.
 }
 
@@ -530,16 +634,9 @@ void processWrapper() {
 	/* before context switching, MUST change current process to new process!*/
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
-	/* special handling: testcase_main returning calls quit, normal process
-	   returning is an error. */
-	if(strcmp(currentProcess->name, "testcase_main") == 0) {
-		printf("Phase 1A TEMPORARY HACK: testcase_main() returned, simulation will now halt.\n");
-		quit_phase_1a(endStatus, 1);	// switch to parent process init
-	}
-	else {
-		fprintf(stderr, "ERROR: Process with pid %d returned instead of calling quit_phase_1a!\n", currentProcess->processID);
-		USLOSS_Halt(1);
-	}
+	/* special handling: if process just returns and doesn't quit explicitly, 
+	   we call quit on behalf of the process */
+	quit(endStatus);
 
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in processWrapper\n");
