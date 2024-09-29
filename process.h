@@ -68,6 +68,15 @@ typedef struct Process {
 		
 } Process;
 
+/*
+ * Prints information for a given process, used for debugging
+ *
+ * Arguments: process = A pointer to the process to print information about
+ *   Returns: Void 
+ */
+void printProcess(Process* process);
+
+
 /* 
  * Represents a run queue of priority given by the array index
  */
@@ -76,12 +85,8 @@ typedef struct RunQueue {
 	struct Process* oldest; /* earliest process in run queue */
 } RunQueue;
 
-/*
- * Prints information for a given process, used for debugging
- *
- * Arguments: process = A pointer to the process to print information about
- *   Returns: Void 
- */
-void printProcess(Process* process);
+void addToRunQueue(RunQueue* queue, Process* addProcess);
+Process* popFromRunQueue(RunQueue* queue);
+void Process* sendToBackRunQueue(RunQueue* queue);
 
 #endif

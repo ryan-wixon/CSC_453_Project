@@ -79,8 +79,9 @@ void phase1_init() {
 	// because of the moduulo rule, we need to make the index 1 here
 	table[1] = init;	
 	tableOccupancies[1] = 1;
-	runQueues[6].newest = &table[1];	// put init in its specified run queue
-	runQueues[6].oldest = &table[1];
+
+	// put init in it's specified run queue
+	addToRunQueue(&runQueues[6], &table[1]);
 
 	// initialize context for init process
 	USLOSS_ContextInit(&table[1].context, initStack, USLOSS_MIN_STACK, NULL, processWrapper);
@@ -218,17 +219,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	newProcess.contextStack = stack;
 
 	// add the process to the given run queue
-	if(runQueues[priority].newest == NULL && runQueues[priority].oldest == NULL) {
-		// new process is the first one in the queue
-		runQueues[priority].newest = &table[newProcessIndex];
-		runQueues[priority].oldest = &table[newProcessIndex];
-	}
-	else {
-		// add new process to existing queue
-		table[newProcessIndex].prevInQueue = runQueues[priority].newest;
-		runQueues[priority].newest-> nextInQueue = &table[newProcessIndex];
-		runQueues[priority].newest = &table[newProcessIndex];
-	}
+	addProcessToRunQueue(&runQueues[priority], &table[newProcessIndex]);	
 	
 	// ensure processes never repeat IDs
 	numProcesses++;
@@ -457,7 +448,8 @@ void quit(int status) {
 		currZapper = currentProcess->zappers;	/* move to next zapper */
 	}
 
-	/* if we still haven't switched to new process, call dispatcher */
+	// remove the ended process from the run queue and call dispatcher
+	popFromRunQueue(&runQueues[currentProcess->priority]);
 	dispatcher();
 
 	/* restore old PSR */
@@ -534,6 +526,7 @@ void blockMe(void) {
 	}
 
 	currentProcess->processState = BLOCKED;
+	currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
 	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
@@ -558,17 +551,9 @@ int unblockProc(int pid) {
 
 	}
 	
-	// unblocked processes become runnable
+	// unblocked processes become runnable; add to the run queue and call the dispatcher
 	table[pid % MAXPROC].processState = RUNNABLE;
-	
-	// add to the run queue
-	int unblockPriority = table[pid % MAXPROC].priority;
-	table[pid % MAXPROC].prevInQueue = runQueues[unblockPriority].newest;
-	runQueues[unblockPriority].newest->nextInQueue = &table[pid % MAXPROC];
-	runQueues[unblockPriority].newest = &table[pid % MAXPROC];
-	
-
-	// call the dispatcher in the case that the newly unblocked process needs to run immediately
+	addToRunQueue(&runQueues[table[pid % MAXPROC].priority], table[pid % MAXPROC]);
 	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
@@ -595,7 +580,17 @@ void dispatcher(void) {
 
 	}
 
-	/* TODO - actual implementation of dispatcher code */
+	// first, we need to check to see if there is a higher priority process to switch to
+	for (int i = 1; i < currentProcess->priority; i++) {
+		
+	}
+
+	// if there was no higher priority process, then we need to check to see if the process
+	// is still runnable; if it is, then check to see 80ms has passed an it's time to pass
+	// the cpu to another processs
+
+
+	// if the process no longer exists, find the highest priority process remaining and switch to it  
 
 	// reset PSR to its previous value, possibly restoring interrupts
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
