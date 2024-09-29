@@ -87,6 +87,6 @@ typedef struct RunQueue {
 
 void addToRunQueue(RunQueue* queue, Process* addProcess);
 Process* popFromRunQueue(RunQueue* queue);
-void Process* sendToBackRunQueue(RunQueue* queue);
+Process* sendToBackRunQueue(RunQueue* queue);
 
 #endif

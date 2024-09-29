@@ -26,6 +26,7 @@ int numProcesses = 1;	   	/* stores number of currently existing processes; star
 int processIDCounter = 2;  	/* stores the next PID to be used; starts at 2 because init is PID 1 */
 
 Process *currentProcess = NULL; 	/* the current running process */
+int lastSwitchTime = 0;			/* timestamp for the last time the current process was switched */
 
 char initStack[USLOSS_MIN_STACK];	/* stack for init, must allocate on startup */
 
@@ -103,22 +104,7 @@ void phase1_init() {
  * Arguments: pid = The PID of the process to switch to
  *   Returns: Void
  */
-
-/*
-void TEMP_switchTo(int pid) {
-	
-	unsigned int oldPSR = USLOSS_PsrGet();
-	if(oldPSR % 2 == 0) {
-		
-		// you cannot call TEMP_switchTo() in user mode
-		fprintf(stderr, "ERROR: Someone attempted to call TEMP_switchTo while in user mode!\n");
-		USLOSS_Halt(1);
-	}
-	if (oldPSR == 3) {
-		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR set in TEMP_switchTo\n");
-		}
-	}
+void switchTo(int pid) {
 
 	Process *oldProcess = currentProcess;
 	
@@ -134,24 +120,22 @@ void TEMP_switchTo(int pid) {
 	if (oldProcess == NULL) {
 
 		// set the new process to running
-		currentProcess->processState = 1;
+		currentProcess->processState = RUNNING;
 		USLOSS_ContextSwitch(NULL, &currentProcess->context);
 	}
 	else {
 
 		// update the old process state if it hasn't just terminated, and set the new process to running
-		if (oldProcess->processState == 1) {
-			oldProcess->processState = 0;
+		if (oldProcess->processState == RUNNING) {
+			oldProcess->processState = RUNNABLE;
 		} 
-		currentProcess->processState = 1;
+		currentProcess->processState = RUNNING;
 		USLOSS_ContextSwitch(&oldProcess->context, &currentProcess->context);
 	}
-	
-	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-		fprintf(stderr, "Bad PSR restored in TEMP_switchTo\n");
-	}
+
+	lastSwitchTime = currentTime();
 }
-*/
+
 
 /*
  * Creates a new child of the currently running process
@@ -219,7 +203,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	newProcess.contextStack = stack;
 
 	// add the process to the given run queue
-	addProcessToRunQueue(&runQueues[priority], &table[newProcessIndex]);	
+	addToRunQueue(&runQueues[priority], &table[newProcessIndex]);	
 	
 	// ensure processes never repeat IDs
 	numProcesses++;
@@ -553,7 +537,7 @@ int unblockProc(int pid) {
 	
 	// unblocked processes become runnable; add to the run queue and call the dispatcher
 	table[pid % MAXPROC].processState = RUNNABLE;
-	addToRunQueue(&runQueues[table[pid % MAXPROC].priority], table[pid % MAXPROC]);
+	addToRunQueue(&runQueues[table[pid % MAXPROC].priority], &table[pid % MAXPROC]);
 	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
@@ -582,15 +566,35 @@ void dispatcher(void) {
 
 	// first, we need to check to see if there is a higher priority process to switch to
 	for (int i = 1; i < currentProcess->priority; i++) {
-		
+		if (runQueues[i].oldest != NULL) {
+			switchTo(runQueues[i].oldest->processID);
+			
+			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+				fprintf(stderr, "Bad PSR restored in dispatcher\n");
+			}
+			return;
+		}
 	}
 
 	// if there was no higher priority process, then we need to check to see if the process
 	// is still runnable; if it is, then check to see 80ms has passed an it's time to pass
 	// the cpu to another processs
+	if (runQueues[currentProcess->priority].oldest != NULL && runQueues[currentProcess->priority].oldest->processID == currentProcess->processID) {
 
+		if (currentTime() - lastSwitchTime >= 80) {
+			sendToBackRunQueue(&runQueues[currentProcess->priority]);
+			switchTo(runQueues[currentProcess->priority].oldest->processID);
+		}
+	}
+	else {
 
-	// if the process no longer exists, find the highest priority process remaining and switch to it  
+		// if the process no longer exists, find the highest priority process remaining and switch to it  
+		for (int i = currentProcess->priority; i <= 6; i++) {
+			if (runQueues[i].oldest != NULL) {
+				switchTo(runQueues[i].oldest->processID);
+			}
+		}
+	}
 
 	// reset PSR to its previous value, possibly restoring interrupts
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -734,8 +738,9 @@ int initProcessMain(void* ignored) {
 
 	printf("Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.\n");
 
-	// create testcase main and switch to it (in phase1b, only call spork)
-	TEMP_switchTo(spork("testcase_main", testcaseMainWrapper, NULL, USLOSS_MIN_STACK, 3));
+	// create testcase main and switch to it
+	spork("testcase_main", testcaseMainWrapper, NULL, USLOSS_MIN_STACK, 3);
+	dispatcher();
 
 	// enter join loop; if it returns an error quit the program
 	int endStatus = 1;

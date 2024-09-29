@@ -95,14 +95,14 @@ void printProcess(Process* process) {
 
 void addToRunQueue(RunQueue* queue, Process* addProcess) {
 
-	if (oldest == NULL) {
-		newest = addProcess;
-		oldest = addProcess;
+	if (queue->oldest == NULL) {
+		queue->newest = addProcess;
+		queue->oldest = addProcess;
 	}
 	else {
-		newest->nextInQueue = addProcess;
-		addProcess->prevInQueue = oldProcess;
-		newest = addProcess;
+		queue->newest->nextInQueue = addProcess;
+		addProcess->prevInQueue = queue->newest;
+		queue->newest = addProcess;
 	}
 }
 
@@ -116,6 +116,6 @@ Process* popFromRunQueue(RunQueue* queue) {
 Process* sendToBackRunQueue(RunQueue* queue) {
 
 	Process* retval = popFromRunQueue(queue);
-	addtoRunQueue(retval);
+	addToRunQueue(queue, retval);
 	return retval;
 }
