@@ -1,0 +1,12 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+EXPECTATION: Similar to test15, except that XXp2() will zap() XXp1() while XXp1() is also zap()ping XXp3().
+testcase_main(): first fork -- XXp1 will run next.
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): executing fork of first child -- XXp1() will continue to run, because XXp3 is very low priority.
+XXp1(): spork of first child returned pid = 4
+XXp1(): zap'ing process with 4 -- this will block until XXp3() dies.  Therefore, we expect testcase_main() to run next.

@@ -1,0 +1,10 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+QUICK SUMMARY: Some interactions of fork/join/zap.  Because of priorities, the processes run such that zap() will produce an error.
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): after fork of child 4
+XXp1(): performing first join at this point

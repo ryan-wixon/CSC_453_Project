@@ -1,0 +1,9 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+QUICK SUMMARY: Attempts (from multiple processes) to zap() a non-existent process.
+testcase_main(): after fork of child 3
+testcase_main(): after fork of child 4
+testcase_main(): performing first join

@@ -62,6 +62,7 @@ typedef struct Process {
 
 	struct Process* zappers;	/* all the processes that called zap() on this one */
 	struct Process* nextZapper;	/* next process in a list of zappers */
+	struct Process* prevZapper; /* previous process in list of zappers */
 
 	struct Process* nextInQueue;	/* for use in run queues */
 	struct Process* prevInQueue;    /* for use in run queues */

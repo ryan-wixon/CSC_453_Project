@@ -74,7 +74,8 @@ void phase1_init() {
 			 .childDeathWait = 0, .zapWait = 0, 
 			 .processMain = initProcessMain, .mainArgs = NULL, 
 			 .parent = NULL, .children = NULL, .olderSibling = NULL, .youngerSibling = NULL, 
-			 .zappers = NULL, .nextZapper = NULL, .nextInQueue = NULL, .prevInQueue = NULL
+			 .zappers = NULL, .nextZapper = NULL, .prevZapper = NULL,
+			 .nextInQueue = NULL, .prevInQueue = NULL
 		       };
 	
 	// because of the moduulo rule, we need to make the index 1 here
@@ -182,7 +183,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 			       .childDeathWait = 0, .zapWait = 0, 
 				   .processMain = func, .mainArgs = arg, 
 			       .parent = currentProcess, .children = NULL, .olderSibling = currentProcess->children, .youngerSibling = NULL, 
-				   .zappers = NULL, .nextZapper = NULL, .nextInQueue = NULL, .prevInQueue = NULL
+				   .zappers = NULL, .nextZapper = NULL, .prevZapper = NULL,
+				   .nextInQueue = NULL, .prevInQueue = NULL
 			     };
 		
 	// add process into table and link with parent and older sibling
@@ -258,60 +260,102 @@ int join(int *status) {
 		return -2;
 	}
 	
-	// check for dead children, return the first one found
-	Process* curr = currentProcess->children;
-	while (curr != NULL) {
-		if (curr->processState == -1) {
-			*status = curr->exitStatus;
+	// continuously check for dead children, return the first one found
+	// keep going until you find one (since control returns to join() if
+	// process becomes unblocked while waiting for child to die)
+	while(1) {
+		Process* curr = currentProcess->children;
+		while (curr != NULL) {
+			if (curr->processState == -1) {
+				*status = curr->exitStatus;
 			
-			// reset relationships between dead process and live processes
-			if (curr->processID == currentProcess->children->processID) {
-				if (curr->olderSibling == NULL) {
+				// reset relationships between dead process and live processes
+				if (curr->processID == currentProcess->children->processID) {
+					if (curr->olderSibling == NULL) {
 					
-					// all children have died
-					currentProcess->children = NULL;
+						// all children have died
+						currentProcess->children = NULL;
+					}
+					else {
+						// make sure the child list still connects to parent
+						currentProcess->children = curr->olderSibling;
+						curr->olderSibling->youngerSibling = NULL;
+					}
+				}
+				else if (curr->olderSibling == NULL) {
+				
+					// oldest process in the child list
+					curr->youngerSibling->olderSibling = NULL;
 				}
 				else {
-					// make sure the child list still connects to parent
-					currentProcess->children = curr->olderSibling;
-					curr->olderSibling->youngerSibling = NULL;
+					// delete from middle of child list
+					curr->olderSibling->youngerSibling = curr->youngerSibling;
+					curr->youngerSibling->olderSibling = curr->olderSibling;
 				}
-			}
-			else if (curr->olderSibling == NULL) {
-				
-				// oldest process in the child list
-				curr->youngerSibling->olderSibling = NULL;
-			}
-			else {
-				// delete from middle of child list
-				curr->olderSibling->youngerSibling = curr->youngerSibling;
-				curr->youngerSibling->olderSibling = curr->olderSibling;
-			}
 			
-			// sever ties to related processes so no potential dangling pointers
-			curr->youngerSibling = NULL;
-			curr->olderSibling = NULL;
-			curr->parent = NULL;
-			
-			// free the dead process's memory
-			free(curr->contextStack);
-			tableOccupancies[curr->processID % MAXPROC] = 0;
-			
-			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-				fprintf(stderr, "Bad PSR restored in join\n");
-			}
+				// sever ties to related processes so no potential dangling pointers
+				curr->youngerSibling = NULL;
+				curr->olderSibling = NULL;
+				curr->parent = NULL;
 
-			numProcesses--;
-			return curr-> processID;
+				// get rid of curr's space in the run queue
+				/*
+				if(curr->prevInQueue == NULL && curr->nextInQueue == NULL) {
+					// curr was only one in queue
+					runQueues[curr->priority].oldest = NULL;
+					runQueues[curr->priority].newest = NULL;
+				}
+				else if(curr->prevInQueue == NULL) {
+					// curr is oldest process in the queue
+					runQueues[curr->priority].oldest = curr->nextInQueue;
+					curr->nextInQueue->prevInQueue = curr->prevInQueue;
+				}
+				else if(curr->nextInQueue == NULL) {
+					// curr is youngest process in the queue
+					runQueues[curr->priority].newest = curr->prevInQueue;
+					curr->prevInQueue->nextInQueue = curr->nextInQueue;
+				}
+				else {
+					// curr is in the middle of the run queue
+					curr->prevInQueue->nextInQueue = curr->nextInQueue;
+					curr->nextInQueue->prevInQueue = curr->prevInQueue;
+				}
+				curr->prevInQueue = NULL;
+				curr->nextInQueue = NULL;*/
+
+				// get rid of curr's space in zap list (if any)
+				if(curr->prevZapper != NULL) {
+					curr->prevZapper->nextZapper = curr->nextZapper;
+				}
+				if(curr->nextZapper != NULL) {
+					curr->nextZapper->prevZapper = curr->prevZapper;
+				}
+				curr->nextZapper = NULL;
+				curr->prevZapper = NULL;
+			
+				// free the dead process's memory
+				free(curr->contextStack);
+				tableOccupancies[curr->processID % MAXPROC] = 0;
+			
+				if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+					fprintf(stderr, "Bad PSR restored in join\n");
+				}
+
+				numProcesses--;
+				return curr-> processID;
+			}
+			curr = curr->olderSibling;  
 		}
-		curr = curr->olderSibling;  
-	}
 	
-	// parent has no dead children - block to wait for them to die
-	currentProcess->childDeathWait = 1;
-	blockMe();
+		// parent has no dead children - block to wait for them to die
+		currentProcess->childDeathWait = 1;
+		blockMe();
+		// now process is blocked, but if a child dies and control returned
+		// to join(), we can handle that case
+	}
 
-	// reset PSR to old value
+	// reset PSR to old value - should never reach this point since all 
+	// cases handled in above loop
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in join\n");
 	}
@@ -352,10 +396,9 @@ void quit_phase_1a(int status, int switchToPid) {
 	currentProcess->exitStatus = status;
 
 	if(strcmp(currentProcess->name, "testcase_main") == 0) {
-		/* testcase_main has terminated; halt the simulation */
-		/* we use the name to find testcase_main, since it doesn't have
-		   a designated PID */
-		/*
+		// testcase_main has terminated; halt the simulation
+		// we use the name to find testcase_main, since it doesn't have
+		// a designated PID
 		if(status != 0) {
 			fprintf(stderr, "The simulation has encountered an error with the error code %d and will now terminate.\n", status);
 		}
@@ -397,9 +440,33 @@ void quit(int status) {
 		USLOSS_Halt(1);
 	}
 
+	printf("atempting to quit: pid %d\n", currentProcess->processID);
+
 	/* show current process has terminated */
 	currentProcess->processState = -1;
 	currentProcess->exitStatus = status;
+
+	// remove ended process from run queue; it might not be the last one
+	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
+		// current process is the only one in the run queue!
+		runQueues[currentProcess->priority].oldest = NULL;
+		runQueues[currentProcess->priority].newest = NULL;
+	}
+	else if(currentProcess->prevInQueue == NULL) {
+		// current process is oldest process in the queue
+		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
+		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+	}
+	else if(currentProcess->nextInQueue == NULL) {
+		// current process is youngest process in the queue
+		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
+		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+	}
+	else {
+		// current process is in the middle of the run queue
+		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+	}
 
 	if(strcmp(currentProcess->name, "testcase_main") == 0) {
 		/* testcase_main has terminated; halt the simulation */
@@ -425,15 +492,17 @@ void quit(int status) {
 	Process *currZapper = currentProcess->zappers;
 	while(currZapper != NULL) {
 		if(currZapper->processState == 2 && currZapper->zapWait == 1) {
+			printf("attempting to wake up pid %d\n", currZapper->processID);
 			currentProcess->zappers = currZapper->nextZapper;
 			currZapper->nextZapper = NULL;
+			currZapper->childDeathWait = 0;
 			unblockProc(currZapper->processID);
 		}
 		currZapper = currentProcess->zappers;	/* move to next zapper */
 	}
 
-	// remove the ended process from the run queue and call dispatcher
-	popFromRunQueue(&runQueues[currentProcess->priority]);
+	// call dispatcher
+	currentProcess = NULL;	// no process running anymore
 	dispatcher();
 
 	/* restore old PSR */
@@ -477,6 +546,7 @@ void zap(int pid) {
 	}
 	else {
 		currentProcess->nextZapper = table[pid % MAXPROC].zappers;
+		table[pid % MAXPROC].zappers->prevZapper = currentProcess;
 		table[pid % MAXPROC].zappers = currentProcess;
 	}
 
@@ -510,7 +580,28 @@ void blockMe(void) {
 	}
 
 	currentProcess->processState = BLOCKED;
-	currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+	// remove current process from run queue
+	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
+		// current process is the only one in the run queue!
+		runQueues[currentProcess->priority].oldest = NULL;
+		runQueues[currentProcess->priority].newest = NULL;
+	}
+	else if(currentProcess->prevInQueue == NULL) {
+		// current process is oldest process in the queue
+		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
+		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+	}
+	else if(currentProcess->nextInQueue == NULL) {
+		// current process is youngest process in the queue
+		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
+		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+	}
+	else {
+		// current process is in the middle of the run queue
+		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+	}
+
 	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts
@@ -564,8 +655,18 @@ void dispatcher(void) {
 
 	}
 
+	// determine what priority to search up until
+	int maxPriority = -1;
+	if(currentProcess == NULL || currentProcess->processState == BLOCKED) {
+		// no process is running anymore
+		maxPriority = 7;
+	}
+	else {
+		maxPriority = currentProcess->priority;
+	}
+
 	// first, we need to check to see if there is a higher priority process to switch to
-	for (int i = 1; i < currentProcess->priority; i++) {
+	for (int i = 1; i < maxPriority; i++) {
 		if (runQueues[i].oldest != NULL) {
 			switchTo(runQueues[i].oldest->processID);
 			
@@ -726,17 +827,11 @@ int initProcessMain(void* ignored) {
 
 	}
 
-	// init is running; take it off the run queue for priority 6
-	runQueues[6].newest = NULL;
-	runQueues[6].oldest = NULL;
-
 	// call service processes for other phases (for now these are NOPs)
 	phase2_start_service_processes();
 	phase3_start_service_processes();
 	phase4_start_service_processes();
 	phase5_start_service_processes();
-
-	printf("Phase 1A TEMPORARY HACK: init() manually switching to testcase_main() after using spork() to create it.\n");
 
 	// create testcase main and switch to it
 	spork("testcase_main", testcaseMainWrapper, NULL, USLOSS_MIN_STACK, 3);

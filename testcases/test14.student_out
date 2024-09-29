@@ -1,0 +1,11 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+EXPECTATION: See test13.  This is the same, except that the PID that will be zap()ed is that of XXp1() - and thus the pid is stored by testcase_main() after the first fork().  This works much the same, except that when XXp3() terminates, only XXp1() wakes up (join) because XXp2() is trying to zap XXp1(), instead of XXp3() (as it did in test 13).
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): executing fork of first child
+XXp1(): spork of first child returned pid = 4
+XXp1(): joining with first child

@@ -1,0 +1,10 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+QUICK SUMMARY: Create 3 children; some of them create grandchildren; one of them tries to zap() its sibling.  Because of complex interactions of blocking and priorities, the sequence of events in the testcase is quite complex.
+testcase_main(): after fork of child 3
+testcase_main(): after fork of child 4
+testcase_main(): after fork of child 5
+testcase_main(): performing first join

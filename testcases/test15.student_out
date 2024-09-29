@@ -1,0 +1,12 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+EXPECTATION: Same general test as test13/test14, except that now XXp1() zaps its own child, AND XXp2() will zap the same.  The sequence is thus (1) testcase_main creates XXp1 (2) XXp1 creates XXp3 (3) XXp1 blocks zapping XXp3 (4) testcase_main creates XXp2 (5) XXp2 blocks zapping XXp3 (6) testcase_main and XXp3 race (7) XXp3 calls dumpProcesses and then dies (8) XXp1 and XXp2 unblock (9) XXp1 join()s and then terminates (10) XXp2 terminates (11) testcase_main cleans up
+testcase_main(): first fork -- XXp1 will run next.
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): executing fork of first child
+XXp1(): spork of first child returned pid = 4
+XXp1(): zap'ing process with pid_z=4

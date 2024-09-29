@@ -1,0 +1,15 @@
+phase2_start_service_processes() called -- currently a NOP
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+testcase_main(): started
+QUICK SUMMARY: Attempting to zap() a process that has already died, but the parent has not yet join()ed.
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): zap returned.
+XXp2(): started
+XXp2(): arg = 'XXp2'
+XXp2(): exiting by calling quit(2)
+XXp1(): after fork of child 4
+XXp1(): after fork of child 5
+XXp1(): calling zap(5)
