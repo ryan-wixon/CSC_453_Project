@@ -467,6 +467,8 @@ void quit(int status) {
 		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
 		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
 	}
+	currentProcess->nextInQueue = NULL;
+	currentProcess->prevInQueue = NULL;
 
 	if(strcmp(currentProcess->name, "testcase_main") == 0) {
 		/* testcase_main has terminated; halt the simulation */
@@ -481,13 +483,6 @@ void quit(int status) {
 		USLOSS_Halt(status);
 	}
 
-	/* if parent blocked waiting for child to die, inform it */
-	Process *parent = currentProcess->parent;
-	if(parent->processState == 2 && parent->childDeathWait == 1) {
-		currentProcess->parent->childDeathWait = 0;
-		unblockProc(parent->processID);
-	}
-
 	/* if zappers waiting for process to die, inform it */
 	Process *currZapper = currentProcess->zappers;
 	while(currZapper != NULL) {
@@ -499,6 +494,13 @@ void quit(int status) {
 			unblockProc(currZapper->processID);
 		}
 		currZapper = currentProcess->zappers;	/* move to next zapper */
+	}
+
+	/* if parent blocked waiting for child to die, inform it */
+	Process *parent = currentProcess->parent;
+	if(parent->processState == 2 && parent->childDeathWait == 1) {
+		currentProcess->parent->childDeathWait = 0;
+		unblockProc(parent->processID);
 	}
 
 	// call dispatcher
@@ -578,6 +580,7 @@ void blockMe(void) {
 		}
 
 	}
+	//printf("process %d arrived in blockme\n", currentProcess->processID);
 
 	currentProcess->processState = BLOCKED;
 	// remove current process from run queue
@@ -601,6 +604,8 @@ void blockMe(void) {
 		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
 		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
 	}
+	currentProcess->nextInQueue = NULL;
+	currentProcess->prevInQueue = NULL;
 
 	dispatcher();
 
@@ -668,6 +673,15 @@ void dispatcher(void) {
 	// first, we need to check to see if there is a higher priority process to switch to
 	for (int i = 1; i < maxPriority; i++) {
 		if (runQueues[i].oldest != NULL) {
+			//printf("switching to %d\n", runQueues[i].oldest->processID);
+			/*
+			printf("the current process queue for priority %d:\n", i);
+			Process* curr = runQueues[i].oldest;
+			while(curr != NULL) {
+				printf("pid %d, ", curr->processID);
+				curr = curr->nextInQueue;
+			}
+			printf("\n");*/
 			switchTo(runQueues[i].oldest->processID);
 			
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
