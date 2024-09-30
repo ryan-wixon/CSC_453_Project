@@ -10,3 +10,31 @@ XXp1(): arg = 'XXp1'
 XXp1(): executing fork of first child
 XXp1(): spork of first child returned pid = 4
 XXp1(): zap'ing process with pid_z=4
+testcase_main(): after fork of first child 3 -- you should not see this until XXp1() blocks in zap()
+testcase_main(): second fork -- XXp2 will run next.
+XXp2(): started
+XXp2(): zap'ing process with pid_z=4 -- at this point, testcase_main() and XXp3() will race.
+testcase_main(): after fork of second child 5
+testcase_main(): performing join
+XXp3(): started
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              1         Blocked(waiting for zap target to quit)
+   4     3  XXp3              3         Running
+   5     2  XXp2              2         Blocked(waiting for zap target to quit)
+XXp3(): terminating -- when this happens, XXp1() and XXp2() will both become runnable, because both are blocked in zap().  XXp1() will run first, because it is higher priority.
+atempting to quit: pid 4
+XXp1(): after zap'ing process with pid_z=4
+XXp1(): joining with child -- this will NOT block, because the child has already ended.
+XXp1(): join returned kidpid = 4, status = 5
+XXp1(): terminating -- when this happens, XXp2() will run, because it is higher priority than testcase_main().
+atempting to quit: pid 3
+XXp2(): after zap'ing process with pid_z=4
+XXp2(): terminating -- testcase_main() now have time to run.
+atempting to quit: pid 5
+testcase_main(): exit status for child 5 is 5
+testcase_main(): performing join
+testcase_main(): exit status for child 3 is 3
+atempting to quit: pid 2
+finish(): The simulation is now terminating.

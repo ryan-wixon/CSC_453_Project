@@ -482,25 +482,18 @@ void quit(int status) {
 		}
 		USLOSS_Halt(status);
 	}
-
-	/* if zappers waiting for process to die, inform it */
-	Process *currZapper = currentProcess->zappers;
-	while(currZapper != NULL) {
-		if(currZapper->processState == 2 && currZapper->zapWait == 1) {
-			printf("attempting to wake up pid %d\n", currZapper->processID);
-			currentProcess->zappers = currZapper->nextZapper;
-			currZapper->nextZapper = NULL;
-			currZapper->childDeathWait = 0;
-			unblockProc(currZapper->processID);
-		}
-		currZapper = currentProcess->zappers;	/* move to next zapper */
-	}
-
+	
 	/* if parent blocked waiting for child to die, inform it */
 	Process *parent = currentProcess->parent;
 	if(parent->processState == 2 && parent->childDeathWait == 1) {
 		currentProcess->parent->childDeathWait = 0;
-		unblockProc(parent->processID);
+		currentProcess->parent->processState = RUNNABLE;
+		addToRunQueue(&runQueues[currentProcess->parent->priority], currentProcess->parent);
+	}
+
+	/* if zappers waiting for process to die, inform it */
+	if (currentProcess->zappers != NULL) {
+		unblockProc(currentProcess->zappers->processID);
 	}
 
 	// call dispatcher
@@ -631,9 +624,23 @@ int unblockProc(int pid) {
 
 	}
 	
-	// unblocked processes become runnable; add to the run queue and call the dispatcher
+	// unblocked processes become runnable; add to the run queue
 	table[pid % MAXPROC].processState = RUNNABLE;
 	addToRunQueue(&runQueues[table[pid % MAXPROC].priority], &table[pid % MAXPROC]);
+	
+	// if this process was a part of a zapper list, all the other zappers need to be unblocked as well
+	Process* currentZapper = table[pid % MAXPROC].nextZapper;
+	while (currentZapper != NULL) {
+		if (currentZapper->prevZapper != NULL) {
+			currentZapper->prevZapper->nextZapper = NULL;
+			currentZapper->prevZapper = NULL;
+		}
+		currentZapper->processState = RUNNABLE;
+		addToRunQueue(&runQueues[currentZapper->priority], currentZapper);
+		currentZapper = currentZapper->nextZapper;
+	}
+
+	// call the dispatcher once every process that needs to be unblocked is added to the run queues
 	dispatcher();
 
 	// reset PSR to its previous value, possibly restoring interrupts

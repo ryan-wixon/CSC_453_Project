@@ -22,15 +22,19 @@ testcase_main(): performing join
 XXp2(): started, pid = 4
 XXp2(): arg = 'XXp2'
 XXp2(): terminating.
+atempting to quit: pid 4
 XXp1(): after zap'ing first child
 XXp1(): zap'ing second child
 XXp2(): started, pid = 5
 XXp2(): arg = 'XXp2'
 XXp2(): terminating.
+atempting to quit: pid 5
 XXp1(): after zap'ing second child
 XXp1(): performing join's
 XXp1(): first join returned kidpid = 5, status = 5
 XXp1(): second join returned kidpid = 4, status = 5
 XXp1(): terminating.
+atempting to quit: pid 3
 testcase_main(): exit status for child 3 is 3
+atempting to quit: pid 2
 finish(): The simulation is now terminating.

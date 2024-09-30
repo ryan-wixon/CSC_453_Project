@@ -7,3 +7,6 @@ EXPECTATION: testcase_main() creates a single 'victim' process XXp3(), which run
 testcase_main(): spork creating child i=0 -- a new child will run next
 XXp2() 0: getpid()=4
 XXp2() 0: zapping XXp3    current count: 1
+testcase_main(): spork has completed, pid=4
+>>>>> Entering spinloop in testcase_main(), until count and countDuplicate are equal.  Depending on how your scheduler works, this might end immediately (if XXp3() has already done the copy), or it might run for a long while.
+XXp3(): started.  Entering the while() loop.

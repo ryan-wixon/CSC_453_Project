@@ -8,8 +8,11 @@ XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp2(): started
 XXp2(): arg = 'XXp2'
+atempting to quit: pid 4
 XXp1(): after fork of child 4
 XXp1(): exit status for child 4 is 5
+atempting to quit: pid 3
 testcase_main(): after fork of child 3
 testcase_main(): exit status for child 3 is 3
+atempting to quit: pid 2
 finish(): The simulation is now terminating.
