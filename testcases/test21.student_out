@@ -6,3 +6,6 @@ testcase_main(): started
 QUICK SUMMARY: A process tries to zap() itself
 testcase_main(): after fork of child 3
 testcase_main(): performing join
+XXp1(): started
+XXp1(): arg = 'XXp1'
+XXp1(): about to call zap() on myself, the simulation should halt.  pid1 = 3

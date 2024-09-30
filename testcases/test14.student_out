@@ -22,15 +22,11 @@ XXp3(): started
    4     3  XXp3              3         Running
    5     2  XXp2              2         Blocked(waiting for zap target to quit)
 XXp3(): terminating -- quit() should wake up XXp1() but XXp2() will continue to block, since it is zapping XXp1() instead of XXp3(), as it did in test13.
-atempting to quit: pid 4
 XXp1(): join returned kidpid = 4, status = 5
 XXp1(): terminating -- when this happens, XXp2() will become runnable, and so XXp2() will finish up before testcase_main() runs again.
-atempting to quit: pid 3
 XXp2(): after zap'ing process with pid_z
 XXp2(): terminating
-atempting to quit: pid 5
 testcase_main(): exit status for child 5 is 5
 testcase_main(): performing join
 testcase_main(): exit status for child 3 is 3
-atempting to quit: pid 2
 finish(): The simulation is now terminating.

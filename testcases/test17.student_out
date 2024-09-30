@@ -8,17 +8,13 @@ testcase_main(): pidlist[] = [3,4,5, ...]
 One of the XXp1() process has started, getpid()=3
 This process's getpid() matched what spork() returned.
 This XXp1() process will now terminate.
-atempting to quit: pid 3
 testcase_main: joined with child 3
 One of the XXp1() process has started, getpid()=4
 This process's getpid() matched what spork() returned.
 This XXp1() process will now terminate.
-atempting to quit: pid 4
 testcase_main: joined with child 4
 One of the XXp1() process has started, getpid()=5
 This process's getpid() matched what spork() returned.
 This XXp1() process will now terminate.
-atempting to quit: pid 5
 testcase_main: joined with child 5
-atempting to quit: pid 2
 finish(): The simulation is now terminating.

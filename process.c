@@ -110,6 +110,7 @@ Process* popFromRunQueue(RunQueue* queue) {
 	
 	Process* retval = queue->oldest;
 	queue->oldest = queue->oldest->nextInQueue;
+	queue->oldest->prevInQueue = NULL;
 	retval->prevInQueue = NULL;
 	retval->nextInQueue = NULL;
 	return retval;

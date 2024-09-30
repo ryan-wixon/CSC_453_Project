@@ -106,6 +106,18 @@ void phase1_init() {
  *   Returns: Void
  */
 void switchTo(int pid) {
+	// check to ensure we are in user mode with interrupts disabled
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if(oldPSR % 2 == 0) {
+		// you cannot call switchTo() in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call dispatcher while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR == 3) {
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in dispatcher\n");
+		}
+	}
 
 	Process *oldProcess = currentProcess;
 	
@@ -135,6 +147,10 @@ void switchTo(int pid) {
 	}
 
 	lastSwitchTime = currentTime();
+
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in dispatcher\n");
+	}
 }
 
 
@@ -440,8 +456,6 @@ void quit(int status) {
 		USLOSS_Halt(1);
 	}
 
-	printf("atempting to quit: pid %d\n", currentProcess->processID);
-
 	/* show current process has terminated */
 	currentProcess->processState = -1;
 	currentProcess->exitStatus = status;
@@ -455,12 +469,12 @@ void quit(int status) {
 	else if(currentProcess->prevInQueue == NULL) {
 		// current process is oldest process in the queue
 		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+		currentProcess->nextInQueue->prevInQueue = NULL;
 	}
 	else if(currentProcess->nextInQueue == NULL) {
 		// current process is youngest process in the queue
 		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
-		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+		currentProcess->prevInQueue->nextInQueue = NULL;
 	}
 	else {
 		// current process is in the middle of the run queue
@@ -585,12 +599,12 @@ void blockMe(void) {
 	else if(currentProcess->prevInQueue == NULL) {
 		// current process is oldest process in the queue
 		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
+		currentProcess->nextInQueue->prevInQueue = NULL;
 	}
 	else if(currentProcess->nextInQueue == NULL) {
 		// current process is youngest process in the queue
 		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
-		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
+		currentProcess->prevInQueue->nextInQueue = NULL;
 	}
 	else {
 		// current process is in the middle of the run queue
@@ -702,7 +716,6 @@ void dispatcher(void) {
 	// is still runnable; if it is, then check to see 80ms has passed an it's time to pass
 	// the cpu to another processs
 	if (runQueues[currentProcess->priority].oldest != NULL && runQueues[currentProcess->priority].oldest->processID == currentProcess->processID) {
-
 		if (currentTime() - lastSwitchTime >= 80) {
 			sendToBackRunQueue(&runQueues[currentProcess->priority]);
 			switchTo(runQueues[currentProcess->priority].oldest->processID);
@@ -787,7 +800,7 @@ void processWrapper() {
 	unsigned int oldPSR = USLOSS_PsrGet();
 	
 	// processes may run in user mode, so don't halt if you're in user mode here
-	if (oldPSR == 1) {
+	if (oldPSR % 4 == 0 || oldPSR % 4 == 1) {
 		if (USLOSS_PsrSet(oldPSR + 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in processWrapper\n");
 		}

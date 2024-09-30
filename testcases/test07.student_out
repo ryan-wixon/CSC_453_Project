@@ -7,7 +7,6 @@ EXPECTATION: main() creates XXp1.  XXp1 creates XXp2, and then immediately retur
 XXp2(): started
 XXp2(): arg = 'XXp2'
 XXp2(): terminating!
-atempting to quit: pid 4
 XXp1(): fork() rc=4
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
