@@ -8,3 +8,5 @@ XXp1(): started
 XXp1(): arg = 'XXp1'
 testcase_main(): after fork of child 3
 testcase_main(): zapping myself, should fail.  Calling zap(2)
+ERROR: Attempt to zap() itself.
+finish(): The simulation is now terminating.

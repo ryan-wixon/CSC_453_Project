@@ -79,6 +79,3 @@ XXp1(): arg = 'XXp1'
 XXp1(): this process will terminate immediately.
 testcase_main(): after fork of child 20 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these fork messages.
 XXp1(): started, pid = 21
-XXp1(): arg = 'XXp1'
-XXp1(): this process will terminate immediately.
-testcase_main(): after fork of child 21 -- you will see this after the just-created child runs, and completes.  So expect an alternation of XXp1() output, followed by these fork messages.

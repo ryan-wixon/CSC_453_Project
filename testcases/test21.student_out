@@ -9,3 +9,5 @@ testcase_main(): performing join
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): about to call zap() on myself, the simulation should halt.  pid1 = 3
+ERROR: Attempt to zap() itself.
+finish(): The simulation is now terminating.
