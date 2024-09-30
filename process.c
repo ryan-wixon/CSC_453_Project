@@ -95,6 +95,8 @@ void printProcess(Process* process) {
 
 void addToRunQueue(RunQueue* queue, Process* addProcess) {
 
+	printf("adding to run queue\n");
+
 	if (queue->oldest == NULL) {
 		queue->newest = addProcess;
 		queue->oldest = addProcess;
@@ -104,21 +106,31 @@ void addToRunQueue(RunQueue* queue, Process* addProcess) {
 		addProcess->prevInQueue = queue->newest;
 		queue->newest = addProcess;
 	}
+
+	printf("added to run queue\n");
 }
 
 Process* popFromRunQueue(RunQueue* queue) {
 	
+	printf("popping from run queue\n");
+
 	Process* retval = queue->oldest;
 	queue->oldest = queue->oldest->nextInQueue;
 	queue->oldest->prevInQueue = NULL;
 	retval->prevInQueue = NULL;
 	retval->nextInQueue = NULL;
+	
+	printf("popped from run queue\n");
 	return retval;
 }
 
 Process* sendToBackRunQueue(RunQueue* queue) {
 
+	printf("sending to back of run queue\n");
+
 	Process* retval = popFromRunQueue(queue);
 	addToRunQueue(queue, retval);
+	
+	printf("popped from run queue\n");
 	return retval;
 }

@@ -8,3 +8,7 @@ XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): after fork of child 4
 XXp1(): performing first join at this point
+XXp3(): started
+XXp3(): arg = 'XXp3FromXXp1'
+XXp1(): exit status for child 4 is 3
+testcase_main(): after fork of child 3

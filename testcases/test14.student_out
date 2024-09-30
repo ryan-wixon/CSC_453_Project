@@ -1,32 +1,133 @@
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 1
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	INIT PROCESS MAIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	CREATING PROCESS testcase_main
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+   2     1  testcase_main     3         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	TESTCASE MAIN WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
 testcase_main(): started
 EXPECTATION: See test13.  This is the same, except that the PID that will be zap()ed is that of XXp1() - and thus the pid is stored by testcase_main() after the first fork().  This works much the same, except that when XXp3() terminates, only XXp1() wakes up (join) because XXp2() is trying to zap XXp1(), instead of XXp3() (as it did in test 13).
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	CREATING PROCESS XXp1
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              1         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Running
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): executing fork of first child
-XXp1(): spork of first child returned pid = 4
-XXp1(): joining with first child
-testcase_main(): after fork of first child 3
-XXp2(): started
-XXp2(): zap'ing process with pid_z=3
-testcase_main(): after fork of second child 5
-testcase_main(): performing join
-XXp3(): started
+	SPORK
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Running
+	CREATING PROCESS XXp3
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Running
+   4     3  XXp3              3         Runnable
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+FINISHED DISPATCHER
+XXp1(): spork of first child returned pid = 4
+XXp1(): joining with first child
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Running
+   4     3  XXp3              3         Runnable
+	JOINING XXp1
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+	BLOCK ME
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Running
+   4     3  XXp3              3         Runnable
+	BLOCKING XXp1
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
    3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Running
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-XXp3(): terminating -- quit() should wake up XXp1() but XXp2() will continue to block, since it is zapping XXp1() instead of XXp3(), as it did in test13.
-XXp1(): join returned kidpid = 4, status = 5
-XXp1(): terminating -- when this happens, XXp2() will become runnable, and so XXp2() will finish up before testcase_main() runs again.
-XXp2(): after zap'ing process with pid_z
-XXp2(): terminating
-testcase_main(): exit status for child 5 is 5
-testcase_main(): performing join
-testcase_main(): exit status for child 3 is 3
-finish(): The simulation is now terminating.
+   4     3  XXp3              3         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+FINISHED DISPATCHER
+testcase_main(): after fork of first child 3
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              1         Blocked(waiting for child to quit)
+   4     3  XXp3              3         Runnable
+	CREATING PROCESS XXp2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              1         Blocked(waiting for child to quit)
+   4     3  XXp3              3         Runnable
+   5     2  XXp2              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 5
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              1         Blocked(waiting for child to quit)
+   4     3  XXp3              3         Runnable
+   5     2  XXp2              2         Running
+XXp2(): started
+XXp2(): zap'ing process with pid_z=3

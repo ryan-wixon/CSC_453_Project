@@ -1,15 +1,147 @@
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 1
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	INIT PROCESS MAIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	CREATING PROCESS testcase_main
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+   2     1  testcase_main     3         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	TESTCASE MAIN WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
 testcase_main(): started
 EXPECTATION: Create XXp1, which will create its own child, XXp2.  Each parent will join() with its child.  And the children will always be higher priority than the parent (in this testcase).
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	CREATING PROCESS XXp1
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Running
 XXp1(): started
 XXp1(): arg = 'XXp1'
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Running
+	CREATING PROCESS XXp2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Running
+   4     3  XXp2              1         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 4
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Runnable
+   4     3  XXp2              1         Running
 XXp2(): started
 XXp2(): arg = 'XXp2'
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Runnable
+   4     3  XXp2              1         Running
+	QUITTING XXp2
+QUIT CHECKPOINT 1
+QUIT CHECKPOINT 2
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Runnable
+   4     3  XXp2              1         Terminated(5)
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
 XXp1(): after fork of child 4
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Running
+   4     3  XXp2              1         Terminated(5)
+	JOINING XXp1
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
 XXp1(): exit status for child 4 is 5
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Running
+	QUITTING XXp1
+QUIT CHECKPOINT 1
+QUIT CHECKPOINT 2
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Terminated(3)
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+FINISHED DISPATCHER
 testcase_main(): after fork of child 3
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              2         Terminated(3)
+	JOINING testcase_main
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
 testcase_main(): exit status for child 3 is 3
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	QUITTING testcase_main
+QUIT CHECKPOINT 1
+QUIT CHECKPOINT 2
 finish(): The simulation is now terminating.

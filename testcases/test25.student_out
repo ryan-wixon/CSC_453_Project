@@ -4,3 +4,11 @@ phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 testcase_main(): started
 QUICK SUMMARY: TODO
+XXp1(): creating children
+XXp2(): started, pid = 4, calling blockMe
+XXp2(): started, pid = 5, calling blockMe
+XXp2(): started, pid = 6, calling blockMe
+XXp1(): creating zapper children
+XXp3(): started, pid = 7, calling zap on pid 4
+XXp4(): started, pid = 8, calling zap on pid 6
+XXp1(): unblocking children
