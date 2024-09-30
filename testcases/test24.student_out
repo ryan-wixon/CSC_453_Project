@@ -26,8 +26,8 @@ XXp2(): pid = 5, after blockMe
 XXp2(): pid = 5
 XXp2(): pid = 6, after blockMe
 XXp2(): pid = 6
-XXp1(): after unblocking 4, result = -1
-XXp1(): after unblocking 5, result = -1
-XXp1(): after unblocking 6, result = -1
+XXp1(): after unblocking 4, result = 0
+XXp1(): after unblocking 5, result = 0
+XXp1(): after unblocking 6, result = 0
 ERROR: Process pid 3 called quit() while it still had children.
 finish(): The simulation is now terminating.

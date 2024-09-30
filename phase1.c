@@ -549,6 +549,11 @@ void zap(int pid) {
 		fprintf(stderr, "ERROR: Attempt to zap() itself.\n");
 		USLOSS_Halt(1);
 	}
+	if(tableOccupancies[pid % MAXPROC] == 0) {
+		// no process at that location
+		fprintf(stderr, "ERROR: Attempt to zap() a non-existent process.\n");
+		USLOSS_Halt(1);
+	}
 	if(table[pid % MAXPROC].processState == -1) {
 		// can't zap a process that already terminated
 		fprintf(stderr, "ERROR: Attempt to zap() a process that is already in the process of dying.\n");
@@ -651,6 +656,35 @@ int unblockProc(int pid) {
 		}
 
 	}
+
+	// error checking
+	if(tableOccupancies[pid % MAXPROC] == 0) {
+		// no process at that location
+		fprintf(stderr, "ERROR: Attempt to unblock nonexistent process\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
+	}
+	else if(table[pid % MAXPROC].processID != pid) {
+		// process does not exist
+		fprintf(stderr, "ERROR: Attempt to unblock nonexistent process\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
+	}
+	if(table[pid % MAXPROC].processState != BLOCKED) {
+		// you cannot call unblockProc on a process that isn't blocked
+		fprintf(stderr, "ERROR: Attempt to unblock process that wasn't blocked\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
+	}
 	
 	// unblocked processes become runnable; add to the run queue
 	table[pid % MAXPROC].processState = RUNNABLE;
@@ -676,7 +710,7 @@ int unblockProc(int pid) {
 		fprintf(stderr, "Bad PSR restored in unblockProc\n");
 	}
 
-	return -1;	// remove this when implementing functionality! temp return.
+	return 0;	// the function did not fail
 }
 
 void dispatcher(void) {
