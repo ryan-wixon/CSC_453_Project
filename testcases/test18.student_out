@@ -7,9 +7,9 @@ EXPECTATION: testcase_main() creates a single 'victim' process XXp3(), which run
 testcase_main(): spork creating child i=0 -- a new child will run next
 XXp2() 0: getpid()=4
 XXp2() 0: zapping XXp3    current count: 1
+XXp3(): started.  Entering the while() loop.
 testcase_main(): spork has completed, pid=4
 >>>>> Entering spinloop in testcase_main(), until count and countDuplicate are equal.  Depending on how your scheduler works, this might end immediately (if XXp3() has already done the copy), or it might run for a long while.
-XXp3(): started.  Entering the while() loop.
 <<<<< spinloop complete.
 
 testcase_main(): spork creating child i=1 -- a new child will run next
@@ -71,8 +71,6 @@ testcase_main(): spork has completed, pid=12
 testcase_main(): spork creating child i=9 -- a new child will run next
 XXp2() 9: getpid()=13
 XXp2() 9: zapping XXp3    current count: 10
-testcase_main(): spork has completed, pid=13
->>>>> Entering spinloop in testcase_main(), until count and countDuplicate are equal.  Depending on how your scheduler works, this might end immediately (if XXp3() has already done the copy), or it might run for a long while.
 XXp3(): count = 10 -- the while loop has ended!
 XXp3(): terminating -- all of the XXp2() processes will unblock, and will all run in quick succession.  testcase_main() will not run until all of them have died.
 XXp2() 9: after zap.  This process will now terminate.
@@ -85,6 +83,8 @@ XXp2() 3: after zap.  This process will now terminate.
 XXp2() 2: after zap.  This process will now terminate.
 XXp2() 1: after zap.  This process will now terminate.
 XXp2() 0: after zap.  This process will now terminate.
+testcase_main(): spork has completed, pid=13
+>>>>> Entering spinloop in testcase_main(), until count and countDuplicate are equal.  Depending on how your scheduler works, this might end immediately (if XXp3() has already done the copy), or it might run for a long while.
 <<<<< spinloop complete.
 
 testcase_main(): Calling join() the first time.  Depending on how the race with XXp3() runs, this may happen before XXp3() ends its loop, and thus it will block; or it may happen after XXp3() terminates, and thus it will terminate immediately - as will *all* of the join()s, since all of the XXp2() processes will also be dead.

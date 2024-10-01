@@ -94,13 +94,8 @@ void phase1_init() {
 }
 
 /*
- * Temporary context switching function for phase 1a. Switches to the
+ * Context switching function that helps the dispatcher. Switches to the
  * specified process. The new process is also set as the current process.
- * 
- * TODO: Adapt this code into the code for dispatcher (see below). We will
- * also need to adapt the code to take run queues into account.
- * This function will eventually be deleted. But don't delete it until we
- * have dispatcher() written.
  *
  * Arguments: pid = The PID of the process to switch to
  *   Returns: Void
@@ -737,7 +732,11 @@ void dispatcher(void) {
 	// first, we need to check to see if there is a higher priority process to switch to
 	for (int i = 1; i < maxPriority; i++) {
 		if (runQueues[i].oldest != NULL) {
-			
+			if(currentProcess != NULL && runQueues[currentProcess->priority].oldest != NULL) {
+				// switching away from the currently running process, so remove the old process
+				// from its queue and send it to the back since it is now just runnable
+				sendToBackRunQueue(&runQueues[currentProcess->priority]);
+			}
 			switchTo(runQueues[i].oldest->processID);
 			
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {

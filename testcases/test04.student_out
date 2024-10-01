@@ -49,64 +49,8 @@ XXp1(): XXp1_0, started, pid = 8
 XXp1(): exiting, pid = 8
 testcase_main(): after fork of child 8 -- you should not see this until the child has ended.
 testcase_main(): calling fork(), arg_buf = 'XXp1_1' -- testcase_main() will block until this child terminates, because the child is higher priority.
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   8     2  XXp1              2         Terminated(8)
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 9
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Running
 XXp1(): XXp1_1, started, pid = 9
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 9
-FINISHED DISPATCHER
 XXp1(): exiting, pid = 9
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Running
-	QUITTING XXp1
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 9 -- you should not see this until the child has ended.
 testcase_main(): calling fork(), arg_buf = 'XXp1_2' -- testcase_main() will block until this child terminates, because the child is higher priority.
 XXp1(): XXp1_2, started, pid = 10
@@ -130,78 +74,6 @@ XXp1(): exiting, pid = 11
 testcase_main(): after fork of child 11 -- you should not see this until the child has ended.
 testcase_main(): calling fork(), arg_buf = 'XXp1_4' -- testcase_main() will block until this child terminates, because the child is higher priority.
 XXp1(): XXp1_4, started, pid = 12
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
 XXp1(): exiting, pid = 12
 testcase_main(): after fork of child 12 -- you should not see this until the child has ended.
 
