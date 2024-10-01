@@ -732,8 +732,8 @@ void dispatcher(void) {
 	// first, we need to check to see if there is a higher priority process to switch to
 	for (int i = 1; i < maxPriority; i++) {
 		if (runQueues[i].oldest != NULL) {
-			if(currentProcess != NULL && runQueues[currentProcess->priority].oldest != NULL) {
-				// switching away from the currently running process, so remove the old process
+			if(currentProcess != NULL && runQueues[currentProcess->priority].oldest != NULL && runQueues[currentProcess->priority].oldest == currentProcess) {
+				// switching away from the currently running process, so remove the current process
 				// from its queue and send it to the back since it is now just runnable
 				sendToBackRunQueue(&runQueues[currentProcess->priority]);
 			}
