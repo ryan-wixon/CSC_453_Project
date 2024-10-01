@@ -1,42 +1,8 @@
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 1
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	INIT PROCESS MAIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	CREATING PROCESS testcase_main
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-   2     1  testcase_main     3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	TESTCASE MAIN WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
 testcase_main(): started
 EXPECTATION: The simulation should be terminated as soon as fork() is called, since we are not in kernel mode.
-ERROR: Someone attempted to call dumpProcesses while in user mode!
-	SPORK
+ERROR: Someone attempted to call spork while in user mode!
 finish(): The simulation is now terminating.

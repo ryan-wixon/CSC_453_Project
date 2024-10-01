@@ -1,118 +1,14 @@
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 1
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	INIT PROCESS MAIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	CREATING PROCESS testcase_main
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-   2     1  testcase_main     3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	TESTCASE MAIN WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
 testcase_main(): started
 QUICK SUMMARY: Attempts (from multiple processes) to zap() a non-existent process.
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              3         Runnable
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 3
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              3         Runnable
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              3         Runnable
-   4     2  XXp1              3         Runnable
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 4
 testcase_main(): performing first join
-	JOIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              3         Runnable
-   4     2  XXp1              3         Runnable
-	JOINING CHLDREN OF testcase_main
-JOIN CHECKPOINT 1
-JOIN CHECKPOINT 2
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              3         Runnable
-   4     2  XXp1              3         Runnable
-	BLOCKING testcase_main
-popping from run queue
-popped from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              3         Runnable
-   4     2  XXp1              3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              3         Running
-   4     2  XXp1              3         Runnable
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): zapping a non existant processes pid, should fail.  Calling zap(204)
 ERROR: Attempt to zap() a non-existent process.
-	ZAP
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              3         Running
-   4     2  XXp1              3         Runnable
-	ZAPPING PID: 204
 finish(): The simulation is now terminating.

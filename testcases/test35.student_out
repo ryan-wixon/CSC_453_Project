@@ -1,204 +1,22 @@
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 1
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	INIT PROCESS MAIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	CREATING PROCESS testcase_main
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-   2     1  testcase_main     3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	TESTCASE MAIN WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
 testcase_main(): started
 QUICK SUMMARY: Attempting to zap() a process that has already died, but the parent has not yet join()ed.
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): zap returned.
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-	CREATING PROCESS XXp2
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-   4     3  XXp2              1         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 4
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Runnable
-   4     3  XXp2              1         Running
 XXp2(): started
 XXp2(): arg = 'XXp2'
 XXp2(): exiting by calling quit(2)
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Runnable
-   4     3  XXp2              1         Running
-	QUITTING XXp2
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Runnable
-   4     3  XXp2              1         Terminated(2)
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-FINISHED DISPATCHER
 XXp1(): after fork of child 4
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-   4     3  XXp2              1         Terminated(2)
-	CREATING PROCESS XXp3
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-FINISHED DISPATCHER
 XXp1(): after fork of child 5
 XXp1(): calling zap(5)
-	ZAP
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-	ZAPPING PID: 5
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-	BLOCKING XXp1
-popping from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 3
 testcase_main(): performing first join
-	JOIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-	JOINING CHLDREN OF testcase_main
-JOIN CHECKPOINT 1
-JOIN CHECKPOINT 2
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-	BLOCKING testcase_main
-popping from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 5
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Running
 XXp3(): started
 XXp3(): arg = 'XXp3'
 XXp3(): calling zap(4)
 ERROR: Attempt to zap() a process that is already in the process of dying.
-	ZAP
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              2         Blocked(waiting for zap target to quit)
-   4     3  XXp2              1         Terminated(2)
-   5     3  XXp3              5         Running
-	ZAPPING PID: 4
 finish(): The simulation is now terminating.

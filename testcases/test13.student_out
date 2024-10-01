@@ -1,204 +1,21 @@
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 1
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	INIT PROCESS MAIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	CREATING PROCESS testcase_main
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-   2     1  testcase_main     3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	TESTCASE MAIN WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
 testcase_main(): started
 EXPECTATION: testcase_main() creates child XXp1(), priority 1.  It creates its own child, XXp3(), priority 3.  It stores the pid of the XXp3() child into a global, and then blocks on join().  testcase_main() wakes up and creates another child, XXp2(), priority 2.  This calls zap() on the pid stored in the global variable, meaning that *two* processes are now blocked on the same XXp3().  XXp3() and testcase_main() race; XXp3() will call dumpProcesses() and die, while testcase_main() will join().  When XXp3() dies, XXp1() and XXp2() will both be awoken but XXp1() will run first.
 testcase_main(): fork first child -- this will block, because the child has a higher priority
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Running
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): executing fork of child
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Running
-	CREATING PROCESS XXp3
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Running
-   4     3  XXp3              3         Runnable
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-FINISHED DISPATCHER
 XXp1(): spork of child returned pid = 4
 XXp1(): joining with child -- when we block here, testcase_main() should wake up so that it can create its second child.
-	JOIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Running
-   4     3  XXp3              3         Runnable
-	JOINING CHLDREN OF XXp1
-JOIN CHECKPOINT 1
-JOIN CHECKPOINT 2
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Running
-   4     3  XXp3              3         Runnable
-	BLOCKING XXp1
-popping from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 3 -- you should not see this until XXp1() is blocked in join().
 testcase_main(): fork second child -- this will block, because the child has a higher priority
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-	CREATING PROCESS XXp2
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 5
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Running
 XXp2(): started
 XXp2(): zap'ing XXp1's child with pid_e=4 -- when we block here, testcase_main() and XXp3() will race.
-	ZAP
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Running
-	ZAPPING PID: 4
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Running
-	BLOCKING XXp2
-popping from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-FINISHED DISPATCHER
 testcase_main(): after fork of child 5 -- you should not see this until XXp2() is blocked in zap().  Depending on your scheduling decisions, XXp3() *might* run before you see this message, too.
 testcase_main(): performing join
-	JOIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-	JOINING CHLDREN OF testcase_main
-JOIN CHECKPOINT 1
-JOIN CHECKPOINT 2
-	BLOCK ME
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-	BLOCKING testcase_main
-popping from run queue
-popped from run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Runnable
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 4
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Running
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
 XXp3(): started
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -207,108 +24,19 @@ XXp3(): started
    4     3  XXp3              3         Running
    5     2  XXp2              2         Blocked(waiting for zap target to quit)
 XXp3(): terminating -- quit() should wake up both XXp1() and XXp2(), but you should see XXp1() run first, because it has a higher priority than XXp2().
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Blocked(waiting for child to quit)
-   4     3  XXp3              3         Running
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-	QUITTING XXp3
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
-adding to run queue
-added to run queue
-	UNBLOCKPROC
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Runnable
-   4     3  XXp3              3         Terminated(5)
-   5     2  XXp2              2         Blocked(waiting for zap target to quit)
-	Unblocking PID 5
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Runnable
-   4     3  XXp3              3         Terminated(5)
-   5     2  XXp2              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-FINISHED DISPATCHER
 XXp1(): join returned kidpid = 4, status = 5
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Blocked(waiting for child to quit)
    3     2  XXp1              1         Running
    5     2  XXp2              2         Runnable
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  XXp1              1         Running
-   5     2  XXp2              2         Runnable
-	QUITTING XXp1
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Terminated(3)
-   5     2  XXp2              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 5
-FINISHED DISPATCHER
 XXp2(): after zap'ing child with pid_e
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Runnable
    3     2  XXp1              1         Terminated(3)
    5     2  XXp2              2         Running
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Terminated(3)
-   5     2  XXp2              2         Running
-	QUITTING XXp2
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              1         Terminated(3)
-   5     2  XXp2              2         Terminated(5)
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-FINISHED DISPATCHER
 testcase_main(): exit status for child 5 is 5
 testcase_main(): performing join
-	JOIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              1         Terminated(3)
-	JOINING CHLDREN OF testcase_main
-JOIN CHECKPOINT 1
-JOIN CHECKPOINT 2
 testcase_main(): exit status for child 3 is 3
-	QUIT
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	QUITTING testcase_main
-QUIT CHECKPOINT 1
-popping from run queue
-QUIT CHECKPOINT 2
 finish(): The simulation is now terminating.
