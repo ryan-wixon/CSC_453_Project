@@ -107,7 +107,7 @@ void phase1_init() {
  */
 void switchTo(int pid) {
 	
-	printf("SWITCHING TO PID %d\n", pid);
+	//printf("SWITCHING TO PID %d\n", pid);
 
 	// check to ensure we are in user mode with interrupts disabled
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -166,9 +166,9 @@ void switchTo(int pid) {
  */
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
 
-	printf("\tSPORK\n");
-	dumpProcesses();
-	printf("\tCREATING PROCESS %s\n", name);	
+	//printf("\tSPORK\n");
+	//dumpProcesses();
+	//printf("\tCREATING PROCESS %s\n", name);	
 
 	// check to ensure we are in user mode with interrupts disabled
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -253,9 +253,9 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
  */
 int join(int *status) {
 	
-	printf("\tJOIN\n");
-	dumpProcesses();
-	printf("\tJOINING CHLDREN OF %s\n", currentProcess->name);	
+	//printf("\tJOIN\n");
+	//dumpProcesses();
+	//printf("\tJOINING CHLDREN OF %s\n", currentProcess->name);	
 
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -271,7 +271,7 @@ int join(int *status) {
 
 	}
 
-	printf("JOIN CHECKPOINT 1\n");	
+	//printf("JOIN CHECKPOINT 1\n");	
 	
 	if (status == NULL) {
 		
@@ -290,7 +290,7 @@ int join(int *status) {
 		return -2;
 	}
 
-	printf("JOIN CHECKPOINT 2\n");
+	//printf("JOIN CHECKPOINT 2\n");
 	
 	// continuously check for dead children, return the first one found
 	// keep going until you find one (since control returns to join() if
@@ -394,15 +394,15 @@ int join(int *status) {
 		fprintf(stderr, "Bad PSR restored in join\n");
 	}
 
-	printf("FINISHED JOIN\n");
+	//printf("FINISHED JOIN\n");
 }
 
 // TODO: test this function! I think it is done but not sure.
 void quit(int status) {
 
-	printf("\tQUIT\n");
-	dumpProcesses();
-	printf("\tQUITTING %s\n", currentProcess->name);	
+	//printf("\tQUIT\n");
+	//dumpProcesses();
+	//printf("\tQUITTING %s\n", currentProcess->name);	
 
 
 	/* check PSR to ensure we are in kernel mode; disable interrupts */
@@ -419,7 +419,7 @@ void quit(int status) {
 		}
 	}
 
-	printf("QUIT CHECKPOINT 1\n");
+	//printf("QUIT CHECKPOINT 1\n");
 
 	/* you cannot call quit() when you still have children */
 	if(currentProcess->children != NULL) {
@@ -457,7 +457,7 @@ void quit(int status) {
 	currentProcess->nextInQueue = NULL;
 	currentProcess->prevInQueue = NULL;*/
 
-	printf("QUIT CHECKPOINT 2\n");
+	//printf("QUIT CHECKPOINT 2\n");
 
 	if(strcmp(currentProcess->name, "testcase_main") == 0) {
 		/* testcase_main has terminated; halt the simulation */
@@ -499,9 +499,9 @@ void quit(int status) {
 // TODO Test, I think this function is done.
 void zap(int pid) {
 	
-	printf("\tZAP\n");
-	dumpProcesses();
-	printf("\tZAPPING PID: %d\n", pid);
+	//printf("\tZAP\n");
+	//dumpProcesses();
+	//printf("\tZAPPING PID: %d\n", pid);
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -570,9 +570,9 @@ void zap(int pid) {
 // TODO Test, this function is actually very simple but I don't think there's anything else to do here
 void blockMe(void) {
 	
-	printf("\tBLOCK ME\n");
-	dumpProcesses();
-	printf("\tBLOCKING %s\n", currentProcess->name);
+	//printf("\tBLOCK ME\n");
+	//dumpProcesses();
+	//printf("\tBLOCKING %s\n", currentProcess->name);
 	
 	/* check PSR to ensure we are in kernel mode; disable interrupts */
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -627,9 +627,9 @@ void blockMe(void) {
 
 int unblockProc(int pid) {
 
-	printf("\tUNBLOCKPROC\n");
-	dumpProcesses();
-	printf("\tUnblocking PID %d\n", pid);	
+	//printf("\tUNBLOCKPROC\n");
+	//dumpProcesses();
+	//printf("\tUnblocking PID %d\n", pid);	
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -704,8 +704,8 @@ int unblockProc(int pid) {
 
 void dispatcher(void) {
 
-	printf("\tDISPATCHER\n");
-	dumpProcesses();	
+	//printf("\tDISPATCHER\n");
+	//dumpProcesses();	
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -722,7 +722,7 @@ void dispatcher(void) {
 
 	}
 	
-	printf("DISPATCHER CHECKPOINT 1\n");
+	//printf("DISPATCHER CHECKPOINT 1\n");
 
 	// determine what priority to search up until
 	int maxPriority = -1;
@@ -743,12 +743,12 @@ void dispatcher(void) {
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 				fprintf(stderr, "Bad PSR restored in dispatcher\n");
 			}
-			printf("FINISHED DISPATCHER\n");
+			//printf("FINISHED DISPATCHER\n");
 			return;
 		}
 	}
 
-	printf("DISPATCHER CHECKPOINT 2\n");
+	//printf("DISPATCHER CHECKPOINT 2\n");
 
 	// if there was no higher priority process, then we need to check to see if the process
 	// is still runnable; if it is, then check to see 80ms has passed an it's time to pass
@@ -765,7 +765,7 @@ void dispatcher(void) {
 		fprintf(stderr, "Bad PSR restored in dispatcher\n");
 	}
 
-	printf("FINISHED DISPATCHER\n");
+	//printf("FINISHED DISPATCHER\n");
 }
 
 /* 
@@ -827,8 +827,8 @@ void dumpProcesses() {
  */
 void processWrapper() {
 	
-	printf("\tPROCESS WRAPPER\n");
-	dumpProcesses();	
+	//printf("\tPROCESS WRAPPER\n");
+	//dumpProcesses();	
 
 	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -866,8 +866,8 @@ void processWrapper() {
  */
 int testcaseMainWrapper(void* ignored) {
 	
-	printf("\tTESTCASE MAIN WRAPPER\n");
-	dumpProcesses();
+	//printf("\tTESTCASE MAIN WRAPPER\n");
+	//dumpProcesses();
 	
 	int returnCode = testcase_main();
 	return returnCode;
@@ -886,8 +886,8 @@ int testcaseMainWrapper(void* ignored) {
  */
 int initProcessMain(void* ignored) {
 
-	printf("\tINIT PROCESS MAIN\n");
-	dumpProcesses();
+	//printf("\tINIT PROCESS MAIN\n");
+	//dumpProcesses();
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {

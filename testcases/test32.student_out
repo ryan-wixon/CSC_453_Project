@@ -1,69 +1,11 @@
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 1
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	INIT PROCESS MAIN
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-	CREATING PROCESS testcase_main
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Running
-   2     1  testcase_main     3         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 2
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	TESTCASE MAIN WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
 testcase_main(): started
 QUICK SUMMARY: Attempt to zap() a non-existent process.
-	SPORK
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-	CREATING PROCESS XXp1
-adding to run queue
-added to run queue
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Running
-   3     2  XXp1              2         Runnable
-DISPATCHER CHECKPOINT 1
-SWITCHING TO PID 3
-	PROCESS WRAPPER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
 XXp1(): started pid=3
 XXp1(): arg = 'XXp1'
 XXp1(): calling zap(1024), which is a non-existant process.  Should fail.
 ERROR: Attempt to zap() a non-existent process.
-	ZAP
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Running
-	ZAPPING PID: 1024
 finish(): The simulation is now terminating.
