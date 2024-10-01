@@ -10,11 +10,19 @@ testcase_main(): after fork of child 5
 testcase_main(): performing first join
 XXp1(): started
 XXp1(): arg = 'XXp1'
+<<<<<<< HEAD
 XXp2(): started
 XXp2(): arg = 'XXp2'
 XXp2(): calling zap(5)
 testcase_main(): exit status for child 3 is 1
 testcase_main(): performing second join
+=======
+testcase_main(): exit status for child 3 is 1
+testcase_main(): performing second join
+XXp2(): started
+XXp2(): arg = 'XXp2'
+XXp2(): calling zap(5)
+>>>>>>> 32366c61001de33deffdb779381ff73c64253e00
 XXp3(): started
 XXp3(): arg = 'XXp3'
 XXp4(): started

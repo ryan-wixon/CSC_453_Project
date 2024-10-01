@@ -12,3 +12,11 @@ XXp3(): started
 XXp3(): arg = 'XXp3FromXXp1'
 XXp1(): exit status for child 4 is 3
 testcase_main(): after fork of child 3
+<<<<<<< HEAD
+=======
+XXp2(): started
+XXp2(): arg = 'XXp2'
+XXp2(): calling zap(3)
+ERROR: Attempt to zap() a process that is already in the process of dying.
+finish(): The simulation is now terminating.
+>>>>>>> 32366c61001de33deffdb779381ff73c64253e00

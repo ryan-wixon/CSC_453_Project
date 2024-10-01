@@ -49,7 +49,7 @@ void phase1_init() {
 		fprintf(stderr, "ERROR: Someone attempted to call phase1_init while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in phase1_init\n");
 		}
@@ -116,7 +116,7 @@ void switchTo(int pid) {
 		fprintf(stderr, "ERROR: Someone attempted to call dispatcher while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in dispatcher\n");
 		}
@@ -177,7 +177,7 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 		fprintf(stderr, "ERROR: Someone attempted to call spork while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in spork\n");
 		}
@@ -224,7 +224,8 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 
 	// initialize the USLOSS_Context and save the pointer to the stack
 	USLOSS_ContextInit(&table[newProcessIndex].context, stack, stackSize, NULL, &processWrapper);
-	newProcess.contextStack = stack;
+	table[newProcessIndex].contextStack = stack;
+	//newProcess.contextStack = stack;
 
 	// add the process to the given run queue
 	addToRunQueue(&runQueues[priority], &table[newProcessIndex]);	
@@ -261,7 +262,7 @@ int join(int *status) {
 		fprintf(stderr, "ERROR: Someone attempted to call join while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in join\n");
 		}
@@ -365,13 +366,15 @@ int join(int *status) {
 				// free the dead process's memory
 				free(curr->contextStack);
 				tableOccupancies[curr->processID % MAXPROC] = 0;
+
+				int oldPID = curr->processID;
+				numProcesses--;
 			
 				if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 					fprintf(stderr, "Bad PSR restored in join\n");
 				}
 
-				numProcesses--;
-				return curr-> processID;
+				return oldPID;
 			}
 			curr = curr->olderSibling;  
 		}
@@ -408,7 +411,7 @@ void quit(int status) {
 		fprintf(stderr, "ERROR: Someone attempted to call quit while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in quit\n");
 		}
@@ -503,7 +506,7 @@ void zap(int pid) {
 		fprintf(stderr, "ERROR: Someone attempted to call zap while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in zap\n");
 		}
@@ -512,11 +515,27 @@ void zap(int pid) {
 
 	// error checking; a process should not be able to zap init or itself
 	if (pid == 1) {
-		printf("ERROR: Process %s attempted to zap init\n", currentProcess->name);
+		fprintf(stderr, "ERROR: Attempt to zap() init.\n");
 		USLOSS_Halt(1);
 	}
 	if (pid == currentProcess->processID) {
-		printf("ERROR: Process %s attempted to zap itself\n", currentProcess->name);
+		fprintf(stderr, "ERROR: Attempt to zap() itself.\n");
+		USLOSS_Halt(1);
+	}
+	if(tableOccupancies[pid % MAXPROC] == 0) {
+		// no process at that location
+		fprintf(stderr, "ERROR: Attempt to zap() a non-existent process.\n");
+		USLOSS_Halt(1);
+	}
+	if(table[pid % MAXPROC].processState == -1) {
+		// can't zap a process that already terminated
+		fprintf(stderr, "ERROR: Attempt to zap() a process that is already in the process of dying.\n");
+		USLOSS_Halt(1);
+	}
+	if(table[pid % MAXPROC].processID != pid) {
+		// the process does not exist
+		fprintf(stderr, "ERROR: Attempt to zap() a non-existent process.\n");
+		USLOSS_Halt(1);
 	}
 
 	// set the target process as zapped
@@ -558,7 +577,7 @@ void blockMe(void) {
 		fprintf(stderr, "ERROR: Someone attempted to call blockMe while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in blockMe\n");
 		}
@@ -613,11 +632,40 @@ int unblockProc(int pid) {
 		fprintf(stderr, "ERROR: Someone attempted to call unblockProc while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in unblockProc\n");
 		}
 
+	}
+
+	// error checking
+	if(tableOccupancies[pid % MAXPROC] == 0) {
+		// no process at that location
+		fprintf(stderr, "ERROR: Attempt to unblock nonexistent process\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
+	}
+	else if(table[pid % MAXPROC].processID != pid) {
+		// process does not exist
+		fprintf(stderr, "ERROR: Attempt to unblock nonexistent process\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
+	}
+	if(table[pid % MAXPROC].processState != BLOCKED) {
+		// you cannot call unblockProc on a process that isn't blocked
+		fprintf(stderr, "ERROR: Attempt to unblock process that wasn't blocked\n");
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in unblockProc\n");
+		}
+		return -2;
 	}
 	
 	// unblocked processes become runnable; add to the run queue
@@ -644,7 +692,7 @@ int unblockProc(int pid) {
 		fprintf(stderr, "Bad PSR restored in unblockProc\n");
 	}
 
-	return -1;	// remove this when implementing functionality! temp return.
+	return 0;	// the function did not fail
 }
 
 void dispatcher(void) {
@@ -660,7 +708,7 @@ void dispatcher(void) {
 		fprintf(stderr, "ERROR: Someone attempted to call dispatcher while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in dispatcher\n");
 		}
@@ -744,7 +792,7 @@ void dumpProcesses() {
 		fprintf(stderr, "ERROR: Someone attempted to call dumpProcesses while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in dumpProcesses\n");
 		}
@@ -840,7 +888,7 @@ int initProcessMain(void* ignored) {
 		fprintf(stderr, "ERROR: Someone attempted to run init while in user mode!\n");
 		USLOSS_Halt(1);
 	}
-	if (oldPSR == 3) {
+	if (oldPSR % 4 == 3) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in initProcessMain\n");
 		}

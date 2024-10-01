@@ -19,3 +19,18 @@ XXp3(): started, pid = 7, calling zap on pid 4
    6     3  XXp2              3         Blocked
    7     3  XXp3              4         Blocked(waiting for zap target to quit)
 XXp1(): unblocking children
+<<<<<<< HEAD
+=======
+XXp2(): pid = 4, after blockMe
+XXp2(): pid = 4
+XXp3(): after call to zap
+XXp2(): pid = 5, after blockMe
+XXp2(): pid = 5
+XXp2(): pid = 6, after blockMe
+XXp2(): pid = 6
+XXp1(): after unblocking 4, result = 0
+XXp1(): after unblocking 5, result = 0
+XXp1(): after unblocking 6, result = 0
+ERROR: Process pid 3 called quit() while it still had children.
+finish(): The simulation is now terminating.
+>>>>>>> 32366c61001de33deffdb779381ff73c64253e00

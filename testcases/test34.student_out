@@ -9,3 +9,17 @@ XXp1(): arg = 'XXp1'
 XXp1(): after fork of child 4
 XXp1(): after fork of child 5
 XXp1(): performing first join
+testcase_main(): after fork of child 3
+testcase_main(): performing first join
+XXp3(): started
+XXp3(): arg = 'XXp3'
+XXp3(): calling zap(4)
+XXp2(): started
+XXp2(): arg = 'XXp2'
+XXp2(): exiting by calling quit(2)
+XXp1(): exit status for first child 4 is 2
+XXp1(): performing second join
+XXp3(): zap(4) returned
+XXp1(): exit status for second child 5 is 3
+testcase_main(): exit status for child 3 is 1
+finish(): The simulation is now terminating.

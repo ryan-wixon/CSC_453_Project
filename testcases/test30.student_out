@@ -8,3 +8,8 @@ testcase_main(): performing first join
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): zapping myself, should fail.  Calling zap(3)
+<<<<<<< HEAD
+=======
+ERROR: Attempt to zap() itself.
+finish(): The simulation is now terminating.
+>>>>>>> 32366c61001de33deffdb779381ff73c64253e00

@@ -7,5 +7,5 @@ QUICK SUMMARY: TODO
 XXp1(): started
 XXp1(): arg = 'XXp1'
 XXp1(): about to zap init
-ERROR: Process XXp1 attempted to zap init
+ERROR: Attempt to zap() init.
 finish(): The simulation is now terminating.
