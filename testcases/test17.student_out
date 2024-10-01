@@ -96,7 +96,7 @@ testcase_main(): pidlist[] = [3,4,5, ...]
    3     2  XXp1              4         Runnable
    4     2  XXp1              4         Runnable
    5     2  XXp1              4         Runnable
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 	BLOCK ME
@@ -107,6 +107,7 @@ JOIN CHECKPOINT 2
    4     2  XXp1              4         Runnable
    5     2  XXp1              4         Runnable
 	BLOCKING testcase_main
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -135,6 +136,8 @@ This XXp1() process will now terminate.
    5     2  XXp1              4         Runnable
 	QUITTING XXp1
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 adding to run queue
 added to run queue
@@ -155,7 +158,7 @@ testcase_main: joined with child 3
    2     1  testcase_main     3         Running
    4     2  XXp1              4         Runnable
    5     2  XXp1              4         Runnable
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 	BLOCK ME
@@ -165,6 +168,7 @@ JOIN CHECKPOINT 2
    4     2  XXp1              4         Runnable
    5     2  XXp1              4         Runnable
 	BLOCKING testcase_main
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -190,6 +194,8 @@ This XXp1() process will now terminate.
    5     2  XXp1              4         Runnable
 	QUITTING XXp1
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 adding to run queue
 added to run queue
@@ -208,7 +214,7 @@ testcase_main: joined with child 4
    1     0  init              6         Runnable
    2     1  testcase_main     3         Running
    5     2  XXp1              4         Runnable
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 	BLOCK ME
@@ -217,6 +223,7 @@ JOIN CHECKPOINT 2
    2     1  testcase_main     3         Running
    5     2  XXp1              4         Runnable
 	BLOCKING testcase_main
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -232,3 +239,32 @@ SWITCHING TO PID 5
 One of the XXp1() process has started, getpid()=5
 This process's getpid() matched what spork() returned.
 This XXp1() process will now terminate.
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   5     2  XXp1              4         Running
+	QUITTING XXp1
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   5     2  XXp1              4         Terminated(2)
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+FINISHED DISPATCHER
+testcase_main: joined with child 5
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	QUITTING testcase_main
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+finish(): The simulation is now terminating.

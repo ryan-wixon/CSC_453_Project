@@ -91,6 +91,7 @@ XXp2() 0: zapping XXp3    current count: 1
    3     2  XXp3              3         Runnable
    4     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -186,6 +187,7 @@ XXp2() 1: zapping XXp3    current count: 2
    4     2  XXp2              2         Blocked(waiting for zap target to quit)
    5     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -283,6 +285,7 @@ XXp2() 2: zapping XXp3    current count: 3
    5     2  XXp2              2         Blocked(waiting for zap target to quit)
    6     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -388,6 +391,7 @@ XXp2() 3: zapping XXp3    current count: 4
    6     2  XXp2              2         Blocked(waiting for zap target to quit)
    7     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -501,6 +505,7 @@ XXp2() 4: zapping XXp3    current count: 5
    7     2  XXp2              2         Blocked(waiting for zap target to quit)
    8     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -622,6 +627,7 @@ XXp2() 5: zapping XXp3    current count: 6
    8     2  XXp2              2         Blocked(waiting for zap target to quit)
    9     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -751,6 +757,7 @@ XXp2() 6: zapping XXp3    current count: 7
    9     2  XXp2              2         Blocked(waiting for zap target to quit)
   10     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -888,6 +895,7 @@ XXp2() 7: zapping XXp3    current count: 8
   10     2  XXp2              2         Blocked(waiting for zap target to quit)
   11     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -1033,6 +1041,7 @@ XXp2() 8: zapping XXp3    current count: 9
   11     2  XXp2              2         Blocked(waiting for zap target to quit)
   12     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -1186,6 +1195,7 @@ XXp2() 9: zapping XXp3    current count: 10
   12     2  XXp2              2         Blocked(waiting for zap target to quit)
   13     2  XXp2              2         Running
 	BLOCKING XXp2
+popping from run queue
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -1250,8 +1260,10 @@ XXp3(): terminating -- all of the XXp2() processes will unblock, and will all ru
   13     2  XXp2              2         Blocked(waiting for zap target to quit)
 	QUITTING XXp3
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
-	INITPROCESSMAIN
+	UNBLOCKPROC
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Runnable
@@ -1323,6 +1335,8 @@ XXp2() 9: after zap.  This process will now terminate.
   13     2  XXp2              2         Running
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1360,6 +1374,8 @@ XXp2() 8: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1397,6 +1413,8 @@ XXp2() 7: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1434,6 +1452,8 @@ XXp2() 6: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1471,6 +1491,8 @@ XXp2() 5: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1508,6 +1530,8 @@ XXp2() 4: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1545,6 +1569,8 @@ XXp2() 3: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1582,6 +1608,8 @@ XXp2() 2: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1619,6 +1647,8 @@ XXp2() 1: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
+popped from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1656,6 +1686,7 @@ XXp2() 0: after zap.  This process will now terminate.
   13     2  XXp2              2         Terminated(3)
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -1693,7 +1724,7 @@ testcase_main(): Calling join() the first time.  Depending on how the race with 
   11     2  XXp2              2         Terminated(3)
   12     2  XXp2              2         Terminated(3)
   13     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 13 status 3
@@ -1711,7 +1742,7 @@ testcase_main: join() returned pid 13 status 3
   10     2  XXp2              2         Terminated(3)
   11     2  XXp2              2         Terminated(3)
   12     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 12 status 3
@@ -1728,7 +1759,7 @@ testcase_main: join() returned pid 12 status 3
    9     2  XXp2              2         Terminated(3)
   10     2  XXp2              2         Terminated(3)
   11     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 11 status 3
@@ -1744,7 +1775,7 @@ testcase_main: join() returned pid 11 status 3
    8     2  XXp2              2         Terminated(3)
    9     2  XXp2              2         Terminated(3)
   10     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 10 status 3
@@ -1759,7 +1790,7 @@ testcase_main: join() returned pid 10 status 3
    7     2  XXp2              2         Terminated(3)
    8     2  XXp2              2         Terminated(3)
    9     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 9 status 3
@@ -1773,7 +1804,7 @@ testcase_main: join() returned pid 9 status 3
    6     2  XXp2              2         Terminated(3)
    7     2  XXp2              2         Terminated(3)
    8     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 8 status 3
@@ -1786,7 +1817,7 @@ testcase_main: join() returned pid 8 status 3
    5     2  XXp2              2         Terminated(3)
    6     2  XXp2              2         Terminated(3)
    7     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 7 status 3
@@ -1798,7 +1829,7 @@ testcase_main: join() returned pid 7 status 3
    4     2  XXp2              2         Terminated(3)
    5     2  XXp2              2         Terminated(3)
    6     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 6 status 3
@@ -1809,7 +1840,7 @@ testcase_main: join() returned pid 6 status 3
    3     2  XXp3              3         Terminated(4)
    4     2  XXp2              2         Terminated(3)
    5     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 5 status 3
@@ -1819,7 +1850,7 @@ testcase_main: join() returned pid 5 status 3
    2     1  testcase_main     3         Running
    3     2  XXp3              3         Terminated(4)
    4     2  XXp2              2         Terminated(3)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 4 status 3
@@ -1828,7 +1859,16 @@ testcase_main: join() returned pid 4 status 3
    1     0  init              6         Runnable
    2     1  testcase_main     3         Running
    3     2  XXp3              3         Terminated(4)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main: join() returned pid 3 status 4
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	QUITTING testcase_main
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+finish(): The simulation is now terminating.

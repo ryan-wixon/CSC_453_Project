@@ -65,6 +65,7 @@ XXp1(): arg = 'XXp1'
    3     2  XXp1              2         Running
 	QUITTING XXp1
 QUIT CHECKPOINT 1
+popping from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -76,3 +77,21 @@ SWITCHING TO PID 2
 FINISHED DISPATCHER
 testcase_main(): after fork of child 3
 testcase_main(): performing join
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              2         Terminated(3)
+	JOINING CHLDREN OF testcase_main
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+testcase_main(): exit status for child 3 is 3
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	QUITTING testcase_main
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+finish(): The simulation is now terminating.

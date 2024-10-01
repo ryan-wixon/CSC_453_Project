@@ -115,6 +115,12 @@ Process* popFromRunQueue(RunQueue* queue) {
 	printf("popping from run queue\n");
 
 	Process* retval = queue->oldest;
+	if(retval->prevInQueue == NULL && retval->nextInQueue == NULL) {
+		// only value in the queue
+		queue->oldest = NULL;
+		queue->newest = NULL;
+		return retval;
+	}
 	queue->oldest = queue->oldest->nextInQueue;
 	queue->oldest->prevInQueue = NULL;
 	retval->prevInQueue = NULL;

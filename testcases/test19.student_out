@@ -92,6 +92,7 @@ SWITCHING TO PID 3
    3     2  XXp2              2         Running
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
@@ -108,7 +109,7 @@ testcase_main(): calling join
    1     0  init              6         Runnable
    2     1  testcase_main     3         Running
    3     2  XXp2              2         Terminated(0)
-	JOINING testcase_main
+	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main(): join returned pid = 3, status = 0
@@ -118,5 +119,6 @@ testcase_main(): join returned pid = 3, status = 0
    2     1  testcase_main     3         Running
 	QUITTING testcase_main
 QUIT CHECKPOINT 1
+popping from run queue
 QUIT CHECKPOINT 2
 finish(): The simulation is now terminating.

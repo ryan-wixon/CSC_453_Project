@@ -237,10 +237,12 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
 	// possibly run the child if it is high enough priority
 	dispatcher();
 
+	int newPID = table[newProcessIndex].processID;
+
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in spork\n");
 	}
-	return newProcess.processID;
+	return newPID;
 }
 
 /*
@@ -253,7 +255,7 @@ int join(int *status) {
 	
 	printf("\tJOIN\n");
 	dumpProcesses();
-	printf("\tJOINING %s\n", currentProcess->name);	
+	printf("\tJOINING CHLDREN OF %s\n", currentProcess->name);	
 
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
@@ -430,6 +432,8 @@ void quit(int status) {
 	currentProcess->exitStatus = status;
 
 	// remove ended process from run queue; it might not be the last one
+	popFromRunQueue(&runQueues[currentProcess->priority]);
+	/*
 	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
 		// current process is the only one in the run queue!
 		runQueues[currentProcess->priority].oldest = NULL;
@@ -451,7 +455,7 @@ void quit(int status) {
 		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
 	}
 	currentProcess->nextInQueue = NULL;
-	currentProcess->prevInQueue = NULL;
+	currentProcess->prevInQueue = NULL;*/
 
 	printf("QUIT CHECKPOINT 2\n");
 
@@ -480,6 +484,8 @@ void quit(int status) {
 	if (currentProcess->zappers != NULL) {
 		unblockProc(currentProcess->zappers->processID);
 	}
+
+	currentProcess = NULL;	// no process running anymore
 	
 	/* restore old PSR */
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -487,7 +493,6 @@ void quit(int status) {
 	}
 
 	// call dispatcher
-	currentProcess = NULL;	// no process running anymore
 	dispatcher();
 }
 
@@ -587,6 +592,7 @@ void blockMe(void) {
 
 	currentProcess->processState = BLOCKED;
 	// remove current process from run queue
+	/*
 	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
 		// current process is the only one in the run queue!
 		runQueues[currentProcess->priority].oldest = NULL;
@@ -608,7 +614,8 @@ void blockMe(void) {
 		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
 	}
 	currentProcess->nextInQueue = NULL;
-	currentProcess->prevInQueue = NULL;
+	currentProcess->prevInQueue = NULL;*/
+	popFromRunQueue(&runQueues[currentProcess->priority]);
 
 	dispatcher();
 
@@ -620,7 +627,7 @@ void blockMe(void) {
 
 int unblockProc(int pid) {
 
-	printf("\tINITPROCESSMAIN\n");
+	printf("\tUNBLOCKPROC\n");
 	dumpProcesses();
 	printf("\tUnblocking PID %d\n", pid);	
 
@@ -836,13 +843,14 @@ void processWrapper() {
 	/* before context switching, MUST change current process to new process!*/
 	int endStatus = currentProcess->processMain(currentProcess->mainArgs);
 
-	/* special handling: if process just returns and doesn't quit explicitly, 
-	   we call quit on behalf of the process */
-	quit(endStatus);
-
+	// change back to disabling interrupts here
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in processWrapper\n");
 	}
+
+	/* special handling: if process just returns and doesn't quit explicitly, 
+	   we call quit on behalf of the process */
+	quit(endStatus);
 
 }
 

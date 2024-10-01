@@ -89,6 +89,7 @@ XXp2(): terminating!
    4     3  XXp2              1         Running
 	QUITTING XXp2
 QUIT CHECKPOINT 1
+popping from run queue
 QUIT CHECKPOINT 2
 	DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE

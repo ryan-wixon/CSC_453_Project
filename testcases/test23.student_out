@@ -1,13 +1,220 @@
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 1
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	INIT PROCESS MAIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
 phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+	CREATING PROCESS testcase_main
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Running
+   2     1  testcase_main     3         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	TESTCASE MAIN WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
 testcase_main(): started
 QUICK SUMMARY: Tests blockMe() and unblockProc().
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	CREATING PROCESS XXp1
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              5         Runnable
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+FINISHED DISPATCHER
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              5         Runnable
+	JOINING CHLDREN OF testcase_main
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+	BLOCK ME
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              5         Runnable
+	BLOCKING testcase_main
+popping from run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
 XXp1(): creating children
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+	CREATING PROCESS XXp2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 4
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Running
 XXp2(): started, pid = 4, calling blockMe
+	BLOCK ME
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Running
+	BLOCKING XXp2
+popping from run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Blocked
+	CREATING PROCESS XXp2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 5
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Running
 XXp2(): started, pid = 5, calling blockMe
+	BLOCK ME
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Running
+	BLOCKING XXp2
+popping from run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
+	SPORK
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+	CREATING PROCESS XXp2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 6
+	PROCESS WRAPPER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Running
 XXp2(): started, pid = 6, calling blockMe
+	BLOCK ME
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Running
+	BLOCKING XXp2
+popping from run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
    2     1  testcase_main     3         Blocked(waiting for child to quit)
@@ -16,15 +223,204 @@ XXp2(): started, pid = 6, calling blockMe
    5     3  XXp2              2         Blocked
    6     3  XXp2              2         Blocked
 XXp1(): unblocking children
-<<<<<<< HEAD
-=======
+	UNBLOCKPROC
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Blocked
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+	Unblocking PID 4
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Runnable
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 4
+FINISHED DISPATCHER
 XXp2(): pid = 4, after blockMe
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Running
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+	QUITTING XXp2
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
+	UNBLOCKPROC
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Blocked
+   6     3  XXp2              2         Blocked
+	Unblocking PID 5
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Runnable
+   6     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 5
+FINISHED DISPATCHER
 XXp2(): pid = 5, after blockMe
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Running
+   6     3  XXp2              2         Blocked
+	QUITTING XXp2
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Blocked
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
+	UNBLOCKPROC
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Blocked
+	Unblocking PID 6
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Runnable
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 6
+FINISHED DISPATCHER
 XXp2(): pid = 6, after blockMe
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Running
+	QUITTING XXp2
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Runnable
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Terminated(0)
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 3
+FINISHED DISPATCHER
 XXp1(): after unblocking 4, result = 0
 XXp1(): after unblocking 5, result = 0
 XXp1(): after unblocking 6, result = 0
 XXp1(): joining with children
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+   6     3  XXp2              2         Terminated(0)
+	JOINING CHLDREN OF XXp1
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+   5     3  XXp2              2         Terminated(0)
+	JOINING CHLDREN OF XXp1
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+	JOIN
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+   4     3  XXp2              2         Terminated(0)
+	JOINING CHLDREN OF XXp1
+JOIN CHECKPOINT 1
+JOIN CHECKPOINT 2
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  XXp1              5         Running
+	QUITTING XXp1
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
+adding to run queue
+added to run queue
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              5         Terminated(0)
+DISPATCHER CHECKPOINT 1
+SWITCHING TO PID 2
+FINISHED DISPATCHER
 testcase_main(): XXp1, pid 3, done; returning...
+	QUIT
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+	QUITTING testcase_main
+QUIT CHECKPOINT 1
+popping from run queue
+QUIT CHECKPOINT 2
 finish(): The simulation is now terminating.
->>>>>>> 32366c61001de33deffdb779381ff73c64253e00
