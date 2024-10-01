@@ -1167,35 +1167,6 @@ SWITCHING TO PID 18
   16     2  XXp1              2         Terminated(2)
   17     2  XXp1              2         Terminated(2)
   18     2  XXp1              2         Running
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Terminated(2)
-   4     2  XXp1              2         Terminated(2)
-   5     2  XXp1              2         Terminated(2)
-   6     2  XXp1              2         Terminated(2)
-   7     2  XXp1              2         Terminated(2)
-   8     2  XXp1              2         Terminated(2)
-   9     2  XXp1              2         Terminated(2)
-  10     2  XXp1              2         Terminated(2)
-  11     2  XXp1              2         Terminated(2)
-  12     2  XXp1              2         Terminated(2)
-  13     2  XXp1              2         Terminated(2)
-  14     2  XXp1              2         Terminated(2)
-  15     2  XXp1              2         Terminated(2)
-  16     2  XXp1              2         Terminated(2)
-  17     2  XXp1              2         Terminated(2)
-  18     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 18
-FINISHED DISPATCHER
 	QUIT
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -2561,6 +2532,45 @@ SWITCHING TO PID 28
   26     2  XXp1              2         Terminated(2)
   27     2  XXp1              2         Terminated(2)
   28     2  XXp1              2         Running
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Runnable
+   3     2  XXp1              2         Terminated(2)
+   4     2  XXp1              2         Terminated(2)
+   5     2  XXp1              2         Terminated(2)
+   6     2  XXp1              2         Terminated(2)
+   7     2  XXp1              2         Terminated(2)
+   8     2  XXp1              2         Terminated(2)
+   9     2  XXp1              2         Terminated(2)
+  10     2  XXp1              2         Terminated(2)
+  11     2  XXp1              2         Terminated(2)
+  12     2  XXp1              2         Terminated(2)
+  13     2  XXp1              2         Terminated(2)
+  14     2  XXp1              2         Terminated(2)
+  15     2  XXp1              2         Terminated(2)
+  16     2  XXp1              2         Terminated(2)
+  17     2  XXp1              2         Terminated(2)
+  18     2  XXp1              2         Terminated(2)
+  19     2  XXp1              2         Terminated(2)
+  20     2  XXp1              2         Terminated(2)
+  21     2  XXp1              2         Terminated(2)
+  22     2  XXp1              2         Terminated(2)
+  23     2  XXp1              2         Terminated(2)
+  24     2  XXp1              2         Terminated(2)
+  25     2  XXp1              2         Terminated(2)
+  26     2  XXp1              2         Terminated(2)
+  27     2  XXp1              2         Terminated(2)
+  28     2  XXp1              2         Running
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+sending to back of run queue
+popping from run queue
+adding to run queue
+added to run queue
+popped from run queue
+SWITCHING TO PID 28
+FINISHED DISPATCHER
 	QUIT
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
@@ -5126,58 +5136,6 @@ SWITCHING TO PID 41
   39     2  XXp1              2         Terminated(2)
   40     2  XXp1              2         Terminated(2)
   41     2  XXp1              2         Running
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   3     2  XXp1              2         Terminated(2)
-   4     2  XXp1              2         Terminated(2)
-   5     2  XXp1              2         Terminated(2)
-   6     2  XXp1              2         Terminated(2)
-   7     2  XXp1              2         Terminated(2)
-   8     2  XXp1              2         Terminated(2)
-   9     2  XXp1              2         Terminated(2)
-  10     2  XXp1              2         Terminated(2)
-  11     2  XXp1              2         Terminated(2)
-  12     2  XXp1              2         Terminated(2)
-  13     2  XXp1              2         Terminated(2)
-  14     2  XXp1              2         Terminated(2)
-  15     2  XXp1              2         Terminated(2)
-  16     2  XXp1              2         Terminated(2)
-  17     2  XXp1              2         Terminated(2)
-  18     2  XXp1              2         Terminated(2)
-  19     2  XXp1              2         Terminated(2)
-  20     2  XXp1              2         Terminated(2)
-  21     2  XXp1              2         Terminated(2)
-  22     2  XXp1              2         Terminated(2)
-  23     2  XXp1              2         Terminated(2)
-  24     2  XXp1              2         Terminated(2)
-  25     2  XXp1              2         Terminated(2)
-  26     2  XXp1              2         Terminated(2)
-  27     2  XXp1              2         Terminated(2)
-  28     2  XXp1              2         Terminated(2)
-  29     2  XXp1              2         Terminated(2)
-  30     2  XXp1              2         Terminated(2)
-  31     2  XXp1              2         Terminated(2)
-  32     2  XXp1              2         Terminated(2)
-  33     2  XXp1              2         Terminated(2)
-  34     2  XXp1              2         Terminated(2)
-  35     2  XXp1              2         Terminated(2)
-  36     2  XXp1              2         Terminated(2)
-  37     2  XXp1              2         Terminated(2)
-  38     2  XXp1              2         Terminated(2)
-  39     2  XXp1              2         Terminated(2)
-  40     2  XXp1              2         Terminated(2)
-  41     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 41
-FINISHED DISPATCHER
 	QUITTING XXp1
 QUIT CHECKPOINT 1
 popping from run queue
@@ -8257,6 +8215,58 @@ JOIN CHECKPOINT 2
   39     2  XXp1              2         Terminated(2)
   40     2  XXp1              2         Terminated(2)
   41     2  XXp1              2         Terminated(2)
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   3     2  XXp1              2         Terminated(2)
+   4     2  XXp1              2         Terminated(2)
+   5     2  XXp1              2         Terminated(2)
+   6     2  XXp1              2         Terminated(2)
+   7     2  XXp1              2         Terminated(2)
+   8     2  XXp1              2         Terminated(2)
+   9     2  XXp1              2         Terminated(2)
+  10     2  XXp1              2         Terminated(2)
+  11     2  XXp1              2         Terminated(2)
+  12     2  XXp1              2         Terminated(2)
+  13     2  XXp1              2         Terminated(2)
+  14     2  XXp1              2         Terminated(2)
+  15     2  XXp1              2         Terminated(2)
+  16     2  XXp1              2         Terminated(2)
+  17     2  XXp1              2         Terminated(2)
+  18     2  XXp1              2         Terminated(2)
+  19     2  XXp1              2         Terminated(2)
+  20     2  XXp1              2         Terminated(2)
+  21     2  XXp1              2         Terminated(2)
+  22     2  XXp1              2         Terminated(2)
+  23     2  XXp1              2         Terminated(2)
+  24     2  XXp1              2         Terminated(2)
+  25     2  XXp1              2         Terminated(2)
+  26     2  XXp1              2         Terminated(2)
+  27     2  XXp1              2         Terminated(2)
+  28     2  XXp1              2         Terminated(2)
+  29     2  XXp1              2         Terminated(2)
+  30     2  XXp1              2         Terminated(2)
+  31     2  XXp1              2         Terminated(2)
+  32     2  XXp1              2         Terminated(2)
+  33     2  XXp1              2         Terminated(2)
+  34     2  XXp1              2         Terminated(2)
+  35     2  XXp1              2         Terminated(2)
+  36     2  XXp1              2         Terminated(2)
+  37     2  XXp1              2         Terminated(2)
+  38     2  XXp1              2         Terminated(2)
+  39     2  XXp1              2         Terminated(2)
+  40     2  XXp1              2         Terminated(2)
+  41     2  XXp1              2         Terminated(2)
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+sending to back of run queue
+popping from run queue
+adding to run queue
+added to run queue
+popped from run queue
+SWITCHING TO PID 2
+FINISHED DISPATCHER
 	JOINING CHLDREN OF testcase_main
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2

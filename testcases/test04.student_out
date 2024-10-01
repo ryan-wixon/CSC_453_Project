@@ -493,20 +493,6 @@ added to run queue
 popped from run queue
 SWITCHING TO PID 8
 FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 8
-FINISHED DISPATCHER
 XXp1(): exiting, pid = 8
 	QUIT
  PID  PPID  NAME              PRIORITY  STATE
@@ -526,6 +512,20 @@ DISPATCHER CHECKPOINT 1
 SWITCHING TO PID 2
 FINISHED DISPATCHER
 testcase_main(): after fork of child 8 -- you should not see this until the child has ended.
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   8     2  XXp1              2         Terminated(8)
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+sending to back of run queue
+popping from run queue
+adding to run queue
+added to run queue
+popped from run queue
+SWITCHING TO PID 2
+FINISHED DISPATCHER
 testcase_main(): calling fork(), arg_buf = 'XXp1_1' -- testcase_main() will block until this child terminates, because the child is higher priority.
 	SPORK
  PID  PPID  NAME              PRIORITY  STATE
@@ -787,60 +787,6 @@ added to run queue
 popped from run queue
 SWITCHING TO PID 12
 FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
-	DISPATCHER
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Runnable
-   8     2  XXp1              2         Terminated(8)
-   9     2  XXp1              2         Terminated(9)
-  10     2  XXp1              2         Terminated(10)
-  11     2  XXp1              2         Terminated(11)
-  12     2  XXp1              2         Running
-DISPATCHER CHECKPOINT 1
-DISPATCHER CHECKPOINT 2
-sending to back of run queue
-popping from run queue
-adding to run queue
-added to run queue
-popped from run queue
-SWITCHING TO PID 12
-FINISHED DISPATCHER
 XXp1(): exiting, pid = 12
 	QUIT
  PID  PPID  NAME              PRIORITY  STATE
@@ -917,6 +863,20 @@ testcase_main(): after join of child 10, status = 10
 JOIN CHECKPOINT 1
 JOIN CHECKPOINT 2
 testcase_main(): after join of child 9, status = 9
+	DISPATCHER
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Running
+   8     2  XXp1              2         Terminated(8)
+DISPATCHER CHECKPOINT 1
+DISPATCHER CHECKPOINT 2
+sending to back of run queue
+popping from run queue
+adding to run queue
+added to run queue
+popped from run queue
+SWITCHING TO PID 2
+FINISHED DISPATCHER
 	JOIN
  PID  PPID  NAME              PRIORITY  STATE
    1     0  init              6         Runnable
