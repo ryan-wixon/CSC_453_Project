@@ -60,7 +60,7 @@ void printProcess(Process* process) {
 	}
 	else {
 		printf("%d        ", process->priority);
-	}
+	}	
 
 	// print process status
 	switch(process->processState) {
@@ -85,7 +85,7 @@ void printProcess(Process* process) {
 			}
 			else {
 				/* we are blocked for some other reason */
-				printf("\n");
+				printf("(%d)\n", process->parent->processID);
 			}
 			break;
 		default:
@@ -93,9 +93,13 @@ void printProcess(Process* process) {
 	}
 }
 
+/*
+ * Adds a process to a given RunQueue
+ *
+ * Arguments: queue = the RunQueue to be added to; addProcess = the process to add
+ *   Returns: Void 
+ */
 void addToRunQueue(RunQueue* queue, Process* addProcess) {
-
-	//printf("adding to run queue\n");
 
 	if (queue->oldest == NULL) {
 		queue->newest = addProcess;
@@ -106,16 +110,19 @@ void addToRunQueue(RunQueue* queue, Process* addProcess) {
 		addProcess->prevInQueue = queue->newest;
 		queue->newest = addProcess;
 	}
-
-	//printf("added to run queue\n");
 }
 
+/*
+ * Pops a process from a given RunQueue
+ *
+ * Arguments: queue = the RunQueue to remove the front element from
+ *   Returns: The process popped from the RunQueue
+ */
 Process* popFromRunQueue(RunQueue* queue) {
 	
-	//printf("popping from run queue\n");
-
 	Process* retval = queue->oldest;
-	if(retval->prevInQueue == NULL && retval->nextInQueue == NULL) {
+	if (retval->prevInQueue == NULL && retval->nextInQueue == NULL) {
+		
 		// only value in the queue
 		queue->oldest = NULL;
 		queue->newest = NULL;
@@ -126,17 +133,18 @@ Process* popFromRunQueue(RunQueue* queue) {
 	retval->prevInQueue = NULL;
 	retval->nextInQueue = NULL;
 	
-	//printf("popped from run queue\n");
 	return retval;
 }
 
+/*
+ * Pops a process from a given RunQueue and adds it to the back
+ *
+ * Arguments: queue = the RunQueue to modify
+ *   Returns: The process sent to the back of the RunQueue
+ */
 Process* sendToBackRunQueue(RunQueue* queue) {
-
-	//printf("sending to back of run queue\n");
-
+	
 	Process* retval = popFromRunQueue(queue);
 	addToRunQueue(queue, retval);
-	
-	//printf("popped from run queue\n");
 	return retval;
 }

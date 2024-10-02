@@ -102,11 +102,10 @@ void phase1_init() {
  */
 void switchTo(int pid) {
 	
-	//printf("SWITCHING TO PID %d\n", pid);
-
 	// check to ensure we are in user mode with interrupts disabled
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call switchTo() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call dispatcher while in user mode!\n");
 		USLOSS_Halt(1);
@@ -161,13 +160,10 @@ void switchTo(int pid) {
  */
 int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority) {
 
-	//printf("\tSPORK\n");
-	//dumpProcesses();
-	//printf("\tCREATING PROCESS %s\n", name);	
-
 	// check to ensure we are in user mode with interrupts disabled
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call spork() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call spork while in user mode!\n");
 		USLOSS_Halt(1);
@@ -248,10 +244,6 @@ int spork(char *name, int(*func)(void *), void *arg, int stackSize, int priority
  */
 int join(int *status) {
 	
-	//printf("\tJOIN\n");
-	//dumpProcesses();
-	//printf("\tJOINING CHLDREN OF %s\n", currentProcess->name);	
-
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
 		
@@ -266,8 +258,6 @@ int join(int *status) {
 
 	}
 
-	//printf("JOIN CHECKPOINT 1\n");	
-	
 	if (status == NULL) {
 		
 		// invalid argument
@@ -284,8 +274,6 @@ int join(int *status) {
 		}
 		return -2;
 	}
-
-	//printf("JOIN CHECKPOINT 2\n");
 	
 	// continuously check for dead children, return the first one found
 	// keep going until you find one (since control returns to join() if
@@ -325,31 +313,6 @@ int join(int *status) {
 				curr->olderSibling = NULL;
 				curr->parent = NULL;
 
-				// get rid of curr's space in the run queue
-				/*
-				if(curr->prevInQueue == NULL && curr->nextInQueue == NULL) {
-					// curr was only one in queue
-					runQueues[curr->priority].oldest = NULL;
-					runQueues[curr->priority].newest = NULL;
-				}
-				else if(curr->prevInQueue == NULL) {
-					// curr is oldest process in the queue
-					runQueues[curr->priority].oldest = curr->nextInQueue;
-					curr->nextInQueue->prevInQueue = curr->prevInQueue;
-				}
-				else if(curr->nextInQueue == NULL) {
-					// curr is youngest process in the queue
-					runQueues[curr->priority].newest = curr->prevInQueue;
-					curr->prevInQueue->nextInQueue = curr->nextInQueue;
-				}
-				else {
-					// curr is in the middle of the run queue
-					curr->prevInQueue->nextInQueue = curr->nextInQueue;
-					curr->nextInQueue->prevInQueue = curr->prevInQueue;
-				}
-				curr->prevInQueue = NULL;
-				curr->nextInQueue = NULL;*/
-
 				// get rid of curr's space in zap list (if any)
 				if(curr->prevZapper != NULL) {
 					curr->prevZapper->nextZapper = curr->nextZapper;
@@ -379,6 +342,7 @@ int join(int *status) {
 		// parent has no dead children - block to wait for them to die
 		currentProcess->childDeathWait = 1;
 		blockMe();
+
 		// now process is blocked, but if a child dies and control returned
 		// to join(), we can handle that case
 	}
@@ -388,17 +352,15 @@ int join(int *status) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in join\n");
 	}
-
-	//printf("FINISHED JOIN\n");
 }
 
-// TODO: test this function! I think it is done but not sure.
+/*
+ * Sets a process as terminated, and calls the dispatcher to switch to the next one
+ *
+ * Arguments: status = the exit status of the current process
+ *   Returns: Void
+ */
 void quit(int status) {
-
-	//printf("\tQUIT\n");
-	//dumpProcesses();
-	//printf("\tQUITTING %s\n", currentProcess->name);	
-
 
 	/* check PSR to ensure we are in kernel mode; disable interrupts */
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -414,8 +376,6 @@ void quit(int status) {
 		}
 	}
 
-	//printf("QUIT CHECKPOINT 1\n");
-
 	/* you cannot call quit() when you still have children */
 	if(currentProcess->children != NULL) {
 		fprintf(stderr, "ERROR: Process pid %d called quit() while it still had children.\n", currentProcess->processID);
@@ -428,31 +388,6 @@ void quit(int status) {
 
 	// remove ended process from run queue; it might not be the last one
 	popFromRunQueue(&runQueues[currentProcess->priority]);
-	/*
-	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
-		// current process is the only one in the run queue!
-		runQueues[currentProcess->priority].oldest = NULL;
-		runQueues[currentProcess->priority].newest = NULL;
-	}
-	else if(currentProcess->prevInQueue == NULL) {
-		// current process is oldest process in the queue
-		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = NULL;
-	}
-	else if(currentProcess->nextInQueue == NULL) {
-		// current process is youngest process in the queue
-		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
-		currentProcess->prevInQueue->nextInQueue = NULL;
-	}
-	else {
-		// current process is in the middle of the run queue
-		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
-	}
-	currentProcess->nextInQueue = NULL;
-	currentProcess->prevInQueue = NULL;*/
-
-	//printf("QUIT CHECKPOINT 2\n");
 
 	if(strcmp(currentProcess->name, "testcase_main") == 0) {
 		/* testcase_main has terminated; halt the simulation */
@@ -491,12 +426,14 @@ void quit(int status) {
 	dispatcher();
 }
 
-// TODO Test, I think this function is done.
+/*
+ * Marks a process as zapped and adds the current process to it's zapped list; the process will block until
+ * the target process dies
+ *
+ * Arguments: queue = the process ID of the process to be zapped
+ *   Returns: Void
+ */
 void zap(int pid) {
-	
-	//printf("\tZAP\n");
-	//dumpProcesses();
-	//printf("\tZAPPING PID: %d\n", pid);
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -562,12 +499,14 @@ void zap(int pid) {
 	}
 }
 
-// TODO Test, this function is actually very simple but I don't think there's anything else to do here
+/*
+ * Blocks the current process and calls the dispatcher to switch to the next one
+ *
+ * Arguments: None
+ *   Returns: Void
+ */
 void blockMe(void) {
 	
-	//printf("\tBLOCK ME\n");
-	//dumpProcesses();
-	//printf("\tBLOCKING %s\n", currentProcess->name);
 	
 	/* check PSR to ensure we are in kernel mode; disable interrupts */
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -583,33 +522,8 @@ void blockMe(void) {
 		}
 
 	}
-	//printf("process %d arrived in blockme\n", currentProcess->processID);
 
 	currentProcess->processState = BLOCKED;
-	// remove current process from run queue
-	/*
-	if(currentProcess->prevInQueue == NULL && currentProcess->nextInQueue == NULL) {
-		// current process is the only one in the run queue!
-		runQueues[currentProcess->priority].oldest = NULL;
-		runQueues[currentProcess->priority].newest = NULL;
-	}
-	else if(currentProcess->prevInQueue == NULL) {
-		// current process is oldest process in the queue
-		runQueues[currentProcess->priority].oldest = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = NULL;
-	}
-	else if(currentProcess->nextInQueue == NULL) {
-		// current process is youngest process in the queue
-		runQueues[currentProcess->priority].newest = currentProcess->prevInQueue;
-		currentProcess->prevInQueue->nextInQueue = NULL;
-	}
-	else {
-		// current process is in the middle of the run queue
-		currentProcess->prevInQueue->nextInQueue = currentProcess->nextInQueue;
-		currentProcess->nextInQueue->prevInQueue = currentProcess->prevInQueue;
-	}
-	currentProcess->nextInQueue = NULL;
-	currentProcess->prevInQueue = NULL;*/
 	popFromRunQueue(&runQueues[currentProcess->priority]);
 
 	dispatcher();
@@ -620,11 +534,13 @@ void blockMe(void) {
 	}
 }
 
+/*
+ * Pops a process from a given RunQueue and adds it to the back
+ *
+ * Arguments: pid = the process ID of the process to be unbloced
+ *   Returns: 0 if the function executes successfully, -2 if an error was encountered
+ */
 int unblockProc(int pid) {
-
-	//printf("\tUNBLOCKPROC\n");
-	//dumpProcesses();
-	//printf("\tUnblocking PID %d\n", pid);	
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -697,10 +613,13 @@ int unblockProc(int pid) {
 	return 0;	// the function did not fail
 }
 
-void dispatcher(void) {
-
-	//printf("\tDISPATCHER\n");
-	//dumpProcesses();	
+/*
+ * Determines the next process to be switched to, and performs the transition
+ *
+ * Arguments: None
+ *   Returns: Void
+ */
+void dispatcher(void) {	
 
 	// check PSR, disable interrupts if needed
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -716,8 +635,6 @@ void dispatcher(void) {
 		}
 
 	}
-	
-	//printf("DISPATCHER CHECKPOINT 1\n");
 
 	// determine what priority to search up until
 	int maxPriority = -1;
@@ -742,12 +659,9 @@ void dispatcher(void) {
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 				fprintf(stderr, "Bad PSR restored in dispatcher\n");
 			}
-			//printf("FINISHED DISPATCHER\n");
 			return;
 		}
 	}
-
-	//printf("DISPATCHER CHECKPOINT 2\n");
 
 	// if there was no higher priority process, then we need to check to see if the process
 	// is still runnable; if it is, then check to see 80ms has passed an it's time to pass
@@ -763,8 +677,6 @@ void dispatcher(void) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in dispatcher\n");
 	}
-
-	//printf("FINISHED DISPATCHER\n");
 }
 
 /* 
@@ -776,6 +688,7 @@ void dispatcher(void) {
 int getpid() {
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {
+		
 		// you cannot call getpid() in user mode
 		fprintf(stderr, "ERROR: Someone attempted to call getpid while in user mode!\n");
 		USLOSS_Halt(1);
@@ -826,9 +739,6 @@ void dumpProcesses() {
  */
 void processWrapper() {
 	
-	//printf("\tPROCESS WRAPPER\n");
-	//dumpProcesses();	
-
 	// enable interrupts before switching into new process
 	unsigned int oldPSR = USLOSS_PsrGet();
 	
@@ -864,10 +774,7 @@ void processWrapper() {
  * Returns: integer representing the return code of testcase_main
  */
 int testcaseMainWrapper(void* ignored) {
-	
-	//printf("\tTESTCASE MAIN WRAPPER\n");
-	//dumpProcesses();
-	
+		
 	int returnCode = testcase_main();
 	return returnCode;
 }
@@ -884,9 +791,6 @@ int testcaseMainWrapper(void* ignored) {
  *   practicality, should never actually return).
  */
 int initProcessMain(void* ignored) {
-
-	//printf("\tINIT PROCESS MAIN\n");
-	//dumpProcesses();
 	
 	unsigned int oldPSR = USLOSS_PsrGet();
 	if(oldPSR % 2 == 0) {

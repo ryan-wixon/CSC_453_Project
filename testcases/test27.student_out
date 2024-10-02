@@ -16,14 +16,14 @@ XXp2(): started
 XXp2(): arg = 'XXp2'
 XXp2(): calling zap(5)
 XXp3(): started
-XXp3(): arg = 'XXp3'
-XXp4(): started
-XXp4(): arg = 'XXp4FromXXp3a' -- this process will terminate immediately.
 XXp1(): after fork of child 6
 XXp1(): performing join
 XXp1(): exit status for child 6 is 4
 testcase_main(): exit status for child 3 is 1
 testcase_main(): performing second join
+XXp3(): arg = 'XXp3'
+XXp4(): started
+XXp4(): arg = 'XXp4FromXXp3a' -- this process will terminate immediately.
 XXp3(): after fork of child 7
 XXp4(): started
 XXp4(): arg = 'XXp4FromXXp3b' -- this process will terminate immediately.

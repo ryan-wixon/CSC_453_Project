@@ -14,9 +14,9 @@ XXp3(): started, pid = 7, calling zap on pid 4
    1     0  init              6         Runnable
    2     1  testcase_main     3         Blocked(waiting for child to quit)
    3     2  XXp1              5         Running
-   4     3  XXp2              3         Blocked
-   5     3  XXp2              3         Blocked
-   6     3  XXp2              3         Blocked
+   4     3  XXp2              3         Blocked(3)
+   5     3  XXp2              3         Blocked(3)
+   6     3  XXp2              3         Blocked(3)
    7     3  XXp3              4         Blocked(waiting for zap target to quit)
 XXp1(): unblocking children
 XXp2(): pid = 4, after blockMe

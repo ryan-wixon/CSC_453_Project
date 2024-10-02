@@ -12,9 +12,9 @@ XXp2(): started, pid = 6, calling blockMe
    1     0  init              6         Runnable
    2     1  testcase_main     3         Blocked(waiting for child to quit)
    3     2  XXp1              5         Running
-   4     3  XXp2              2         Blocked
-   5     3  XXp2              2         Blocked
-   6     3  XXp2              2         Blocked
+   4     3  XXp2              2         Blocked(3)
+   5     3  XXp2              2         Blocked(3)
+   6     3  XXp2              2         Blocked(3)
 XXp1(): unblocking children
 XXp2(): pid = 4, after blockMe
 XXp2(): pid = 5, after blockMe

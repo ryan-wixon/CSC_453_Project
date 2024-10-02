@@ -1,0 +1,12 @@
+14a15,19
+> XXp1(): after fork of child 6
+> XXp1(): performing join
+> XXp1(): exit status for child 6 is 4
+> testcase_main(): exit status for child 3 is 1
+> testcase_main(): performing second join
+22,26d26
+< XXp1(): after fork of child 6
+< XXp1(): performing join
+< XXp1(): exit status for child 6 is 4
+< testcase_main(): exit status for child 3 is 1
+< testcase_main(): performing second join

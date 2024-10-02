@@ -86,8 +86,28 @@ typedef struct RunQueue {
 	struct Process* oldest; /* earliest process in run queue */
 } RunQueue;
 
+/*
+ * Adds a process to a given RunQueue
+ *
+ * Arguments: queue = the RunQueue to be added to; addProcess = the process to add
+ *   Returns: Void 
+ */
 void addToRunQueue(RunQueue* queue, Process* addProcess);
+
+/*
+ * Pops a process from a given RunQueue
+ *
+ * Arguments: queue = the RunQueue to remove the front element from
+ *   Returns: The process popped from the RunQueue
+ */
 Process* popFromRunQueue(RunQueue* queue);
+
+/*
+ * Pops a process from a given RunQueue and adds it to the back
+ *
+ * Arguments: queue = the RunQueue to modify
+ *   Returns: The process sent to the back of the RunQueue
+ */
 Process* sendToBackRunQueue(RunQueue* queue);
 
 #endif
