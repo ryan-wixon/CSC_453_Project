@@ -1,87 +1,54 @@
-/*
- * check_zapped_by_manyprocs
- * NOTE: The output for this is non-deterministic.
 
- * Check if all process which have issued a zap on a process are awakened
- * when the target process finally quits.
+/* tests for exceeding the number of slots. start2 creates mailboxes whose
+ * total slots will exceed the system limit. start2 then starts doing
+ * conditional sends to each slot of each mailbox until the return code
+ * of conditional send comes back as -2
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-int XXp1(void *), XXp2(void *), XXp3(void *), XXp4(void *);
+int mboxids[45];
 
-#define N 10
 
-int victim;
 
-volatile int count = 0, countDuplicate = -1;    // they won't be the same until XXp3() runs
-
-int testcase_main()
+int start2(void *arg)
 {
-    int i, status, pid2;
-    char buf[25];
+    int boxNum, slotNum, result;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: testcase_main() creates a single 'victim' process XXp3(), which runs at the same priority as testcase_main().  XXp3() is in an infinite loop, copying the 'count' variable to 'countDuplicate', and otherwise just burning CPU time until 'count' reaches N.  After XXp3() is running, testcase_main() creates high-priority children; each increments 'count' and then tries to zap XXp3().  But testcase_main() won't count the new child as created until XXp3() has chewed up a timeslice, updating the 'duplicate' counter as it does so.  Thus, this testcase will not work properly until you have implemented interrupt-based timeslicing, so that XXp3() can run full-bore and still get interrupted to go back to testcase_main().\n");
+    USLOSS_Console("start2(): started, trying to exceed systemwide mailslots...\n");
 
-    victim = spork("XXp3", XXp3,"XXp3",USLOSS_MIN_STACK,3);
+    /* 45 mailboxes, capacity 55 each.  We'll try to send 56 messages to each one,
+     * and the 56th will fail because we're using CondSend().  There will never be
+     * a complete system-wide clog, however.
+     */
 
-    for (i=0; i<N; i++)
+    for (boxNum = 0; boxNum < 45; boxNum++)
     {
-        sprintf(buf, "%d", i);
-
-        USLOSS_Console("testcase_main(): spork creating child i=%d -- a new child will run next\n", i);
-        pid2 = spork("XXp2", XXp2, buf, USLOSS_MIN_STACK, 2);
-        USLOSS_Console("testcase_main(): spork has completed, pid=%d\n", pid2);
-
-        USLOSS_Console(">>>>> Entering spinloop in testcase_main(), until count and countDuplicate are equal.  Depending on how your scheduler works, this might end immediately (if XXp3() has already done the copy), or it might run for a long while.\n");
-        while (count != countDuplicate) {;}
-        USLOSS_Console("<<<<< spinloop complete.\n");
-        USLOSS_Console("\n");
+        mboxids[boxNum] = MboxCreate(55, 0);
+        if (mboxids[boxNum] < 0)
+            USLOSS_Console("start2(): MailBoxCreate returned id less than zero, id = %d\n", mboxids[boxNum]);
     }
 
-    /* clean up the victim, and also all of the XXp2() processes */
-    USLOSS_Console("testcase_main(): Calling join() the first time.  Depending on how the race with XXp3() runs, this may happen before XXp3() ends its loop, and thus it will block; or it may happen after XXp3() terminates, and thus it will terminate immediately - as will *all* of the join()s, since all of the XXp2() processes will also be dead.\n");
-
-    for (i=0; i<1+N; i++)
+    for (boxNum = 0; boxNum < 45; boxNum++)
     {
-        int pid = join(&status);
-        USLOSS_Console("testcase_main: join() returned pid %d status %d\n", pid,status);
+        for (slotNum = 0; slotNum < 56; slotNum++)
+        {
+            result = MboxCondSend(mboxids[boxNum], NULL,0);
+            if (result == -2)
+            {
+                USLOSS_Console("Mailbox has no more slots available, and so CondSend() returned -2: mailbox %d and slot %d\n", boxNum, slotNum);
+            }
+            else if (result != 0)
+            {
+                USLOSS_Console("UNEXPECTED ERROR %d: mailbox %d and slot %d\n", result, boxNum, slotNum);
+                quit(100);
+            }
+        }
     }
 
-    return 0;
-}
-
-int XXp2(void *arg)
-{
-    int i = atoi(arg);
-    count++;
-
-    USLOSS_Console("XXp2() %d: getpid()=%d\n", i, getpid());
-    USLOSS_Console("XXp2() %d: zapping XXp3    current count: %d\n", i, count);
-    zap(victim);
-    USLOSS_Console("XXp2() %d: after zap.  This process will now terminate.\n", i);
-
-    quit(3);
-}
-
-int XXp3(void *arg)
-{
-    USLOSS_Console("XXp3(): started.  Entering the while() loop.\n");
-
-    while(count < N) {
-        countDuplicate = count;
-    }
-
-    // one more at the end, when the last XXp2() has been created
-    countDuplicate = count;
-
-    USLOSS_Console("XXp3(): count = %d -- the while loop has ended!\n",count);
-
-    USLOSS_Console("XXp3(): terminating -- all of the XXp2() processes will unblock, and will all run in quick succession.  testcase_main() will not run until all of them have died.\n");
-    quit(4);
+    quit(0);
 }
 

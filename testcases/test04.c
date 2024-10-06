@@ -1,70 +1,76 @@
+
+/* start2 creates a mailbox.
+ * start2 creates two processes: XXp1 at priority 3, XXp2 at priority 4.
+ * XXp1 sends a message to the mailbox and then quits.
+ * XXp2 receives a message from the mailbox, then quits.
+ */
+
 #include <stdio.h>
+#include <string.h>
+
 #include <usloss.h>
 #include <phase1.h>
-#include <string.h>
-#include <malloc.h>    // for malloc()
+#include <phase2.h>
 
 int XXp1(void *);
+int XXp2(void *);
+char buf[256];
 
-int testcase_main()
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int status, kidpid, i, j;
+  int kid_status, kidpid;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: Similar to test03 (create a few processes, join with them, do it again) - but this one will run many iterations of the loop.  Also, each child will have a tight spin loop.  And finally, dumpProcesses() will be called from a child instead of testcase_main().\n");
+  USLOSS_Console("start2(): started\n");
 
-    for (j = 0; j < 2; j++) {
-        for (i = 0; i < 5; i++) {
-            char *arg_buf = malloc(20);
-            sprintf(arg_buf, "XXp1_%d", i);
+  mbox_id = MboxCreate(10, 50);
+  USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
 
-            USLOSS_Console("testcase_main(): calling fork(), arg_buf = '%s' -- testcase_main() will block until this child terminates, because the child is higher priority.\n", arg_buf);
-            kidpid = spork("XXp1", XXp1, arg_buf, USLOSS_MIN_STACK, 2);
-            USLOSS_Console("testcase_main(): after fork of child %d -- you should not see this until the child has ended.\n", kidpid);
-        }
+  kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 1);
+  kidpid = spork("XXp2", XXp2, NULL, 2 * USLOSS_MIN_STACK, 2);
 
-        USLOSS_Console("\nIn the output above, you should have seen 5 children be created, with dumpProcesses() called while the 4th was running.  They should all be done now.  I will now call join() on all 5.\n\n");
+  kidpid = join(&kid_status);
+  USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-        for (i = 0; i < 5; i++) {
-            kidpid = join (&status);
-            if (kidpid < 0)
-            {
-                USLOSS_Console("ERROR: testcase_main(): join() failed!!!  rc=%d\n", kidpid);
-                USLOSS_Halt(1);
-            }
-            USLOSS_Console("testcase_main(): after join of child %d, status = %d\n",
-                           kidpid, status);
-        }
+  kidpid = join(&kid_status);
+  USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-        if (join(&status) != -2)
-        {
-            USLOSS_Console("ERROR: testcase_main(): join() after all of the children have been cleaned up worked, when it was supposed to return -2!!!  rc=%d\n", kidpid);
-            USLOSS_Halt(1);
-        }
-    }
-    return 0;
+  quit(0);
 }
+
 
 int XXp1(void *arg)
 {
-    int i;
+  int result;
 
-    USLOSS_Console("XXp1(): %s, started, pid = %d\n", arg, getpid());
-    if ( strcmp(arg, "XXp1_3") == 0 ) {
-        for (i = 0; i < 10000000; i++)
-            if ( i == 7500000)
-            {
-                USLOSS_Console("\nCalling dumpProcesses(), from inside one of the XXp1() children.  At this point, there should be 3 terminated (but not joined) children, plus me (the running child).  testcase_main() should be runnable, but obviously not running right now.\n****************\n");
-                dumpProcesses();
-                USLOSS_Console("******** end dumpProcessess() ********\n\n");
-            }
-    }
-    else {
-       for (i = 0; i < 10000000; i++)
-           ;
-    }
+  USLOSS_Console("XXp1(): started\n");
 
-    USLOSS_Console("XXp1(): exiting, pid = %d\n", getpid());
-    quit(getpid());
+  USLOSS_Console("XXp1(): sending message to mailbox %d\n", mbox_id);
+  result = MboxSend(mbox_id, "hello there", strlen("hello there")+1);
+  USLOSS_Console("XXp1(): after send of message, result = %d\n", result);
+
+  quit(3);
+}
+
+
+int XXp2(void *arg)
+{
+  char buffer[100];
+  int result;
+
+  /* BUGFIX: initialize buffers to predictable contents */
+  memset(buffer, 'x', sizeof(buffer)-1);
+  buffer[sizeof(buffer)-1] = '\0';
+
+  USLOSS_Console("XXp2(): started\n");
+
+  USLOSS_Console("XXp2(): receiving message from mailbox %d\n", mbox_id);
+  result = MboxRecv(mbox_id, buffer, 100);
+  USLOSS_Console("XXp2(): after receipt of message, result = %d    message = '%s'\n", result,buffer);
+
+  quit(4);
 }
 

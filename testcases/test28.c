@@ -1,116 +1,112 @@
-#include <stdio.h>
-#include <usloss.h>
-#include <phase1.h>
-
-/*
- * The purpose of this test is to test when we join and our children have not
- * yet quit (ie we have to block).  One will be done where we have been zapped
- * before calling join, many will be done where we have not been zapped.
- *
- * Expected output:
- *
- * testcase_main(): started
- * testcase_main(): after fork of child 3
- * testcase_main(): after fork of child 4
- * testcase_main(): after fork of child 5
- * testcase_main(): performing first join
- * XXp1(): started
- * XXp1(): arg = 'XXp1()'
- * testcase_main(): exit status for child 3 is -1
- * testcase_main(): performing second join
- * XXp2(): started
- * XXp2(): arg = 'XXp2'
- * XXp2(): calling zap(5)
- * XXp3(): started
- * XXp3(): arg = 'XXp3'
- * XXp3(): after fork of child 6
- * XXp3(): performing first join
- * XXp4(): started
- * XXp4(): arg = 'XXp4FromXXp3a'
- * XXp3(): exit status for child -1 is -4
- * testcase_main(): exit status for child 5 is -3
- * XXp2(): return value of zap(5) is 0
- * testcase_main(): exit status for child 4 is -2
- * All processes completed.
+/* test rleeasing a empty mailbox with a number of blocked receivers (all of
+ * various higher priorities then the releaser), and then trying to receive
+ * and send to the now unused mailbox.
  */
 
-int XXp1(void *), XXp2(void *), XXp3(void *), XXp4(void *);
-int pid3;
 
-int testcase_main()
+#include <stdio.h>
+#include <string.h>
+
+#include <usloss.h>
+#include <phase1.h>
+#include <phase2.h>
+
+
+int XXp1(void *);
+int XXp2(void *);
+int XXp3(void *);
+char buf[256];
+
+
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int status, pid1, pid2, kidpid;
+    int kid_status, kidpid;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: Same as test27, except with different priorities - which means that pid3 is not set by the time that XXp2() attempts to use it.\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 4);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    mbox_id = MboxCreate(5, 50);
+    USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
 
-    pid2 = spork("XXp2", XXp2, "XXp2", USLOSS_MIN_STACK, 4);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid2);
+    kidpid = spork("XXp1",  XXp1, NULL,    2 * USLOSS_MIN_STACK, 2);
+    kidpid = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 3);
+    kidpid = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 4);
+    kidpid = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 3);
+    kidpid = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 5);
 
-    pid3 = spork("XXp3", XXp3, "XXp3", USLOSS_MIN_STACK, 5);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid3);
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    USLOSS_Console("testcase_main(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    USLOSS_Console("testcase_main(): performing second join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    USLOSS_Console("testcase_main(): performing third join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    return 0;
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    quit(0);
 }
 
 int XXp1(void *arg)
 {
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    int i, result;
+    char buffer[20];
 
-    quit(1);
-}
+    /* BUGFIX: initialize buffers to predictable contents */
+    memset(buffer, 'x', sizeof(buffer)-1);
+    buffer[sizeof(buffer)-1] = '\0';
 
-int XXp2(void *arg)
-{
-    USLOSS_Console("XXp2(): started\n");
-    USLOSS_Console("XXp2(): arg = '%s'\n", arg);
+    USLOSS_Console("\nXXp1(): started\n");
 
-    USLOSS_Console("XXp2(): calling zap(%d)\n", pid3);
-    zap(pid3);
-    USLOSS_Console("XXp2(): zap(%d) returned\n", pid3);
+    for (i = 0; i < 5; i++) {
+        USLOSS_Console("XXp1(): receiving message #%d from mailbox %d\n", i, mbox_id);
+        result = MboxRecv(mbox_id, buffer, 20);
+        USLOSS_Console("XXp1(): after receive of message #%d, result = %d\n", i, result);
+    }
 
-    quit(2);
-}
-
-int XXp3(void *arg)
-{
-    int pid1, kidpid, status;
-
-    USLOSS_Console("XXp3(): started\n");
-    USLOSS_Console("XXp3(): arg = '%s'\n", arg);
-
-    pid1 = spork("XXp4", XXp4, "XXp4FromXXp3a", USLOSS_MIN_STACK, 4);
-    USLOSS_Console("XXp3(): after fork of child %d\n", pid1);
-
-    USLOSS_Console("XXp3(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("XXp3(): exit status for child %d is %d\n", kidpid, status);
+    for (i = 0; i < 5; i++) {
+        USLOSS_Console("XXp1(): sending message #%d to mailbox %d\n", i, mbox_id);
+        sprintf(buffer, "hello there, #%d", i);
+        result = MboxSend(mbox_id, buffer, strlen(buffer)+1);
+        USLOSS_Console("XXp1(): after send of message #%d, result = %d\n", i, result);
+    }
 
     quit(3);
 }
 
-int XXp4(void *arg)
+int XXp2(void *arg)
 {
-    USLOSS_Console("XXp4(): started\n");
-    USLOSS_Console("XXp4(): arg = '%s'\n", arg);
+    int result;
+    char buffer[20];
+
+    /* BUGFIX: initialize buffers to predictable contents */
+    memset(buffer, 'x', sizeof(buffer)-1);
+    buffer[sizeof(buffer)-1] = '\0';
+
+    USLOSS_Console("%s(): receive message from mailbox %d, msg_size = %d\n", arg, mbox_id, 20);
+    result = MboxRecv(mbox_id, buffer, 20);
+    USLOSS_Console("%s(): after receive of message result = %d\n", arg, result);
 
     quit(4);
+}
+
+int XXp3(void *arg)
+{
+    int result;
+
+    USLOSS_Console("\nXXp3(): started\n");
+
+    result = MboxRelease(mbox_id);
+    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
+
+    quit(5);
 }
 

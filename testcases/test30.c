@@ -1,53 +1,89 @@
-#include <stdio.h>
-#include <usloss.h>
-#include <phase1.h>
-
-/* The purpose of this test is to demonstrate that
- * an attempt to zap yourself causes an abort
- *
- * Expected output:
- *
- * testcase_main(): started
- * testcase_main(): after fork of child 3
- * testcase_main(): performing first join
- * XXp1(): started
- * XXp1(): arg = 'XXp1'
- * XXp1(): zapping myself, should cause abort, calling zap(3)
- * zap(): process 3 tried to zap itself.  Halting...
+/* checking for release: 3 instances of XXp2 receive messages from a "zero-slot"
+ * mailbox, which causes them to block. XXp3 then releases the mailbox.
+ * XXp3 is lower priority than the 3 blocked processes.
  */
 
-int XXp1(void *);
-int pid1;
 
-int testcase_main()
+#include <stdio.h>
+#include <string.h>
+
+#include <usloss.h>
+#include <phase1.h>
+#include <phase2.h>
+
+
+int XXp2(void *);
+int XXp3(void *);
+int XXp4(void *);
+char buf[256];
+
+
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int status, kidpid;
+    int kid_status, kidpid;
+    char buffer[20];
+    int result;
 
-    USLOSS_Console("testcase_main(): started\n");
+    /* BUGFIX: initialize buffers to predictable contents */
+    memset(buffer, 'x', sizeof(buffer)-1);
+    buffer[sizeof(buffer)-1] = '\0';
 
-    /* BUGFIX: Make the child lower priority, so that pid1 gets initialized
-     *         before the child uses it.
-     */
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 4);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    mbox_id  = MboxCreate(0, 50);
+    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
 
-    USLOSS_Console("testcase_main(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    kidpid   = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 1);
+    kidpid   = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 1);
+    kidpid   = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 1);
+    kidpid   = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 2);
 
-    return 0;
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    result = MboxCondRecv(mbox_id, buffer, sizeof(buffer));
+
+    if (result == -1)
+        USLOSS_Console("failed to recv from released mailbox ... success\n");
+    else
+        USLOSS_Console("test failed result = %d\n",result);
+
+    quit(0);
 }
 
-int XXp1(void *arg)
+int XXp2(void *arg)
 {
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    int result;
 
-    USLOSS_Console("XXp1(): zapping myself, should fail.  Calling zap(%d)\n", pid1);
-    zap(pid1);
-    USLOSS_Console("XXp1(): after zap attempt\n");
+    USLOSS_Console("%s(): receiving message from mailbox %d\n", arg, mbox_id);
+    result = MboxRecv(mbox_id, NULL,0);
+    USLOSS_Console("%s(): after receive of message, result = %d\n", arg, result);
 
-    quit(1);
+    quit(3);
+}
+
+int XXp3(void *arg)
+{
+    int result;
+
+    USLOSS_Console("\nXXp3(): started, releasing mailbox %d\n", mbox_id);
+
+    result = MboxRelease(mbox_id);
+    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
+
+    quit(4);
 }
 

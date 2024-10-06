@@ -1,51 +1,83 @@
-/*
- * Check if -1 is returned when there are no more process slots.
- * Attempt to start MAXPROC + 2 processes; i.e., 52 processes
- * Process table has 50 slots. testcase_main and sentinel occupy two of
- *    the slots.  Thus, 48 new processes will start, with error
- *    messages about the last 4 attempts.
+
+/* checking for release: 3 instances of XXp2 receive messages from a zero-slot
+ * mailbox, which causes them to block. XXp4 then releases the mailbox.
+ * All processes are at the same priority.
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-int XXp1(void *), XXp2(void *), XXp3(void *), XXp4(void *);
+int XXp2(void *);
+int XXp3(void *);
+int XXp4(void *);
+char buf[256];
 
-int testcase_main()
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int i, pid1;
+    int kid_status, kidpid, pausepid;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: Attempt to create MAXPROC+2 processes (without calling join() on any of them).  This will work many times but eventually fail because all of the procTable slots are full.  We will only print out info about the failed ones.\n");
+    USLOSS_Console("start2(): started\n");
+    mbox_id  = MboxCreate(0, 50);
+    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
 
-    USLOSS_Console("testcase_main(): start %d processes\n", MAXPROC+2);
+    kidpid   = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 2);
+    kidpid   = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 2);
+    kidpid   = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 2);
+    pausepid = spork("XXp4",  XXp4, "XXp4",  2 * USLOSS_MIN_STACK, 2);
 
-    for (i = 0; i < MAXPROC+2; i++)
-    {
-        pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-        if (pid1 < 0)
-            USLOSS_Console("testcase_main(): spork() failed: i=%d, pid is %d.\n", i,pid1);
-    }
+    kidpid = join(&kid_status);
+    if (kidpid != pausepid)
+        USLOSS_Console("\n***Test Failed*** -- join with pausepid failed!\n\n");
 
-    dumpProcesses();
+    kidpid   = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 1);
 
-    USLOSS_Console("testcase_main(): Calling join() on %d processes.  The number of 'failed' calls here should be the same as the number of 'failed' spork() calls.\n", MAXPROC+2);
-    for (i = 0; i < MAXPROC + 2; i++)
-    {
-        int status_ignored;
-        pid1 = join(&status_ignored);
-        if (pid1 < 0)
-            USLOSS_Console("testcase_main(): join() failed: i=%d, pid is %d.\n", i,pid1);
-    }
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    dumpProcesses();
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
 
-    return 0;
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    quit(0);
 }
 
-int XXp1(void *arg)
+int XXp2(void *arg)
 {
-    quit(2);
+    int result;
+
+    result = MboxRecv(mbox_id, NULL,0);
+    USLOSS_Console("%s(): after recv of message, result = %d\n", arg, result);
+
+    quit(3);
+}
+
+int XXp3(void *arg)
+{
+    int result;
+
+    USLOSS_Console("XXp3(): started\n");
+
+    result = MboxRelease(mbox_id);
+    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
+
+    quit(4);
+}
+
+int XXp4(void *arg)
+{
+    USLOSS_Console("XXp4(): started and quitting\n");
+    quit(4);
 }
 

@@ -1,69 +1,55 @@
-/*
- * Check that getpid() functions correctly.
+
+/* tests for exceeding the number of slots. start2 creates mailboxes whose
+ * total slots will exceed the system limit. start2 then starts doing
+ * conditional sends to each slot of each mailbox until the return code
+ * of conditional send comes back as -2
  */
 
 #include <stdio.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-#define FLAG1 2
+int mboxids[50];
 
-int XXp1(void *), XXp2(void *), XXp3(void *), XXp4(void *);
-int pidlist[5];
 
-int testcase_main()
+
+int start2(void *arg)
 {
-    int ret1, ret2, ret3;
-    int status;
+    int boxNum, slotNum, result;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: testcase_main() will create 3 children, all running XXp1().  They have priority 3, so that they will not interrupt testcase_main().  The PID of each child is stored into a global array.  Then testcase_main() blocks in join() (three times).  The child processes should run in the same order they were created (we use a FIFO for ordering dispatch), and so each can call getpid() to confirm that it has the same value as stored in the global array.\n");
+    USLOSS_Console("start2(): started, trying to exceed systemwide mailslots...\n");
 
-    /* BUGFIX: This testcase originally created children of the same priority
-     *         as the parent.  So it's possible that they might run before
-     *         spork() returns - although my implementation doesn't do that.
-     *
-     *         The fix for this is to run them at *lower* priority than the
-     *         parent, so the parent is guaranteed to fill out the array pidlist[]
-     *         before any child runs.
+    /* See the previous testcase for explanation.  This is the EXACT SAME,
+     * except that we call CondSend() instead.
      */
 
-    pidlist[0] = spork("XXp1", XXp1, NULL, USLOSS_MIN_STACK, 4);
-    pidlist[1] = spork("XXp1", XXp1, NULL, USLOSS_MIN_STACK, 4);
-    pidlist[2] = spork("XXp1", XXp1, NULL, USLOSS_MIN_STACK, 4);
-
-    USLOSS_Console("testcase_main(): pidlist[] = [%d,%d,%d, ...]\n", pidlist[0],pidlist[1],pidlist[2]);
-
-    ret1 = join(&status);
-    USLOSS_Console("testcase_main: joined with child %d\n", ret1);
-
-    ret2 = join(&status);
-    USLOSS_Console("testcase_main: joined with child %d\n", ret2);
-
-    ret3 = join(&status);
-    USLOSS_Console("testcase_main: joined with child %d\n", ret3);
-
-    return 0;
-}
-
-int XXp1(void *arg)
-{
-    static int i = 0;
-
-    USLOSS_Console("One of the XXp1() process has started, getpid()=%d\n", getpid());
-
-    if (getpid() != pidlist[i])
+    for (boxNum = 0; boxNum < 50; boxNum++)
     {
-        USLOSS_Console("************************************************************************");
-        USLOSS_Console("* TESTCASE FAILED: getpid() returned different value than spork() did. *");
-        USLOSS_Console("************************************************************************");
+        mboxids[boxNum] = MboxCreate(55, 0);
+        if (mboxids[boxNum] < 0)
+            USLOSS_Console("start2(): MailBoxCreate returned id less than zero, id = %d\n", mboxids[boxNum]);
     }
-    else
-        USLOSS_Console("This process's getpid() matched what spork() returned.\n");
 
-    i++;
+    for (boxNum = 0; boxNum < 50; boxNum++)
+    {
+        for (slotNum = 0; slotNum < 55; slotNum++)
+        {
+            result = MboxCondSend(mboxids[boxNum], NULL,0);
+            if (result == -2)
+            {
+                USLOSS_Console("No slots available: mailbox %d and slot %d\n", boxNum, slotNum);
+                quit(0);
+            }
+            else if (result != 0)
+            {
+                USLOSS_Console("UNEXPECTED ERROR %d: mailbox %d and slot %d\n", result, boxNum, slotNum);
+                quit(100);
+            }
+        }
+    }
 
-    USLOSS_Console("This XXp1() process will now terminate.\n");
-    quit(FLAG1);
+    USLOSS_Console("ERROR: You should not get here!!!\n");
+    quit(100);
 }
 

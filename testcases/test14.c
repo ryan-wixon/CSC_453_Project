@@ -1,86 +1,62 @@
-/*
- * This test checks to see if a process returns -1 in join if it was 
- * zapped while waiting:
- *
- *                                        fork
- *          _____ XXp1 (priority = 3)  ----------- XXp3 (priority = 5)
- *         /                 |
- * testcase_main                    | zap
- *         \____ XXp2 (priority = 4) 
- *
-*/
 
+/* A test of waitDevice for a terminal.  Can be used to test other
+ * three terminals as well.
+ */
 
 #include <stdio.h>
+#include <string.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-int XXp1(void *), XXp2(void *), XXp3(void *);
-int pid_z;
+int XXp1(void *);
+int XXp3(void *);
+char buf[256];
 
-int testcase_main()
+
+
+int start2(void *arg)
 {
-    int status, pid2, kidpid;
+    int  kid_status, kidpid;
+    long control = 0;
+    int  result;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: See test13.  This is the same, except that the PID that will be zap()ed is that of XXp1() - and thus the pid is stored by testcase_main() after the first fork().  This works much the same, except that when XXp3() terminates, only XXp1() wakes up (join) because XXp2() is trying to zap XXp1(), instead of XXp3() (as it did in test 13).\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid_z = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 1);
-    USLOSS_Console("testcase_main(): after fork of first child %d\n", pid_z);
+    /* see macro definition in usloss.h */
+    control = USLOSS_TERM_CTRL_RECV_INT(control);
 
-    pid2 = spork("XXp2", XXp2, "XXp2", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("testcase_main(): after fork of second child %d\n", pid2);
+    USLOSS_Console("start2(): calling USLOSS_DeviceOutput to enable receive interrupts, control = %d\n", control);
 
-    USLOSS_Console("testcase_main(): performing join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
+    result = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void *)control);
+    if ( result != USLOSS_DEV_OK ) {
+        USLOSS_Console("start2(): USLOSS_DeviceOutput returned %d ", result);
+        USLOSS_Console("Halting...\n");
+        USLOSS_Halt(1);
+    }
 
-    USLOSS_Console("testcase_main(): performing join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
+    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 2);
 
-    return 0;
+    kidpid = join(&kid_status);
+    USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    quit(0);
 }
 
 int XXp1(void *arg)
 {
-    int status, kidpid;
+    int status;
 
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    USLOSS_Console("XXp1(): started, calling waitDevice for terminal 1\n");
 
-    USLOSS_Console("XXp1(): executing fork of first child\n");
-    kidpid = spork("XXp3", XXp3, "XXp3", USLOSS_MIN_STACK, 3);
-    USLOSS_Console("XXp1(): spork of first child returned pid = %d\n", kidpid);
+    waitDevice(USLOSS_TERM_DEV, 1, &status);
+    USLOSS_Console("XXp1(): after waitDevice call\n");
 
-    USLOSS_Console("XXp1(): joining with first child\n" );
-    kidpid = join(&status);
-    USLOSS_Console("XXp1(): join returned kidpid = %d, status = %d\n", kidpid, status);
+    USLOSS_Console("XXp1(): status = %d\n", status);
 
-    USLOSS_Console("XXp1(): terminating -- when this happens, XXp2() will become runnable, and so XXp2() will finish up before testcase_main() runs again.\n");
+    USLOSS_Console("XXp1(): receive status for terminal 1 = %d\n", USLOSS_TERM_STAT_RECV(status));
+    USLOSS_Console("XXp1(): character received = %c\n", USLOSS_TERM_STAT_CHAR(status));
+
     quit(3);
 }
-
-int XXp2(void *arg)
-{
-    USLOSS_Console("XXp2(): started\n");
-
-    USLOSS_Console("XXp2(): zap'ing process with pid_z=%d\n", pid_z);
-    zap(pid_z);
-    USLOSS_Console("XXp2(): after zap'ing process with pid_z\n");
-
-    USLOSS_Console("XXp2(): terminating\n");
-    quit(5);
-}
-
-int XXp3(void *arg)
-{
-    USLOSS_Console("XXp3(): started\n");
-
-    dumpProcesses();
-
-    USLOSS_Console("XXp3(): terminating -- quit() should wake up XXp1() but XXp2() will continue to block, since it is zapping XXp1() instead of XXp3(), as it did in test13.\n");
-    quit(5);
-}
-
 

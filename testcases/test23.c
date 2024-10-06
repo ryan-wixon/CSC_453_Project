@@ -1,70 +1,70 @@
-/* Tests blockMe and unblockProc.
- * XXp1 starts 3 children at a higher priority, passing each child a different
- * argument containing an integer.  Each child executes the XXp2 function,
- * calling blockMe() using the status passed to XXp2 by its parent.
- * XXp1 then calls dumpProcesses(); should see the 3 processes blocked
- * on different statuses.
- * XXp1 then unblocks each of the three.
+/* Creates two children.  Higher priority child does a send, and should
+ * block.  Lower priority child then does a receive and should unblock the
+ * higher priority child.
  */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
 int XXp1(void *);
 int XXp2(void *);
+char buf[256];
 
-int testcase_main()
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int pid1, kid_status;
+    int kid_status, kidpid;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: Tests blockMe() and unblockProc().\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 5);
-    pid1 = join(&kid_status);
-    USLOSS_Console("testcase_main(): XXp1, pid %d, done; returning...\n", pid1);
+    mbox_id = MboxCreate(0, 50);
+    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
 
-    return 0;
+    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 1);
+    kidpid = spork("XXp2", XXp2, NULL, 2 * USLOSS_MIN_STACK, 2);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    quit(0);
 }
 
 int XXp1(void *arg)
 {
-    int  i, pid[10], result[10];
+    int i, result;
 
-    USLOSS_Console("XXp1(): creating children\n");
-    for (i = 0; i < 3; i++) {
-        pid[i] = spork("XXp2", XXp2, NULL, USLOSS_MIN_STACK, 2);
+    USLOSS_Console("XXp1(): started\n");
+
+    for (i = 0; i <= 1; i++) {
+        USLOSS_Console("XXp1(): sending message to mailbox %d\n", mbox_id);
+        result = MboxSend(mbox_id, NULL,0);
+        USLOSS_Console("XXp1(): after send of message, result = %d\n", result);
     }
 
-    dumpProcesses();
-
-    USLOSS_Console("XXp1(): unblocking children\n");
-    for (i = 0; i < 3; i++)
-        result[i] = unblockProc(pid[i]);
-
-    for (i = 0; i < 3; i++)
-        USLOSS_Console("XXp1(): after unblocking %d, result = %d\n", pid[i], result[i]);
-
-    USLOSS_Console("XXp1(): joining with children\n");
-    for (i = 0; i < 3; i++)
-    {
-        int status_ignored;
-        join(&status_ignored);
-    }
-
-    quit(0);
+    quit(3);
 }
-
 
 int XXp2(void *arg)
 {
-    USLOSS_Console("XXp2(): started, pid = %d, calling blockMe\n", getpid());
-    blockMe();
-    USLOSS_Console("XXp2(): pid = %d, after blockMe\n", getpid());
+    int i, result;
 
-    quit(0);
+    USLOSS_Console("XXp2(): started\n");
+
+    for (i = 0; i <= 1; i++) {
+        USLOSS_Console("XXp2(): receiving message from mailbox %d\n", mbox_id);
+        result = MboxRecv(mbox_id, NULL,0);
+        USLOSS_Console("XXp2(): after receipt of message, result = %d\n", result);
+    }
+
+    quit(4);
 }
 

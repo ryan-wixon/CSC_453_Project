@@ -1,41 +1,93 @@
-/* this test case checks for a process zapping itself 
- * testcase_main forks XXp1 and is blocked on the join of XXp1 and XXp1 zaps itself
+
+/* checking for release: 3 instances of XXp2 send messages to a zero-slot
+ * mailbox, which causes them to block. XXp4 then releases the mailbox.
+ * XXp4 is higher priority than the 3 blocked processes.
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-int XXp1(void *);
-int pid1;
+int XXp2(void *);
+int XXp3(void *);
+int XXp4(void *);
+char buf[256];
 
-int testcase_main()
+int mbox_id;
+
+
+
+int start2(void *arg)
 {
-    int status, kidpid;
+    int kid_status, kidpid, pausepid;
+    int result;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: A process tries to zap() itself\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 5);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    mbox_id  = MboxCreate(0, 50);
+    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
 
-    USLOSS_Console("testcase_main(): performing join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
+    kidpid   = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 2);
+    kidpid   = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 2);
+    kidpid   = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 2);
+    pausepid = spork("XXp4",  XXp4, "XXp4",  2 * USLOSS_MIN_STACK, 2);
 
-    return 0;
+    kidpid = join(&kid_status);
+    if (kidpid != pausepid)
+        USLOSS_Console("\n***Test Failed*** -- join with pausepid failed!\n\n");
+
+    kidpid   = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 1);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+
+    result = MboxCondSend(mbox_id, NULL,0);
+
+    if(result == -1)
+        USLOSS_Console("failed to send to released mailbox ... success\n");
+    else
+        USLOSS_Console("test failed result = %d\n",result);
+
+    quit(0);
 }
 
-int XXp1(void *arg)
+int XXp2(void *arg)
 {
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    int result;
 
-    USLOSS_Console("XXp1(): about to call zap() on myself, the simulation should halt.  pid1 = %d\n", pid1);
-    zap(pid1);
-    USLOSS_Console("XXp1(): zap ---- You should never see this, the simulation should have died already.\n");
+    USLOSS_Console("%s(): sending message to mailbox %d\n", arg, mbox_id);
+    result = MboxSend(mbox_id, NULL,0);
+    USLOSS_Console("%s(): after send of message, result = %d\n", arg, result);
 
     quit(3);
+}
+
+int XXp3(void *arg)
+{
+    int result;
+
+    USLOSS_Console("XXp3(): started\n");
+
+    result = MboxRelease(mbox_id);
+    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
+
+    quit(4);
+}
+
+int XXp4(void *arg)
+{
+    USLOSS_Console("XXp4(): started and quitting\n");
+    quit(5);
 }
 

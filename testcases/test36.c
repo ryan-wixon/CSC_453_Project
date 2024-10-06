@@ -1,46 +1,38 @@
-/* Tests what happens when a process tries to zap init
- *
- * testcase_main creates XXp1 at priority 3
- * testcase_main blocks on a join
- *
- * XXp1 attempts to zap init.  Halts USLOSS.
- */
+
+/* Send to a mailbox a message that is too large for the mailbox. */
 
 #include <stdio.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
+
 
 int XXp1(void *);
+char buf[256];
 
-#define INIT_PID  1
 
-int testcase_main()
+
+int start2(void *arg)
 {
-    int status, pid1, kidpid;
+    int mbox_id;
+    int result;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: TODO\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    mbox_id = MboxCreate(10, 11);
+    USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
 
-    USLOSS_Console("testcase_main(): performing join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
+    USLOSS_Console("start2(): sending message to mailbox %d\n", mbox_id);
+    result = MboxSend(mbox_id, "hello there", 12);
+    USLOSS_Console("start2(): after send of message, result = %d\n", result);
 
-    return 0;
-}
+    if (result == -1){
+        USLOSS_Console("start2(): message was too large (expected).\n");
+        quit(0);
+    }
 
-int XXp1(void *arg)
-{
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    USLOSS_Console("ERROR ERROR ERROR If you get here, then your mailbox code is not checking the send-length properly.\n");
 
-    USLOSS_Console("XXp1(): about to zap init\n");
-    zap(INIT_PID);
-    USLOSS_Console("XXp1(): zap returned.\n");
-
-    quit(3);
+    return 0; /* so gcc will not complain about its absence... */
 }
 

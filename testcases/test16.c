@@ -1,91 +1,55 @@
-/*
- * This test checks to see if a process returns -1 if it is zapped
- * while blocked on zap
- *
- *
- *                                      fork&zap
- *          _____ XXp1 (priority = 3) ----------- XXp3 (priority = 5)
- *         /               | 
- * testcase_main                  | zap
- *         \____ XXp2 (priority = 4) 
- * 
+
+/* tests for exceeding the number of slots. start2 creates mailboxes whose
+ * total slots will exceed the system limit. start2 then starts doing
+ * conditional sends to each slot of each mailbox until it gets an error.
  */
 
 #include <stdio.h>
 #include <usloss.h>
 #include <phase1.h>
+#include <phase2.h>
 
-int XXp1(void *), XXp2(void *), XXp3(void *);
-int pid_z, pid1;
+int mboxids[50];
 
-int testcase_main()
+
+
+int start2(void *arg)
 {
-    int status, pid2, kidpid;
+    int boxNum, slotNum, result;
 
-    USLOSS_Console("testcase_main(): started\n");
-    USLOSS_Console("EXPECTATION: Similar to test15, except that XXp2() will zap() XXp1() while XXp1() is also zap()ping XXp3().\n");
+    USLOSS_Console("start2(): started, trying to exceed systemwide mailslots...\n");
 
-    USLOSS_Console("testcase_main(): first fork -- XXp1 will run next.\n");
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 1);
-    USLOSS_Console("testcase_main(): after fork of first child %d -- this shouldn't happen until XXp1() blocks in zap().\n", pid1);
+    /* 50 mailboxes, capacity 55 each.  Each is individually legal, but if they
+     * all backlog at the same time, then that will consume the system capacity
+     * of MAXSLOTS=2500 mail messages.
+     */
 
-    USLOSS_Console("testcase_main(): second fork -- XXp2 will run next.\n");
-    pid2 = spork("XXp2", XXp2, "XXp2", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("testcase_main(): after fork of second child %d -- testcase_main() and XXp3() race when both XXp1() and XXp2() are blocked in zap(); thus, you might see this print early (after XXp2() blocks), or late (after XXp2() dies).\n", pid2);
+    for (boxNum = 0; boxNum < 50; boxNum++)
+    {
+        mboxids[boxNum] = MboxCreate(55, 0);
+        if (mboxids[boxNum] < 0)
+            USLOSS_Console("start2(): MailBoxCreate returned id less than zero, id = %d\n", mboxids[boxNum]);
+    }
 
-    USLOSS_Console("testcase_main(): performing join -- if testcase_main() won the race with XXp3(), then it will block here, and XXp3() will run, and then that will trigger the events that cause XXp1() and XXp2() to die.  But if it *LOSES* the race, then XXp1() and XXp2() are already dead, and this will return immediately.\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
+    for (boxNum = 0; boxNum < 50; boxNum++)
+    {
+        for (slotNum = 0; slotNum < 55; slotNum++)
+        {
+            result = MboxSend(mboxids[boxNum], NULL,0);
+            if (result == -2)
+            {
+                USLOSS_Console("No slots available: mailbox %d and slot %d\n", boxNum, slotNum);
+                quit(0);
+            }
+            else if (result != 0)
+            {
+                USLOSS_Console("UNEXPECTED ERROR %d: mailbox %d and slot %d\n", result, boxNum, slotNum);
+                quit(100);
+            }
+        }
+    }
 
-    USLOSS_Console("testcase_main(): performing join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status); 
-
-    return 0;
-}
-
-int XXp1(void *arg)
-{
-    int status, kidpid;
-
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
-
-    USLOSS_Console("XXp1(): executing fork of first child -- XXp1() will continue to run, because XXp3 is very low priority.\n");
-    pid_z = spork("XXp3", XXp3, "XXp3", USLOSS_MIN_STACK, 3);
-    USLOSS_Console("XXp1(): spork of first child returned pid = %d\n", pid_z);
-
-    USLOSS_Console("XXp1(): zap'ing process with %d -- this will block until XXp3() dies.  Therefore, we expect testcase_main() to run next.\n",pid_z);
-    zap(pid_z);
-    USLOSS_Console("XXp1(): after zap'ing process with pid_z=%d\n", pid_z);
-
-    USLOSS_Console("XXp1(): joining with first child\n" );
-    kidpid = join(&status);
-    USLOSS_Console("XXp1(): join returned kidpid = %d, status = %d\n", kidpid, status);
-
-    USLOSS_Console("XXp1(): terminating -- when this happens, XXp2() will unblock.  It will immediately run, because it is higher priority than testcase_main().\n");
-    quit(3);
-}
-
-int XXp2(void *arg)
-{
-    USLOSS_Console("XXp2(): started\n");
-
-    USLOSS_Console("XXp2(): zap'ing process with pid = %d -- we will block, because we are zap()ping XXp1().  When we do this, testcase_main() and XXp3() will race to run next.\n",pid1);
-    zap(pid1);
-    USLOSS_Console("XXp2(): after zap'ing process with pid = %d\n", pid1);
-
-    USLOSS_Console("XXp2(): terminating -- this will allow testcase_main() to run.\n");
-    quit(5);
-}
-
-int XXp3(void *arg)
-{
-    USLOSS_Console("XXp3(): started\n");
-
-    dumpProcesses();
-
-    USLOSS_Console("XXp3(): terminating -- XXp1(), which is blocked in zap(), will wake up.\n");
-    quit(5);
+    USLOSS_Console("ERROR: You should not get here!!!\n");
+    quit(100);
 }
 

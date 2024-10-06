@@ -1,98 +1,80 @@
-#include <stdio.h>
-#include <usloss.h>
-#include <phase1.h>
 
-/* The purpose of this test is to demonstrate that
- * if we zap a process that has already quit but has
- * not joined, we return immediatly from zap with
- * status 0.
- * 
- * Expected output:
- * testcase_main(): started
- * testcase_main(): after fork of child 3
- * testcase_main(): performing first join
- * XXp1(): started
- * XXp1(): arg = 'XXp1'
- * XXp2(): started
- * XXp2(): arg = 'XXp2'
- * XXp2(): exiting by calling quit(2)
- * XXp1(): after fork of child 4
- * XXp3(): started
- * XXp3(): arg = 'XXp3'
- * XXp3(): calling zap(4)
- * XXp3(): zap(4) returned: 0
- * XXp1(): after fork of child 5
- * XXp1(): performing first join
- * XXp1(): exit status for child 4 is -2
- * XXp1(): performing second join
- * XXp1(): exit status for child 5 is -3
- * testcase_main(): exit status for child 3 is -1
- * All processes completed.
+/* A test of waitDevice for all four terminals.
+ * XXp0 tests terminal 0.
+ * XXp1 tests terminal 1.
+ * XXp2 tests terminal 2.
+ * XXp3 tests terminal 3.
  */
 
-int XXp1(void *), XXp2(void *), XXp3(void *);
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <usloss.h>
+#include <phase1.h>
+#include <phase2.h>
 
-int toZapPid;
+int XXp1(void *);
+int XXp3(void *);
+char buf[256];
 
-int testcase_main()
+
+
+int start2(void *arg)
 {
-    int status, pid1, kidpid;
+    int  kid_status, kidpid;
+    long control = 0;
+    int  i, result;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: Attempt to call zap() on a process that has already terminated, but whose parent has not yet called join().\n");
+    USLOSS_Console("start2(): started\n");
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 2);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    control = USLOSS_TERM_CTRL_RECV_INT(control);
 
-    USLOSS_Console("testcase_main(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    USLOSS_Console("start2(): calling USLOSS_DeviceOutput to enable receive interrupts, control = %d\n", control);
 
-    return 0;
+    for ( i = 0; i < 4; i++ ) {
+        result = USLOSS_DeviceOutput(USLOSS_TERM_DEV, i, (void *)control);
+        if ( result != USLOSS_DEV_OK ) {
+            USLOSS_Console("start2(): USLOSS_DeviceOutput returned %d for %d\n", result, i);
+            USLOSS_Console("Halting...\n");
+            USLOSS_Halt(1);
+        }
+    }
+
+    // Create 4 instances of XXp1, but name them XXp0 to XXp3
+    // to correspond to input terminals 0 to 3
+    kidpid = spork("XXp0", XXp1, "0", 2 * USLOSS_MIN_STACK, 2);
+    kidpid = spork("XXp1", XXp1, "1", 2 * USLOSS_MIN_STACK, 2);
+    kidpid = spork("XXp2", XXp1, "2", 2 * USLOSS_MIN_STACK, 2);
+    kidpid = spork("XXp3", XXp1, "3", 2 * USLOSS_MIN_STACK, 2);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("start2(): joined with kid %d, status = %d\n\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("start2(): joined with kid %d, status = %d\n\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("start2(): joined with kid %d, status = %d\n\n", kidpid, kid_status);
+
+    kidpid = join(&kid_status);
+    USLOSS_Console("start2(): joined with kid %d, status = %d\n\n", kidpid, kid_status);
+
+    quit(0);
 }
 
 int XXp1(void *arg)
 {
-    int status, pid1, kidpid;
+    int status;
+    int terminal = atoi(arg);
 
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    USLOSS_Console("XXp%d(): started, calling waitDevice for terminal %d\n", terminal, terminal);
+    waitDevice(USLOSS_TERM_DEV, terminal, &status);
+    USLOSS_Console("XXp%d(): after waitDevice call\n", terminal);
 
-    toZapPid = spork("XXp2", XXp2, "XXp2", USLOSS_MIN_STACK, 5);
-    USLOSS_Console("XXp1(): after fork of child %d\n", toZapPid);
+    USLOSS_Console("XXp%d(): status = 0x%08x\n", terminal, status);
 
-    pid1 = spork("XXp3", XXp3, "XXp3", USLOSS_MIN_STACK, 4);
-    USLOSS_Console("XXp1(): after fork of child %d\n", pid1);
-
-    USLOSS_Console("XXp1(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("XXp1(): exit status for first child %d is %d\n", kidpid, status);
-
-    USLOSS_Console("XXp1(): performing second join\n");
-    kidpid = join(&status);
-    USLOSS_Console("XXp1(): exit status for second child %d is %d\n", kidpid, status);
-
-    quit(1);
-}
-
-int XXp2(void *arg)
-{
-    USLOSS_Console("XXp2(): started\n");
-    USLOSS_Console("XXp2(): arg = '%s'\n", arg);
-
-    USLOSS_Console("XXp2(): exiting by calling quit(2)\n");
-    quit(2);
-}
-
-int XXp3(void *arg)
-{
-    USLOSS_Console("XXp3(): started\n");
-    USLOSS_Console("XXp3(): arg = '%s'\n", arg);
-
-    USLOSS_Console("XXp3(): calling zap(%d)\n", toZapPid);
-    zap(toZapPid);
-    USLOSS_Console("XXp3(): zap(%d) returned\n", toZapPid);
+    USLOSS_Console("XXp%d(): receive status for terminal %d = %d\n", terminal, terminal, USLOSS_TERM_STAT_RECV(status));
+    USLOSS_Console("XXp%d(): character received = %c\n", terminal, USLOSS_TERM_STAT_CHAR(status));
 
     quit(3);
 }

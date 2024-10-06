@@ -1,61 +1,100 @@
-#include <stdio.h>
-#include <usloss.h>
-#include <phase1.h>
-
-/* The purpose of this test is to demonstrate that
- * an attempt to zap an non-existant process results in
- * a halt (even if the procTable slot where that process
- * would be if it existed is occupied).
- *
- * Expected output:
- * testcase_main(): started
- * testcase_main(): after fork of child 3
- * testcase_main(): after fork of child 4
- * testcase_main(): performing first join
- * XXp1(): started
- * XXp1(): arg = 'XXp1'
- * XXp1(): zapping a non existant processes pid, should cause abort, calling zap(204)
- * zap(): process being zapped does not exist.  Halting...
+/* test releasing a mailbox with a number of blocked receivers (all of
+ * various lower or equal priorities than the releaser).
  */
 
-int XXp1(void *), XXp2(void *);
+#include <stdio.h>
+#include <memory.h>
 
-int testcase_main()
+#include <usloss.h>
+#include <phase1.h>
+#include <phase2.h>
+
+int XXp1(void *);
+int XXp2(void *);
+int XXp3(void *);
+int XXp4(void *);
+
+char buf[256];
+int mbox_id;
+char buffer[11];
+
+
+
+int start2(void *arg)
 {
-    int status, pid1, pid2, kidpid;
+    int result;
+    int kidpid;
+    int status;
 
-    USLOSS_Console("testcase_main(): started\n");
-// TODO    USLOSS_Console("EXPECTATION: TBD\n");
-    USLOSS_Console("QUICK SUMMARY: Attempts (from multiple processes) to zap() a non-existent process.\n");
+    /* BUGFIX: initialize buffers to predictable contents */
+    memset(buffer, 'x', sizeof(buffer)-1);
+    buffer[sizeof(buffer)-1] = '\0';
 
-    pid1 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 3);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid1);
+    USLOSS_Console("start2(): started\n");
 
-    pid2 = spork("XXp1", XXp1, "XXp1", USLOSS_MIN_STACK, 3);
-    USLOSS_Console("testcase_main(): after fork of child %d\n", pid2);
+    mbox_id = MboxCreate(1, 13);
+    USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
 
-    USLOSS_Console("testcase_main(): performing first join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 3);
+    kidpid = spork("XXp2", XXp2, NULL, 2 * USLOSS_MIN_STACK, 2);
+    kidpid = spork("XXp3", XXp3, NULL, 2 * USLOSS_MIN_STACK, 1);
+    kidpid = spork("XXp4", XXp4, NULL, 2 * USLOSS_MIN_STACK, 3);
 
-    USLOSS_Console("testcase_main(): performing second join\n");
-    kidpid = join(&status);
-    USLOSS_Console("testcase_main(): exit status for child %d is %d\n", kidpid, status);
+    USLOSS_Console("start2(): receiving message from mailbox %d, should block\n", mbox_id);
+    result = MboxRecv(mbox_id, buffer, 12);
+    USLOSS_Console("start2(): after send of message, result = %d\n", result);
 
-    return 0;
+    join(&status);
+    join(&status);
+    join(&status);
+    join(&status);
+
+    result = kidpid; // to avoid warning about kidpid set but not used
+
+    quit(0);
 }
 
 int XXp1(void *arg)
 {
-    int to_zap = 204;
+    int result;
 
-    USLOSS_Console("XXp1(): started\n");
-    USLOSS_Console("XXp1(): arg = '%s'\n", arg);
+    USLOSS_Console("XXp1(): receiving message from mailbox %d, should block\n", mbox_id);
+    result = MboxRecv(mbox_id, buffer, 12);
+    USLOSS_Console("XXp1(): after send of message, result = %d\n", result);
 
-    USLOSS_Console("XXp1(): zapping a non existant processes pid, should fail.  Calling zap(%d)\n", to_zap);
-    zap(to_zap);
-    USLOSS_Console("XXp1(): zap() returned\n");
+    quit(3);
+}
 
-    quit(1);
+int XXp2(void *arg)
+{
+    int result;
+
+    USLOSS_Console("XXp2(): receiving message from mailbox %d, should block\n", mbox_id);
+    result = MboxRecv(mbox_id, buffer, 12);
+    USLOSS_Console("XXp2(): after send of message, result = %d\n", result);
+
+    quit(3);
+}
+
+int XXp3(void *arg)
+{
+    int result;
+
+    USLOSS_Console("XXp3(): receiving message from mailbox %d, should block\n", mbox_id);
+    result = MboxRecv(mbox_id, buffer, 12);
+    USLOSS_Console("XXp3(): after send of message, result = %d\n", result);
+
+    quit(3);
+}
+
+int XXp4(void *arg)
+{
+  int result;
+
+  USLOSS_Console("XXp4(): Releasing Mailbox %d\n", mbox_id);
+  result = MboxRelease(mbox_id);
+  USLOSS_Console("XXp4(): after release of mailbox, result = %d\n", result);
+
+  quit(3);
 }
 

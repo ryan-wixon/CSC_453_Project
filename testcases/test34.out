@@ -1,25 +1,34 @@
-phase2_start_service_processes() called -- currently a NOP
 phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-testcase_main(): started
-QUICK SUMMARY: Attempt to call zap() on a process that has already terminated, but whose parent has not yet called join().
-XXp1(): started
-XXp1(): arg = 'XXp1'
-XXp1(): after fork of child 4
-XXp1(): after fork of child 5
-XXp1(): performing first join
-testcase_main(): after fork of child 3
-testcase_main(): performing first join
-XXp3(): started
-XXp3(): arg = 'XXp3'
-XXp3(): calling zap(4)
-XXp2(): started
-XXp2(): arg = 'XXp2'
-XXp2(): exiting by calling quit(2)
-XXp1(): exit status for first child 4 is 2
-XXp1(): performing second join
-XXp3(): zap(4) returned
-XXp1(): exit status for second child 5 is 3
-testcase_main(): exit status for child 3 is 1
+start2(): started
+start2(): calling USLOSS_DeviceOutput to enable receive interrupts, control = 2
+XXp0(): started, calling waitDevice for terminal 0
+XXp1(): started, calling waitDevice for terminal 1
+XXp2(): started, calling waitDevice for terminal 2
+XXp3(): started, calling waitDevice for terminal 3
+XXp0(): after waitDevice call
+XXp0(): status = 0x00006101
+XXp0(): receive status for terminal 0 = 1
+XXp0(): character received = a
+start2(): joined with kid 4, status = 3
+
+XXp1(): after waitDevice call
+XXp1(): status = 0x00006101
+XXp1(): receive status for terminal 1 = 1
+XXp1(): character received = a
+start2(): joined with kid 5, status = 3
+
+XXp2(): after waitDevice call
+XXp2(): status = 0x00006101
+XXp2(): receive status for terminal 2 = 1
+XXp2(): character received = a
+start2(): joined with kid 6, status = 3
+
+XXp3(): after waitDevice call
+XXp3(): status = 0x00003301
+XXp3(): receive status for terminal 3 = 1
+XXp3(): character received = 3
+start2(): joined with kid 7, status = 3
+
 finish(): The simulation is now terminating.
