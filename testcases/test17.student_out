@@ -10,9 +10,11 @@ This process's getpid() matched what spork() returned.
 This XXp1() process will now terminate.
 testcase_main: joined with child 3
 One of the XXp1() process has started, getpid()=4
+This process's getpid() matched what spork() returned.
+This XXp1() process will now terminate.
 One of the XXp1() process has started, getpid()=5
-************************************************************************* TESTCASE FAILED: getpid() returned different value than spork() did. *************************************************************************This XXp1() process will now terminate.
+This process's getpid() matched what spork() returned.
+This XXp1() process will now terminate.
 testcase_main: joined with child 5
-************************************************************************* TESTCASE FAILED: getpid() returned different value than spork() did. *************************************************************************This XXp1() process will now terminate.
 testcase_main: joined with child 4
 finish(): The simulation is now terminating.
