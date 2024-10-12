@@ -19,7 +19,8 @@ void nullsys(void);
 
 // TODO ADD THE OTHER REQUIRED DATA STRUCTURES
 // vector of system calls - set every single element to nullsys (see below)
-void (*systemCallVec[])(USLOSS_Sysargs *args);
+USLOSS_Sysargs systemCallVec[MAXSYSCALLS];
+//void (*systemCallVec[])(USLOSS_Sysargs *args);
 
 void phase2_init(void) {
     unsigned int oldPSR = USLOSS_PsrGet();
