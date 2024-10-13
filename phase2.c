@@ -12,6 +12,8 @@
 #include "phase2.h"
 
 typedef struct Messsage {
+	
+	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
 
 	char* message;			// the raw bytes of the message; should not be treated as a string
 	int messageLength;		// the length of the message
@@ -21,16 +23,19 @@ typedef struct Messsage {
 } Message;
 
 typedef struct Mailbox {
-
-	Message* slots;		// linked list of messages stored in this mailbox
+	
+	int occupied;		// indicates whether or not this is an active mailbox; do not read any other fields if it is 0
+	
+	Message* messageSlots;	// linked list of messages stored in this mailbox
 	Message* lastMessage; 	// last message stored in this mailbox; used for easy appends
 	int numSlots;		// total number of available slots
 	int filledSlots;	// number of slots that are occupied
 
-	//TODO not sure if this should be void*, these should be linked lists of processes
 	Process2* producers;	// processes that want to write to this mailbox line up here
 	Process2* consumers;	// processes that want to read from this mailbox line up here
-	
+	int numProducers;	// the number of queued producers
+	int numConsumers;	// the number of queued consumers
+
 } Mailbox;
 
 /* Information for processes in Phase 2 is included here, since we can't
@@ -44,11 +49,9 @@ typedef struct Process2 {
 
 // global array of mailboxes; a mailbox's ID corresponds to it's index in this array
 Mailbox mailboxes[MAXMBOX];
-int mailboxOccupancies[MAXMBOX];
-int numMailboxes = 0;
 
-// global array of message slots as described in Phase 2 spec
-Message messageSlots[MAXSLOTS];
+// global array of message slots 
+Message messages[MAXSLOTS];
 
 // shadow process table for Phase 2
 Process2 procTable2[MAXPROC];
@@ -80,13 +83,13 @@ void phase2_init(void) {
         }
     }
 
+	// will zero out all mailbox memory, including the occupied field (no mailboxes will be active)
 	memset(mailboxes, 0, sizeof(mailboxes));
-	memset(mailboxes, 0, sizeof(mailboxOccupancies));
 
-    // install the interrupt handlers
-    USLOSS_IntVec[USLOSS_CLOCK_INT] = clockHandler;
-    USLOSS_IntVec[USLOSS_TERM_INT] = terminalHandler;
-    USLOSS_IntVec[USLOSS_DISK_INT] = diskHandler;
+	// install the interrupt handlers
+	USLOSS_IntVec[USLOSS_CLOCK_INT] = clockHandler;
+	USLOSS_IntVec[USLOSS_TERM_INT] = terminalHandler;
+	USLOSS_IntVec[USLOSS_DISK_INT] = diskHandler;
 	USLOSS_IntVec[USLOSS_SYSCALL_INT] = syscallHandler;
 
     // TODO - implement the rest of phase2_init
@@ -150,42 +153,48 @@ void nullsys(void) {
 }
 
 int MboxCreate(int slots, int slot_size) {
+	
 	// disable/restore interrupts
 	unsigned int oldPSR = USLOSS_PsrGet();
-    if(oldPSR % 2 == 0) {
-        // we cannot call this function in user mode
-        fprintf(stderr, "ERROR: Someone attempted to call MboxCreate while in user mode!\n");
-        USLOSS_Halt(1);
-    }
-    if(oldPSR % 4 == 3) {
-        // interrupts enabled...we need to disable them
-        if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-            fprintf(stderr, "Bad PSR set in MboxCreate\n");
-        }
-    }
+	if (oldPSR % 2 == 0) {
+		
+		// we cannot call this function in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call MboxCreate while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR % 4 == 3) {
+	
+	// interrupts enabled...we need to disable them
+	if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxCreate\n");
+		}
+	}
 
+	// basic error checking for arguments
 	if (slots < 0 || slot_size < 0 || slots > MAXSLOTS || slot_size > MAX_MESSAGE) {
 		fprintf(stderr, "ERROR: Bad arguments given to MboxCreate.\n");
 		return -1;
 	}
-    
-	Mailbox newMailbox;
-	
-	newMailbox.slots = NULL;
-	newMailbox.numSlots = slots;
-	newMailbox.filledSlots = 0;
 
-	newMailbox.producers = NULL;
-	newMailbox.consumers = NULL;
-
-	// try to copy the new mailbox into a free spot, return the index if successful.
+	// try to create a mailbox in a new slot, return the index if successful.
 	for (int i = 0; i < MAXMBOX; i++) {
-		if (mailboxes[i] != NULL) {
-			mailboxes[i] = newMailbox;
+		if (mailboxes[i].occupied == 0) {
+			
+			mailboxes[i].occupied = 1;
+			
+			mailboxes[i].slots = NULL;
+			mailboxes[i].numSlots = slots;
+			mailboxes[i].filledSlots = 0;
+			
+			mailboxes[i].producers = NULL;
+			mailboxes[i].consumers = NULL;
+			mailboxes[i].numProducers = 0;
+			mailboxes[i].numConsumers = 0;
+				
 			// restore old PSR
-    		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-        		fprintf(stderr, "Bad PSR restored in MboxCreate\n");
-    		}
+			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+				fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+			}
 			return i;	
 		}
 	}
@@ -194,83 +203,199 @@ int MboxCreate(int slots, int slot_size) {
 	fprintf(stderr, "ERROR: No space to create new mailbox.\n");
 
 	// restore old PSR
-    if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-        fprintf(stderr, "Bad PSR restored in MboxCreate\n");
-    }
-
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+	}
 	return -1;
 }
 
 int MboxRelease(int mbox_id) {
+	
 	// disable/restore interrupts
 	unsigned int oldPSR = USLOSS_PsrGet();
-    if(oldPSR % 2 == 0) {
-        // we cannot call this function in user mode
-        fprintf(stderr, "ERROR: Someone attempted to call MboxRelease while in user mode!\n");
-        USLOSS_Halt(1);
-    }
-    if(oldPSR % 4 == 3) {
-        // interrupts enabled...we need to disable them
-        if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-            fprintf(stderr, "Bad PSR set in MboxRelease\n");
-        }
-    }
+	if (oldPSR % 2 == 0) {
+
+		// we cannot call this function in user mode
+		fprintf(stderr, "ERROR: Someone attempted to call MboxRelease while in user mode!\n");
+		USLOSS_Halt(1);
+	}
+	if (oldPSR % 4 == 3) {
+
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxRelease\n");
+		}
+	}
 	
 	if (mailboxes[mbox_id] != NULL) {
-		free(mailboxes[mbox_id].slots);
-		mailboxes[mbox_id] = NULL;
+		
+		// remove all existing messages in this mailbox's queue
+		Message* curr = mailboxes[mbox_id].messageSlots;
+		while (curr != NULL) {
+			curr->occupied = 0;
+			curr = curr->nextMessage;
+		}
 
-		//TODO More stuff probably
+		//TODO wake up all blocked producers and consumers
+
+		// remove the mailbox itself
+		mailboxes[mbox_id].occupied = 0;
+	
 		// restore old PSR
-    	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-        	fprintf(stderr, "Bad PSR restored in MboxRelease\n");
-    	}
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in MboxRelease\n");
+		}
 		return 0;
 	}
 	
 	fprintf(stderr, "ERROR: Attempting to release a mailbox which does not exist.\n")
+	
 	// restore old PSR
-    if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-        fprintf(stderr, "Bad PSR restored in MboxRelease\n");
-    }
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxRelease\n");
+	}
 	return -1;
 }
 
 int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
+	
 	// disable/restore interrupts
 	unsigned int oldPSR = USLOSS_PsrGet();
-    if(oldPSR % 2 == 0) {
-        // we cannot call this function in user mode
-        fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
-        USLOSS_Halt(1);
-    }
-    if(oldPSR % 4 == 3) {
-        // interrupts enabled...we need to disable them
-        if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-            fprintf(stderr, "Bad PSR set in MboxSend\n");
-        }
-    }
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxSend\n");
+		}
+    	}
 
-	// package the bytes of the message into a new message
-	Message newMessage;
-	newMessage.message = (char*)msg_ptr;
-	newMessage.messageLength = msg_size;
-	newMessage.nextMessage = NULL;
+	// basic error checking for arguments
+	if (mailboxes[mbox_id].occupied == 0) {
+		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
+		
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+		}
+		return -1;
+	} 
+
+	// try to create a message in a new slot
+	int messageIndex = -1;
+	for (int i = 0; i < MAXSLOT; i++) {
+		if (messages[i].occupied == 0) {
+			
+			messages[i].occupied = 1;
+
+			messages[i].message = (char*)msg_ptr;
+			messages[i].messageLength = msg_size;
+			
+			messages[i].nextMessage = NULL;
+		
+			messageIndex = i;
+		}
+	}
+	if (messageIndex == -1) {
+		fprintf(stderr, "ERROR: No free global message slots; message could not be created.\n");
+		
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+		}
+		return -2;
+	}
+
+	// check to see if the sender can fill a slot right away
+	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
+		
+		// there is not yet a slot for this message, so then sender needs to join the producer queue and block; the sender
+		// must not wake up until it is guaranteed that they will have a slot to put their message into
+		// TODO actually do that, don't forget to iterate numProducers
+	}
 	
-	// now try to put the message into 
-	if (mailboxes[mbox_id].filledSlots < mailboxes[mbox_id].numSlots) {
-		mailboxes[mbox_id].lastMessage->nextMessage = 
+	// now try to put the message into the queue of the target mailbox
+	if (mailboxes[mbox_id].messageSlots == NULL) {
+		mailboxes[mbox_id].messageSlots = &messages[messageIndex];
 	}
 	else {
-		// there is no slot for the message, the sender needs to join the producer queue and block
-		// TODO actually do that
+		mailboxes[mbox_id].lastMessage->nextMessage = &messages[messageIndex]; 
 	}
-	// TODO RESTORE INTERRUPTS
+	mailboxes[mbox_id].lastMessage = &messages[messageIndex];
+	mailboxes[mbox_id].filledSlots++;
+
+	// restore old PSR
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+	}
 }
 
 int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
-    // TODO
-    return -1; // dummy return value! replace!!
+    
+	// disable/restore interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxSend\n");
+		}
+    	}
+
+
+	// basic error checking for arguments
+	if (mailboxes[mbox_id].occupied == 0) {
+		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
+		
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+		}
+		return -1;
+	}
+
+	// check to see if the reciever can read a message right away
+	if (mailboxes[mbox_id].filledSlots > mailboxes[mbox_id].numConsumers) {
+		
+		// iterate to the message that belongs to the consumer
+		Message* curr = mailboxes[mbox_id].messageSlots;
+		for (int i = 0; i < numConsumers; i++) {
+			curr = curr->nextMessage;
+		}
+		
+		// make sure the message is not to long for the consumer to read
+		if (curr->messageLength > mgs_max_size) {
+			fprintf(stderr, "ERROR: Message is too long for the recipient to read");
+		
+			// restore old PSR
+			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+				fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+			}
+			return -1;
+		}
+
+		// copy the raw bytes from the message into the recipient's buffer
+		memcpy(msg_ptr, curr->message, curr->messageLength);
+	}
+
+	// if we couldn't read a message immediately, the recipient must join the consumer queue and block; the recipient
+	// must not wake up until it is guaranteed that they will have a slot to put their message into.
+	// TODO actually do that, don't forget to iterate numConsumers
+
+	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
+	// TODO also actually do that
+	
 }
 
 int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
