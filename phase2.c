@@ -42,12 +42,14 @@ int send(int mboxID, void *message, int msgSize, int doesBlock);
 int receive(int mboxID, void *message, int maxMsgSize, int doesBlock);
 void phase2_start_service_processes();
 void nullsys(void);
-// TODO ADD INTERRUPT HANDLERS AS DESCRIBED IN SPEC
+void clockHandler(int type, void *arg);
+void diskHandler(int type, void *arg);
+void terminalHandler(int type, void *arg);
+// TODO IMPLEMENT INTERRUPT HANDLERS (see below)
 
 // TODO ADD THE OTHER REQUIRED DATA STRUCTURES
 // vector of system calls - set every single element to nullsys (see below)
-USLOSS_Sysargs systemCallVec[MAXSYSCALLS];
-//void (*systemCallVec[])(USLOSS_Sysargs *args);
+void (*systemCallVec[MAXSYSCALLS])(USLOSS_Sysargs *args);
 
 void phase2_init(void) {
     unsigned int oldPSR = USLOSS_PsrGet();
@@ -66,7 +68,12 @@ void phase2_init(void) {
 	memset(mailboxes, 0, sizeof(mailboxes));
 	memset(mailboxes, 0, sizeof(mailboxOccupancies));
 
-    // TODO - implement phase2_init
+    // install the interrupt handlers
+    USLOSS_IntVec[USLOSS_CLOCK_INT] = clockHandler;
+    USLOSS_IntVec[USLOSS_TERM_INT] = terminalHandler;
+    USLOSS_IntVec[USLOSS_DISK_INT] = diskHandler;
+
+    // TODO - implement the rest of phase2_init
 
     // restore old PSR
     if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -85,6 +92,20 @@ void waitDevice(int type, int unit, int *status) {
 }
 
 void wakeupByDevice(int type, int unit, int status) {
+    // NOP - as confirmed on Discord, we are not implementing this
+    // but it's in the phase2.h file, so we have to include it.
+    printf("NOP -- wakeupByDevice is not supposed to be implemented for this semester.\n");
+}
+
+void clockHandler(int type, void *arg) {
+    // TODO
+}
+
+void diskHandler(int type, void *arg) {
+    // TODO
+}
+
+void terminalHandler(int type, void *arg) {
     // TODO
 }
 
