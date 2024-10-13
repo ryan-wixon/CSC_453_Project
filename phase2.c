@@ -114,23 +114,25 @@ void wakeupByDevice(int type, int unit, int status) {
 }
 
 void clockHandler(int type, void *arg) {
+	// do not disable interrupts. USLOSS will do it for us.
     // TODO
 }
 
 void diskHandler(int type, void *arg) {
+	// do not disable interrupts. USLOSS will do it for us.
     // TODO
 }
 
 void terminalHandler(int type, void *arg) {
+	// do not disable interrupts. USLOSS will do it for us.
     // TODO
 }
 
 void syscallHandler(int type, void *arg) {
-	// may want to disable interrupts??
+	// do not disable interrupts. USLOSS will do it for us.
 	USLOSS_Sysargs callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
 	int index = callArgs->number;
 	systemCallVec[index](void);
-	// if need to disable interrupts in this function, restore interrupts here
 }
 
 /*
@@ -142,7 +144,7 @@ void syscallHandler(int type, void *arg) {
  * Returns: None.
  */
 void nullsys(void) {
-    // TODO - maybe want to disable interrrupts? not sure.
+    // do not disable interrupts. all we do is halt.
     fprintf(stderr, "ERROR: System call detected. There should be no syscalls yet.\n");
     USLOSS_Halt(1);
 }
