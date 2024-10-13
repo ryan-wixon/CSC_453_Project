@@ -11,6 +11,33 @@
 #include <phase1.h>  /* to access phase 1 functions like blockMe() */
 #include "phase2.h"
 
+typedef struct Messsage {
+
+	char* message;			// the raw bytes of the message; should not be treated as a string
+	int messageLength;		// the length of the message
+	
+	struct Message* nextMessage; 	// messages can form lists inside mailboxes
+ 
+} Message;
+
+typedef struct Mailbox {
+
+	Message* slots;		// linked list of messages stored in this mailbox
+	Message* lastMessage; 	// last message stored in this mailbox; used for easy appends
+	int numSlots;		// total number of available slots
+	int filledSlots;	// number of slots that are occupied
+
+	//TODO not sure if this should be void*, these should be linked lists of processes
+	void* producers;	// processes that want to write to this mailbox line up here
+	void* consumers;	// processes that want to read from this mailbox line up here
+	
+} Mailbox;
+
+// global array of mailboxes; a mailbox's ID corresponds to it's index in this array
+Mailbox mailboxes[MAXMBOX];
+int mailboxOccupancies[MAXMBOX];
+int numMailboxes = 0;
+
 int send(int mboxID, void *message, int msgSize, int doesBlock);
 int receive(int mboxID, void *message, int maxMsgSize, int doesBlock);
 void phase2_start_service_processes();
@@ -35,6 +62,9 @@ void phase2_init(void) {
             fprintf(stderr, "Bad PSR set in phase2_init\n");
         }
     }
+
+	memset(mailboxes, 0, sizeof(mailboxes));
+	memset(mailboxes, 0, sizeof(mailboxOccupancies));
 
     // TODO - implement phase2_init
 
@@ -73,18 +103,65 @@ void nullsys(void) {
 }
 
 int MboxCreate(int slots, int slot_size) {
-    // TODO
-    return -1;  // dummy return value! replace!!
+
+	if (slots < 0 || slot_size < 0 || slots > MAXSLOTS || slot_size > MAX_MESSAGE) {
+		fprintf(stderr, "ERROR: Bad arguments given to MboxCreate.\n");
+		return -1;
+	}
+    
+	Mailbox newMailbox;
+	
+	newMailbox.slots = NULL;
+	newMailbox.numSlots = slots;
+	newMailbox.filledSlots = 0;
+
+	newMailbox.producers = NULL;
+	newMailbox.consumers = NULL;
+
+	// try to copy the new mailbox into a free spot, return the index if successful.
+	for (int i = 0; i < MAXMBOX; i++) {
+		if (mailboxes[i] != NULL) {
+			mailboxes[i] = newMailbox;
+			return i;	
+		}
+	}
+
+	// don't do anything if there is no space for the mailbox
+	fprintf(stderr, "ERROR: No space to create new mailbox.\n");
+
+	return -1;
 }
 
 int MboxRelease(int mbox_id) {
-    // TODO
-    return -1;   // dummy return value! replace!!
+	
+	if (mailboxes[mbox_id] != NULL) {
+		free(mailboxes[mbox_id].slots);
+		mailboxes[mbox_id] = NULL;
+
+		//TODO More stuff probably
+		return 0;
+	}
+	
+	fprintf(stderr, "ERROR: Attempting to release a mailbox which does not exist.\n")
+	return -1;
 }
 
 int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
-    // TODO
-    return -1; // dummy return value! replace!!
+
+	// package the bytes of the message into a new message
+	Message newMessage;
+	newMessage.message = (char*)msg_ptr;
+	newMessage.messageLength = msg_size;
+	newMessage.nextMessage = NULL;
+	
+	// now try to put the message into 
+	if (mailboxes[mbox_id].filledSlots < mailboxes[mbox_id].numSlots) {
+		mailboxes[mbox_id].lastMessage->nextMessage = 
+	}
+	else {
+		// there is no slot for the message, the sender needs to join the producer queue and block
+		// TODO actually do that
+	}
 }
 
 int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
