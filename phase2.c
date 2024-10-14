@@ -33,6 +33,8 @@ typedef struct Mailbox {
 
 	Process2* producers;	// processes that want to write to this mailbox line up here
 	Process2* consumers;	// processes that want to read from this mailbox line up here
+	Process2* lastProducer;	// last producer stored in this mailbox's queue; used for easy appends
+	Process2* lastConsumer; // last consumer stored in this mailbox's queue; used for easy appends
 	int numProducers;	// the number of queued producers
 	int numConsumers;	// the number of queued consumers
 
@@ -41,10 +43,12 @@ typedef struct Mailbox {
 /* Information for processes in Phase 2 is included here, since we can't
    add to the Phase 1 process table. */
 typedef struct Process2 {
-	int pid;  // process ID, to match to ensure if a process dies, we can find out
+	
+	int pid;  		// process ID, to match to ensure if a process dies, we can find out
 
 	Process2* nextProducer;	// next process in a send queue for mailbox
 	Process2* nextConsumer; // next process in a receive queue for mailbox
+
 } Process2;
 
 // global array of mailboxes; a mailbox's ID corresponds to it's index in this array
@@ -188,6 +192,8 @@ int MboxCreate(int slots, int slot_size) {
 			
 			mailboxes[i].producers = NULL;
 			mailboxes[i].consumers = NULL;
+			mailboxes[i].lastProducer = NULL;
+			mailboxes[i].lastConsumer = NULL;
 			mailboxes[i].numProducers = 0;
 			mailboxes[i].numConsumers = 0;
 				
@@ -281,7 +287,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+			fprintf(stderr, "Bad PSR restored in MboxSend\n");
 		}
 		return -1;
 	} 
@@ -306,17 +312,33 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+			fprintf(stderr, "Bad PSR restored in MboxSend\n");
 		}
 		return -2;
 	}
 
 	// check to see if the sender can fill a slot right away
+	int enqueued = 0;
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
 		
 		// there is not yet a slot for this message, so then sender needs to join the producer queue and block; the sender
 		// must not wake up until it is guaranteed that they will have a slot to put their message into
-		// TODO actually do that, don't forget to iterate numProducers
+		int currentPID = getpid();
+		procTable2[currentPID % MAXPROC].pid = currentPID;
+		procTable2[currentPID % MAXPROC].nextProducer = NULL;
+		procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+
+		if (mailboxes[mbox_id].producers == NULL) {
+			mailboxes[mbox_id].producers = &procTable2[currentPID % MAXPROC];
+		}
+		else {
+			mailboxes[mbox_id].lastProducer->nextProducer = &procTable2[currentPID % MAXPROC];
+		}
+		mailboxes[mbox_id].lastProducer = &procTable2[currentPID % MAXPROC];
+
+		numProducers++;
+		enqueued = 1; 
+		blockMe();
 	}
 	
 	// now try to put the message into the queue of the target mailbox
@@ -329,9 +351,17 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	mailboxes[mbox_id].lastMessage = &messages[messageIndex];
 	mailboxes[mbox_id].filledSlots++;
 
+	// if the process was enqueued, it needs to be taken out of the queue
+	if (enqueued == 1) {
+		mailboxes[mbox_id].producers = procTable2[currentPID % MAXPROC].nextProducer;
+		if (mailboxes[mbox_id].producers == NULL) {
+			mailboxes[mbox_id].lastProducer = NULL;
+		}
+	} 
+
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-		fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+		fprintf(stderr, "Bad PSR restored in MboxSend\n");
 	}
 }
 
@@ -342,14 +372,14 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
     	if (oldPSR % 2 == 0) {
         	
 		// we cannot call this function in user mode
-        	fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxRecv while in user mode!\n");
         	USLOSS_Halt(1);
     	}
     	if (oldPSR % 4 == 3) {
         	
 		// interrupts enabled...we need to disable them
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR set in MboxSend\n");
+			fprintf(stderr, "Bad PSR set in MboxRecv\n");
 		}
     	}
 
@@ -360,7 +390,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+			fprintf(stderr, "Bad PSR restored in MboxRecv\n");
 		}
 		return -1;
 	}
@@ -380,22 +410,60 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		
 			// restore old PSR
 			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-				fprintf(stderr, "Bad PSR restored in MboxCreate\n");
+				fprintf(stderr, "Bad PSR restored in MboxRecv\n");
 			}
 			return -1;
 		}
 
 		// copy the raw bytes from the message into the recipient's buffer
 		memcpy(msg_ptr, curr->message, curr->messageLength);
+
+		// restore old PSR
+		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR restored in MboxRecv\n");
+		}
+		return curr->messageLength;
 	}
 
 	// if we couldn't read a message immediately, the recipient must join the consumer queue and block; the recipient
 	// must not wake up until it is guaranteed that they will have a slot to put their message into.
-	// TODO actually do that, don't forget to iterate numConsumers
+	int currentPID = getpid();
+	procTable2[currentPID % MAXPROC].pid = currentPID;
+	procTable2[currentPID % MAXPROC].nextProducer = NULL;
+	procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+
+	if (mailboxes[mbox_id].consumers == NULL) {
+		mailboxes[mbox_id].consumers = &procTable2[currentPID % MAXPROC];
+	}
+	else {
+		mailboxes[mbox_id].lastConsumer->nextConsumer = &procTable2[currentPID % MAXPROC];
+	}
+	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
+
+	numConsumers++; 
+	blockMe();
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
-	// TODO also actually do that
+	int position = 0;
+	Process2* curr = mailboxes[mbox_id].consumers;
+	while (curr->pid != getpid()) {
+		position++;
+		curr = curr->nextConsumer
+	}
+
+	Message* targetMessage = mailboxes[mbox_id].messageSlots;
+	for (int i = 0; i < position; i++) {
+		targetMessage = targetMessage->nextMessage;
+	}
+
+	// copy the raw bytes from the message into the recipient's buffer
+	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
 	
+	// restore old PSR
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxRecv\n");
+	}
+	return -1;
 }
 
 int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
