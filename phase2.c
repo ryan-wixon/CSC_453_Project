@@ -11,7 +11,18 @@
 #include <phase1.h>  /* to access phase 1 functions like blockMe() */
 #include "phase2.h"
 
-typedef struct Messsage {
+/* Information for processes in Phase 2 is included here, since we can't
+   add to the Phase 1 process table. */
+typedef struct Process2 {
+	
+	int pid;  		// process ID, to match to ensure if a process dies, we can find out
+
+	struct Process2* nextProducer;	// next process in a send queue for mailbox
+	struct Process2* nextConsumer; // next process in a receive queue for mailbox
+
+} Process2;
+
+typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
 
@@ -39,17 +50,6 @@ typedef struct Mailbox {
 	int numConsumers;	// the number of queued consumers
 
 } Mailbox;
-
-/* Information for processes in Phase 2 is included here, since we can't
-   add to the Phase 1 process table. */
-typedef struct Process2 {
-	
-	int pid;  		// process ID, to match to ensure if a process dies, we can find out
-
-	Process2* nextProducer;	// next process in a send queue for mailbox
-	Process2* nextConsumer; // next process in a receive queue for mailbox
-
-} Process2;
 
 // global array of mailboxes; a mailbox's ID corresponds to it's index in this array
 Mailbox mailboxes[MAXMBOX];
@@ -137,9 +137,9 @@ void terminalHandler(int type, void *arg) {
 
 void syscallHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-	USLOSS_Sysargs callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
-	int index = callArgs->number;
-	systemCallVec[index](void);
+	//USLOSS_Sysargs callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
+	//int index = callArgs->number;
+	//systemCallVec[index](void);
 }
 
 /*
@@ -186,7 +186,7 @@ int MboxCreate(int slots, int slot_size) {
 			
 			mailboxes[i].occupied = 1;
 			
-			mailboxes[i].slots = NULL;
+			mailboxes[i].messageSlots = NULL;
 			mailboxes[i].numSlots = slots;
 			mailboxes[i].filledSlots = 0;
 			
@@ -233,7 +233,7 @@ int MboxRelease(int mbox_id) {
 		}
 	}
 	
-	if (mailboxes[mbox_id] != NULL) {
+	if (mailboxes[mbox_id].occupied == 1) {
 		
 		// remove all existing messages in this mailbox's queue
 		Message* curr = mailboxes[mbox_id].messageSlots;
@@ -254,7 +254,7 @@ int MboxRelease(int mbox_id) {
 		return 0;
 	}
 	
-	fprintf(stderr, "ERROR: Attempting to release a mailbox which does not exist.\n")
+	fprintf(stderr, "ERROR: Attempting to release a mailbox which does not exist.\n");
 	
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -294,7 +294,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 
 	// try to create a message in a new slot
 	int messageIndex = -1;
-	for (int i = 0; i < MAXSLOT; i++) {
+	for (int i = 0; i < MAXSLOTS; i++) {
 		if (messages[i].occupied == 0) {
 			
 			messages[i].occupied = 1;
@@ -319,11 +319,11 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 
 	// check to see if the sender can fill a slot right away
 	int enqueued = 0;
+	int currentPID = getpid();
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
 		
 		// there is not yet a slot for this message, so then sender needs to join the producer queue and block; the sender
 		// must not wake up until it is guaranteed that they will have a slot to put their message into
-		int currentPID = getpid();
 		procTable2[currentPID % MAXPROC].pid = currentPID;
 		procTable2[currentPID % MAXPROC].nextProducer = NULL;
 		procTable2[currentPID % MAXPROC].nextConsumer = NULL;
@@ -336,7 +336,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		}
 		mailboxes[mbox_id].lastProducer = &procTable2[currentPID % MAXPROC];
 
-		numProducers++;
+		mailboxes[mbox_id].numProducers++;
 		enqueued = 1; 
 		blockMe();
 	}
@@ -363,6 +363,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in MboxSend\n");
 	}
+	return 0;
 }
 
 int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
@@ -400,12 +401,12 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		
 		// iterate to the message that belongs to the consumer
 		Message* curr = mailboxes[mbox_id].messageSlots;
-		for (int i = 0; i < numConsumers; i++) {
+		for (int i = 0; i < mailboxes[mbox_id].numConsumers; i++) {
 			curr = curr->nextMessage;
 		}
 		
 		// make sure the message is not to long for the consumer to read
-		if (curr->messageLength > mgs_max_size) {
+		if (curr->messageLength > msg_max_size) {
 			fprintf(stderr, "ERROR: Message is too long for the recipient to read");
 		
 			// restore old PSR
@@ -440,7 +441,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	}
 	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
 
-	numConsumers++; 
+	mailboxes[mbox_id].numConsumers++; 
 	blockMe();
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
@@ -448,7 +449,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	Process2* curr = mailboxes[mbox_id].consumers;
 	while (curr->pid != getpid()) {
 		position++;
-		curr = curr->nextConsumer
+		curr = curr->nextConsumer;
 	}
 
 	Message* targetMessage = mailboxes[mbox_id].messageSlots;
@@ -463,7 +464,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in MboxRecv\n");
 	}
-	return -1;
+	return targetMessage->messageLength;
 }
 
 int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
