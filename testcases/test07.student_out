@@ -1,0 +1,35 @@
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start2(): started
+start2(): MboxCreate returned id = 7
+XXp1(): started
+XXp1(): sending message #0 to mailbox 7
+XXp1(): after send of message #0, result = 0
+XXp1(): sending message #1 to mailbox 7
+ERROR: No free global message slots; message could not be created.
+XXp1(): after send of message #1, result = -2
+XXp1(): sending message #2 to mailbox 7
+ERROR: No free global message slots; message could not be created.
+XXp1(): after send of message #2, result = -2
+XXp1(): sending message #3 to mailbox 7
+ERROR: No free global message slots; message could not be created.
+XXp1(): after send of message #3, result = -2
+XXp1(): sending message #4 to mailbox 7
+ERROR: No free global message slots; message could not be created.
+XXp1(): after send of message #4, result = -2
+XXp2a(): sending message 'hello from XXp2a' to mailbox 7, msg_size = 17
+ERROR: No free global message slots; message could not be created.
+XXp2a(): after send of message 'hello from XXp2a', result = -2
+XXp2b(): sending message 'hello from XXp2b' to mailbox 7, msg_size = 17
+ERROR: No free global message slots; message could not be created.
+XXp2b(): after send of message 'hello from XXp2b', result = -2
+XXp2c(): sending message 'hello from XXp2c' to mailbox 7, msg_size = 17
+ERROR: No free global message slots; message could not be created.
+XXp2c(): after send of message 'hello from XXp2c', result = -2
+start2(): joined with kid 7, status = 4
+start2(): joined with kid 6, status = 4
+start2(): joined with kid 5, status = 4
+start2(): joined with kid 4, status = 3
+XXp3(): started
+XXp3(): receiving message #0 from mailbox 7

@@ -15,9 +15,11 @@
    add to the Phase 1 process table. */
 typedef struct Process2 {
 	
-	int pid;  		// process ID, to match to ensure if a process dies, we can find out
+	int pid;  		       // process ID, to match to ensure if a process dies, we can find out
 
-	struct Process2* nextProducer;	// next process in a send queue for mailbox
+	int blocked;		       // 0 = Runnable; 1 = Blocked;	
+
+	struct Process2* nextProducer; // next process in a send queue for mailbox
 	struct Process2* nextConsumer; // next process in a receive queue for mailbox
 
 } Process2;
@@ -96,7 +98,17 @@ void phase2_init(void) {
 	USLOSS_IntVec[USLOSS_DISK_INT] = diskHandler;
 	USLOSS_IntVec[USLOSS_SYSCALL_INT] = syscallHandler;
 
-    // TODO - implement the rest of phase2_init
+	// temporary dummy mailboxes - there will be 7 mailboxes corresponding to 1 interrupt each
+	// interrupts are not yet implemented but I want to run certain testcases now
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	MboxCreate(0, 0);
+	
+	// TODO - implement the rest of phase2_init
 
     // restore old PSR
     if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -204,9 +216,6 @@ int MboxCreate(int slots, int slot_size) {
 			return i;	
 		}
 	}
-
-	// don't do anything if there is no space for the mailbox
-	fprintf(stderr, "ERROR: No space to create new mailbox.\n");
 
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -325,6 +334,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		// there is not yet a slot for this message, so then sender needs to join the producer queue and block; the sender
 		// must not wake up until it is guaranteed that they will have a slot to put their message into
 		procTable2[currentPID % MAXPROC].pid = currentPID;
+		procTable2[currentPID % MAXPROC].blocked = 1;
 		procTable2[currentPID % MAXPROC].nextProducer = NULL;
 		procTable2[currentPID % MAXPROC].nextConsumer = NULL;
 
@@ -350,6 +360,11 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	}
 	mailboxes[mbox_id].lastMessage = &messages[messageIndex];
 	mailboxes[mbox_id].filledSlots++;
+	
+	// if there are consumers waiting, wake up the first (if it has not already been woken up)
+	if (mailboxes[mbox_id].consumers != NULL && mailboxes[mbox_id].consumers->blocked == 1) {
+		unblockProc(mailboxes[mbox_id].consumers->pid);
+	} 
 
 	// if the process was enqueued, it needs to be taken out of the queue
 	if (enqueued == 1) {
@@ -383,7 +398,6 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 			fprintf(stderr, "Bad PSR set in MboxRecv\n");
 		}
     	}
-
 
 	// basic error checking for arguments
 	if (mailboxes[mbox_id].occupied == 0) {
@@ -430,6 +444,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	// must not wake up until it is guaranteed that they will have a slot to put their message into.
 	int currentPID = getpid();
 	procTable2[currentPID % MAXPROC].pid = currentPID;
+	procTable2[currentPID % MAXPROC].blocked = 1;
 	procTable2[currentPID % MAXPROC].nextProducer = NULL;
 	procTable2[currentPID % MAXPROC].nextConsumer = NULL;
 
