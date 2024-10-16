@@ -30,7 +30,7 @@ typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
 
-	char message[150];		// the raw bytes of the message; should not be treated as a string
+	char message[MAX_MESSAGE];		// the raw bytes of the message; should not be treated as a string
 	int messageLength;		// the length of the message
 	
 	struct Message* nextMessage; 	// messages can form lists inside mailboxes
@@ -55,6 +55,15 @@ typedef struct Mailbox {
 	int numConsumers;	// the number of queued consumers
 
 } Mailbox;
+
+/* index of each of the interrupt handler mailboxes in the mailbox array */
+#define CLOCK_INDEX         0
+#define DISK_1_INDEX         1
+#define DISK_2_INDEX         2
+#define TERM_1_INDEX         3
+#define TERM_2_INDEX         4
+#define TERM_3_INDEX         5
+#define TERM_4_INDEX         6
 
 // global array of mailboxes; a mailbox's ID corresponds to it's index in this array
 Mailbox mailboxes[MAXMBOX];
@@ -101,15 +110,15 @@ void phase2_init(void) {
 	USLOSS_IntVec[USLOSS_DISK_INT] = diskHandler;
 	USLOSS_IntVec[USLOSS_SYSCALL_INT] = syscallHandler;
 
-	// temporary dummy mailboxes - there will be 7 mailboxes corresponding to 1 interrupt each
+	// interrupt handler mailboxes - there will be 7 mailboxes corresponding to 1 interrupt each
 	// interrupts are not yet implemented but I want to run certain testcases now
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
-	MboxCreate(0, 0);
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
+	MboxCreate(1, sizeof(int));
 	
 	// TODO - implement the rest of phase2_init
 
@@ -126,7 +135,60 @@ void phase2_start_service_processes() {
 }
 
 void waitDevice(int type, int unit, int *status) {
-    // TODO
+	// disable interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    if(oldPSR % 2 == 0) {
+        // we cannot call waitDevice in user mode
+        fprintf(stderr, "ERROR: Someone attempted to call waitDevice while in user mode!\n");
+        USLOSS_Halt(1);
+    }
+    if(oldPSR % 4 == 3) {
+        // interrupts enabled...we need to disable them
+        if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+            fprintf(stderr, "Bad PSR set in waitDevice\n");
+        }
+    }
+
+	int index = -1;		// index of mailbox to receive from
+
+	/* recv from different mailbox based on device type and unit number */
+	if(type == USLOSS_CLOCK_DEV) {
+		/* wait on clock interrupt */
+		if(unit != 0) {
+			fprintf(stderr, "ERROR: Invalid device unit number.\n");
+        	USLOSS_Halt(1);
+		}
+		index = 0;
+	}
+	else if(type == USLOSS_DISK_DEV) {
+		if(unit != 0 && unit != 1) {
+			fprintf(stderr, "ERROR: Invalid device unit number.\n");
+        	USLOSS_Halt(1);
+		}
+		index = unit + DISK_1_INDEX;
+	}
+	else if(type == USLOSS_TERM_DEV) {
+		if(unit < 0 || unit > 3) {
+			fprintf(stderr, "ERROR: Invalid device unit number.\n");
+        	USLOSS_Halt(1);
+		}
+		index = unit + TERM_1_INDEX;
+	}
+	else {
+		// should never get here, but just in case.
+		fprintf(stderr, "ERROR: Invalid device type.\n");
+        USLOSS_Halt(1);
+	}
+
+	/* attempt to receive from the proper device's mailbox - it will block, but
+	   once a message is sent, MboxRecv will wake up and the message will be
+	   delivered here. */
+	MboxRecv(index, status, sizeof(int));
+
+	// restore old PSR
+    if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+        fprintf(stderr, "Bad PSR restored in waitDevice\n");
+    }
 }
 
 void wakeupByDevice(int type, int unit, int status) {
