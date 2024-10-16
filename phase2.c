@@ -21,6 +21,8 @@ typedef struct Process2 {
 
 	struct Process2* nextProducer; // next process in a send queue for mailbox
 	struct Process2* nextConsumer; // next process in a receive queue for mailbox
+	struct Process2* prevProducer; // previous process in a send queue for mailbox
+	struct Process2* prevConsumer; // previous process in a receive queue for mailbox
 
 } Process2;
 
@@ -32,6 +34,7 @@ typedef struct Message {
 	int messageLength;		// the length of the message
 	
 	struct Message* nextMessage; 	// messages can form lists inside mailboxes
+	struct Message* prevMessage;
  
 } Message;
 
@@ -251,7 +254,23 @@ int MboxRelease(int mbox_id) {
 			curr = curr->nextMessage;
 		}
 
-		//TODO wake up all blocked producers and consumers
+		// unblock all processes that are currently waiting in the queues
+		Process2* curr2 = mailboxes[mbox_id].producers;
+		while (curr2 != NULL) {
+			if (curr2->blocked == 1) {
+				unblockProc(curr2->pid);
+				curr2->blocked = 0;
+			}
+			curr2 = curr2->nextProducer;
+		}
+		curr2 = mailboxes[mbox_id].consumers;
+		while (curr2 != NULL) {
+			if (curr2->blocked == 1) {
+				unblockProc(curr2->pid);
+				curr2->blocked = 0;
+			}
+			curr2 = curr2->nextConsumer;
+		}
 
 		// remove the mailbox itself
 		mailboxes[mbox_id].occupied = 0;
@@ -314,6 +333,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 			messages[i].nextMessage = NULL;
 		
 			messageIndex = i;
+			break;
 		}
 	}
 	if (messageIndex == -1) {
@@ -337,12 +357,15 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		procTable2[currentPID % MAXPROC].blocked = 1;
 		procTable2[currentPID % MAXPROC].nextProducer = NULL;
 		procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+		procTable2[currentPID % MAXPROC].prevProducer = NULL;
+		procTable2[currentPID % MAXPROC].prevConsumer = NULL;
 
 		if (mailboxes[mbox_id].producers == NULL) {
 			mailboxes[mbox_id].producers = &procTable2[currentPID % MAXPROC];
 		}
 		else {
 			mailboxes[mbox_id].lastProducer->nextProducer = &procTable2[currentPID % MAXPROC];
+			mailboxes[mbox_id].lastProducer->nextProducer->prevProducer = mailboxes[mbox_id].lastProducer;
 		}
 		mailboxes[mbox_id].lastProducer = &procTable2[currentPID % MAXPROC];
 
@@ -356,7 +379,8 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		mailboxes[mbox_id].messageSlots = &messages[messageIndex];
 	}
 	else {
-		mailboxes[mbox_id].lastMessage->nextMessage = &messages[messageIndex]; 
+		mailboxes[mbox_id].lastMessage->nextMessage = &messages[messageIndex];
+		mailboxes[mbox_id].lastMessage->nextMessage->prevMessage = mailboxes[mbox_id].lastMessage; 
 	}
 	mailboxes[mbox_id].lastMessage = &messages[messageIndex];
 	mailboxes[mbox_id].filledSlots++;
@@ -433,6 +457,22 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		// copy the raw bytes from the message into the recipient's buffer
 		memcpy(msg_ptr, curr->message, curr->messageLength);
 
+		// remove the message from the queue, and if there are producers waiting, wake up the first
+		if (curr->prevMessage != NULL) {
+			curr->prevMessage->nextMessage = curr->nextMessage;
+		}
+		else {
+			mailboxes[mbox_id].messageSlots = curr->nextMessage;
+		}
+		if (curr->nextMessage != NULL) {
+			curr->nextMessage->prevMessage = curr->prevMessage;
+		}
+		curr->occupied = 0;
+		mailboxes[mbox_id].filledSlots--;
+		if (mailboxes[mbox_id].producers != NULL) {
+			unblockProc(mailboxes[mbox_id].producers->pid);
+		}
+
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR restored in MboxRecv\n");
@@ -447,12 +487,15 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	procTable2[currentPID % MAXPROC].blocked = 1;
 	procTable2[currentPID % MAXPROC].nextProducer = NULL;
 	procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+	procTable2[currentPID % MAXPROC].prevProducer = NULL;
+	procTable2[currentPID % MAXPROC].prevConsumer = NULL;
 
 	if (mailboxes[mbox_id].consumers == NULL) {
 		mailboxes[mbox_id].consumers = &procTable2[currentPID % MAXPROC];
 	}
 	else {
 		mailboxes[mbox_id].lastConsumer->nextConsumer = &procTable2[currentPID % MAXPROC];
+		mailboxes[mbox_id].lastConsumer->nextConsumer->prevConsumer = mailboxes[mbox_id].lastConsumer;
 	}
 	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
 
