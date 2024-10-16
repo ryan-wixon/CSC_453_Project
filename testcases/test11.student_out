@@ -1,0 +1,25 @@
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start2(): started
+start2(): MboxCreate returned id = 7
+start2(): MboxCreate returned id = 8
+XXp1(): started
+XXp1(): conditionally sending message #0 to mailbox 7
+XXp1(): after conditional send of message #0, result = -1
+XXp1(): conditionally sending message #1 to mailbox 7
+XXp1(): after conditional send of message #1, result = -1
+XXp1(): conditionally sending message #2 to mailbox 7
+XXp1(): after conditional send of message #2, result = -1
+XXp1(): conditionally sending message #3 to mailbox 7
+XXp1(): after conditional send of message #3, result = -1
+XXp1(): conditionally sending message #4 to mailbox 7
+XXp1(): after conditional send of message #4, result = -1
+XXp1(): conditionally sending message #5 to mailbox 7
+XXp1(): after conditional send of message #5, result = -1
+XXp1(): conditionally sending message #6 to mailbox 7
+XXp1(): after conditional send of message #6, result = -1
+XXp1(): conditionally sending message #7 to mailbox 7
+XXp1(): after conditional send of message #7, result = -1
+XXp3(): started
+XXp3(): receiving message #0 from mailbox 7

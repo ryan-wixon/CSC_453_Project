@@ -22,10 +22,10 @@ XXp4(): started and quitting
 XXp3(): started
 XXp3(): MboxRelease returned 0
 start2(): joined with kid 9, status = 5
-XXp2a(): after send of message 'hello from XXp2a', result = 0
+XXp2a(): after send of message 'hello from XXp2a', result = -1
 start2(): joined with kid 5, status = 4
-XXp2b(): after send of message 'hello from XXp2b', result = 0
+XXp2b(): after send of message 'hello from XXp2b', result = -1
 start2(): joined with kid 6, status = 4
-XXp2c(): after send of message 'hello from XXp2c', result = 0
+XXp2c(): after send of message 'hello from XXp2c', result = -1
 start2(): joined with kid 7, status = 4
 finish(): The simulation is now terminating.

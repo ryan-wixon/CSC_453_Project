@@ -30,7 +30,7 @@ typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
 
-	char* message;			// the raw bytes of the message; should not be treated as a string
+	char message[150];		// the raw bytes of the message; should not be treated as a string
 	int messageLength;		// the length of the message
 	
 	struct Message* nextMessage; 	// messages can form lists inside mailboxes
@@ -254,6 +254,10 @@ int MboxRelease(int mbox_id) {
 			curr = curr->nextMessage;
 		}
 
+		// mark the mailbox as released; it's not done just yet but it needs to appear dead so that the
+		// processes in the queue don't try to do anything when we wake them up
+		mailboxes[mbox_id].occupied = 0;
+
 		// unblock all processes that are currently waiting in the queues
 		Process2* curr2 = mailboxes[mbox_id].producers;
 		while (curr2 != NULL) {
@@ -271,9 +275,6 @@ int MboxRelease(int mbox_id) {
 			}
 			curr2 = curr2->nextConsumer;
 		}
-
-		// remove the mailbox itself
-		mailboxes[mbox_id].occupied = 0;
 	
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -327,7 +328,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 			
 			messages[i].occupied = 1;
 
-			messages[i].message = (char*)msg_ptr;
+			memcpy(&messages[i].message, msg_ptr, msg_size);
 			messages[i].messageLength = msg_size;
 			
 			messages[i].nextMessage = NULL;
@@ -372,8 +373,13 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		mailboxes[mbox_id].numProducers++;
 		enqueued = 1; 
 		blockMe();
+
+		// if the mailbox got released while the sender was asleep, it needs to just return -1
+		if (mailboxes[mbox_id].occupied == 0) {
+			return -1;
+		}
 	}
-	
+
 	// now try to put the message into the queue of the target mailbox
 	if (mailboxes[mbox_id].messageSlots == NULL) {
 		mailboxes[mbox_id].messageSlots = &messages[messageIndex];
@@ -383,7 +389,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		mailboxes[mbox_id].lastMessage->nextMessage->prevMessage = mailboxes[mbox_id].lastMessage; 
 	}
 	mailboxes[mbox_id].lastMessage = &messages[messageIndex];
-	mailboxes[mbox_id].filledSlots++;
+	mailboxes[mbox_id].filledSlots++;	
 	
 	// if there are consumers waiting, wake up the first (if it has not already been woken up)
 	if (mailboxes[mbox_id].consumers != NULL && mailboxes[mbox_id].consumers->blocked == 1) {
@@ -396,8 +402,9 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		if (mailboxes[mbox_id].producers == NULL) {
 			mailboxes[mbox_id].lastProducer = NULL;
 		}
+		mailboxes[mbox_id].numProducers--;
 	} 
-
+	
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in MboxSend\n");
@@ -442,7 +449,7 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		for (int i = 0; i < mailboxes[mbox_id].numConsumers; i++) {
 			curr = curr->nextMessage;
 		}
-		
+	
 		// make sure the message is not to long for the consumer to read
 		if (curr->messageLength > msg_max_size) {
 			fprintf(stderr, "ERROR: Message is too long for the recipient to read");
