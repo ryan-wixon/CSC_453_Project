@@ -65,6 +65,8 @@ typedef struct Mailbox {
 #define TERM_3_INDEX         5
 #define TERM_4_INDEX         6
 
+int time = 0;	// for delay interrupt
+
 // global array of mailboxes; a mailbox's ID corresponds to it's index in this array
 Mailbox mailboxes[MAXMBOX];
 
@@ -119,6 +121,9 @@ void phase2_init(void) {
 	MboxCreate(1, sizeof(int));
 	MboxCreate(1, sizeof(int));
 	MboxCreate(1, sizeof(int));
+
+	// get current time to update for next clock interrupt
+	time = currentTime();
 	
 	// TODO - implement the rest of phase2_init
 
@@ -134,6 +139,7 @@ void phase2_start_service_processes() {
     // but it's unlikely we will have them.
 }
 
+// may not work.
 void waitDevice(int type, int unit, int *status) {
 	// disable interrupts
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -151,9 +157,9 @@ void waitDevice(int type, int unit, int *status) {
 
 	int index = -1;		// index of mailbox to receive from
 
-	/* recv from different mailbox based on device type and unit number */
+	// recv from different mailbox based on device type and unit number
 	if(type == USLOSS_CLOCK_DEV) {
-		/* wait on clock interrupt */
+		// wait on clock interrupt
 		if(unit != 0) {
 			fprintf(stderr, "ERROR: Invalid device unit number.\n");
         	USLOSS_Halt(1);
@@ -161,6 +167,7 @@ void waitDevice(int type, int unit, int *status) {
 		index = 0;
 	}
 	else if(type == USLOSS_DISK_DEV) {
+		// wait on disk interrupt
 		if(unit != 0 && unit != 1) {
 			fprintf(stderr, "ERROR: Invalid device unit number.\n");
         	USLOSS_Halt(1);
@@ -168,6 +175,7 @@ void waitDevice(int type, int unit, int *status) {
 		index = unit + DISK_1_INDEX;
 	}
 	else if(type == USLOSS_TERM_DEV) {
+		// wait on terminal interrupt
 		if(unit < 0 || unit > 3) {
 			fprintf(stderr, "ERROR: Invalid device unit number.\n");
         	USLOSS_Halt(1);
@@ -180,9 +188,9 @@ void waitDevice(int type, int unit, int *status) {
         USLOSS_Halt(1);
 	}
 
-	/* attempt to receive from the proper device's mailbox - it will block, but
-	   once a message is sent, MboxRecv will wake up and the message will be
-	   delivered here. */
+	// attempt to receive from the proper device's mailbox - it will block, but
+	// once a message is sent, MboxRecv will wake up and the message will be
+	// delivered here.
 	MboxRecv(index, status, sizeof(int));
 
 	// restore old PSR
@@ -197,21 +205,63 @@ void wakeupByDevice(int type, int unit, int status) {
     printf("NOP -- wakeupByDevice is not supposed to be implemented for this semester.\n");
 }
 
+// may not work.
 void clockHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-    // TODO
+	// get current time, see if it has been 100 ms
+	// NOTE: as per Discord, current time is retrieved in microseconds!
+	if(currentTime() - time >= 100000) {
+		// enough time has passed; send another message to processes waiting
+		// on delay
+		int status = 0;
+		int requestStatus = USLOSS_DeviceInput(USLOSS_CLOCK_DEV, 0, &status);
+		if(requestStatus == USLOSS_DEV_INVALID) {
+			// should never reach here, this is more for debugging.
+			fprintf(stderr, "ERROR: Invalid arguments used for USLOSS_DeviceInput in clockHandler.\n");
+			USLOSS_Halt(1);
+		}
+		// send message
+		MboxCondSend(CLOCK_INDEX, &status, sizeof(int));
+		// call the dispatcher when control returns to the interrupt handler
+		dispatcher();
+	}
 }
 
+// may not work.
 void diskHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-    // TODO
+	int unitNo = (int)(long)arg;	// get unit number of disk
+	// get device index
+	int index = DISK_1_INDEX + unitNo;
+	int status = 0;
+	int requestStatus = USLOSS_DeviceInput(USLOSS_DISK_DEV, unitNo, &status);
+	if(requestStatus == USLOSS_DEV_INVALID) {
+		// should never reach here, this is more for debugging.
+		fprintf(stderr, "ERROR: Invalid arguments used for USLOSS_DeviceInput in diskHandler.\n");
+		USLOSS_Halt(1);
+	}
+	// send message
+	MboxCondSend(index, &status, sizeof(int));
 }
 
+// may not work.
 void terminalHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-    // TODO
+	int unitNo = (int)(long)arg;	// get unit number of terminal
+	// get device index
+	int index = TERM_1_INDEX + unitNo;
+	int status = 0;
+	int requestStatus = USLOSS_DeviceInput(USLOSS_TERM_DEV, unitNo, &status);
+	if(requestStatus == USLOSS_DEV_INVALID) {
+		// should never reach here, this is more for debugging.
+		fprintf(stderr, "ERROR: Invalid arguments used for USLOSS_DeviceInput in terminalHandler.\n");
+		USLOSS_Halt(1);
+	}
+	// send message
+	MboxCondSend(index, &status, sizeof(int));
 }
 
+// TODO uncomment and possibly fix once we get everything else working.
 void syscallHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
 	//USLOSS_Sysargs callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
