@@ -404,32 +404,24 @@ int MboxRelease(int mbox_id) {
 	return -1;
 }
 
-int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
-	
-	// disable/restore interrupts
-	unsigned int oldPSR = USLOSS_PsrGet();
-    	if (oldPSR % 2 == 0) {
-        	
-		// we cannot call this function in user mode
-        	fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
-        	USLOSS_Halt(1);
-    	}
-    	if (oldPSR % 4 == 3) {
-        	
-		// interrupts enabled...we need to disable them
-		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR set in MboxSend\n");
-		}
-    	}
-
+/*
+ * Helper function that sends a message and either blocks or returns
+ * a special value if the send fails. Basically, it's both MboxSend
+ * and MboxCondSend in one, and both of those functions call this one.
+ * Since they both basically do the same thing, it was recommended in
+ * class that we just have a helper function that does both and then
+ * call this helper function from MboxSend and MboxCondSend, with the
+ * parameter doesBlock giving us guidance on whether we should just
+ * block or return a value but do not block when send fails.
+ * 
+ * Arguments: TODO
+ * Returns: TODO
+ */
+int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
+    	
 	// basic error checking for arguments
 	if (mailboxes[mbox_id].occupied == 0) {
 		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
-		
-		// restore old PSR
-		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxSend\n");
-		}
 		return -1;
 	} 
 
@@ -451,11 +443,6 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	}
 	if (messageIndex == -1) {
 		fprintf(stderr, "ERROR: No free global message slots; message could not be created.\n");
-		
-		// restore old PSR
-		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxSend\n");
-		}
 		return -2;
 	}
 
@@ -464,6 +451,11 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	int currentPID = getpid();
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
 		
+		// past this point, the process will block; if this is a nonblocking operation we must return here
+		if (doesBlock == 1) {
+			return -2;
+		}
+
 		// there is not yet a slot for this message, so then sender needs to join the producer queue and block; the sender
 		// must not wake up until it is guaranteed that they will have a slot to put their message into
 		procTable2[currentPID % MAXPROC].pid = currentPID;
@@ -515,41 +507,29 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 			mailboxes[mbox_id].lastProducer = NULL;
 		}
 		mailboxes[mbox_id].numProducers--;
-	} 
-	
-	// restore old PSR
-	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-		fprintf(stderr, "Bad PSR restored in MboxSend\n");
 	}
-	return 0;
+	return 0; 
 }
 
-int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
-    
-	// disable/restore interrupts
-	unsigned int oldPSR = USLOSS_PsrGet();
-    	if (oldPSR % 2 == 0) {
-        	
-		// we cannot call this function in user mode
-        	fprintf(stderr, "ERROR: Someone attempted to call MboxRecv while in user mode!\n");
-        	USLOSS_Halt(1);
-    	}
-    	if (oldPSR % 4 == 3) {
-        	
-		// interrupts enabled...we need to disable them
-		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR set in MboxRecv\n");
-		}
-    	}
+/* 
+ * Helper function that receives a message and either blocks or
+ * returns a special value if the receive fails. Basically, it's both
+ * MboxRecv and MboxCondRecv in one, and both of those functions call
+ * this one. Since both of those functions do essentially the same
+ * thing, it was recommended in class that we have a helper function
+ * that does both and then call this helper function from both MboxRecv
+ * and MboxCondRecv, with the parameter doesBlock giving guidance on
+ * whether to block or return a value but do not block when receiving
+ * fails.
+ * 
+ * Arguments: TODO
+ * Returns: TODO
+ */
+int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 	// basic error checking for arguments
 	if (mailboxes[mbox_id].occupied == 0) {
 		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
-		
-		// restore old PSR
-		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxRecv\n");
-		}
 		return -1;
 	}
 
@@ -565,11 +545,6 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		// make sure the message is not to long for the consumer to read
 		if (curr->messageLength > msg_max_size) {
 			fprintf(stderr, "ERROR: Message is too long for the recipient to read");
-		
-			// restore old PSR
-			if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-				fprintf(stderr, "Bad PSR restored in MboxRecv\n");
-			}
 			return -1;
 		}
 
@@ -592,11 +567,12 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 			unblockProc(mailboxes[mbox_id].producers->pid);
 		}
 
-		// restore old PSR
-		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-			fprintf(stderr, "Bad PSR restored in MboxRecv\n");
-		}
 		return curr->messageLength;
+	}
+
+	// past this point, the process will block; if this is a nonblocking operation we must return here
+	if (doesBlock == 1) {
+		return -2;
 	}
 
 	// if we couldn't read a message immediately, the recipient must join the consumer queue and block; the recipient
@@ -634,59 +610,116 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 		targetMessage = targetMessage->nextMessage;
 	}
 
-	// copy the raw bytes from the message into the recipient's buffer
+	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
+	return targetMessage->messageLength;
+}
+
+int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	
+	// disable/restore interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxSend while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxSend\n");
+		}
+    	}
+
+	int retval = send(mbox_id, msg_ptr, msg_size, 0);
+	
+	// restore old PSR
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxSend\n");
+	}
+	return retval;
+}
+
+int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
+    
+	// disable/restore interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxRecv while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxRecv\n");
+		}
+    	}
+
+	int retval = receive(mbox_id, msg_ptr, msg_max_size, 0);
+
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in MboxRecv\n");
 	}
-	return targetMessage->messageLength;
+	return retval;
 }
 
 int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
-    // TODO
-    return -1;  // dummy return value! replace!!
+
+	// disable/restore interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxCondSend while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxCondSend\n");
+		}
+    	}
+
+	int retval = send(mbox_id, msg_ptr, msg_size, 1);
+	
+	// restore old PSR
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxCondSend\n");
+	}
+	return retval;
 }
 
 int MboxCondRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
-    // TODO
-    return -1;   // dummy return value! replace!!
+
+	// disable/restore interrupts
+	unsigned int oldPSR = USLOSS_PsrGet();
+    	if (oldPSR % 2 == 0) {
+        	
+		// we cannot call this function in user mode
+        	fprintf(stderr, "ERROR: Someone attempted to call MboxCondRecv while in user mode!\n");
+        	USLOSS_Halt(1);
+    	}
+    	if (oldPSR % 4 == 3) {
+        	
+		// interrupts enabled...we need to disable them
+		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
+			fprintf(stderr, "Bad PSR set in MboxCondRecv\n");
+		}
+    	}
+
+	int retval = receive(mbox_id, msg_ptr, msg_max_size, 1);
+
+	// restore old PSR
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR restored in MboxCondRecv\n");
+	}
+	return retval;
 }
 
-/*
- * Helper function that sends a message and either blocks or returns
- * a special value if the send fails. Basically, it's both MboxSend
- * and MboxCondSend in one, and both of those functions call this one.
- * Since they both basically do the same thing, it was recommended in
- * class that we just have a helper function that does both and then
- * call this helper function from MboxSend and MboxCondSend, with the
- * parameter doesBlock giving us guidance on whether we should just
- * block or return a value but do not block when send fails.
- * 
- * Arguments: TODO
- * Returns: TODO
- */
-int send(int mboxID, void *message, int msgSize, int doesBlock) {
-    // TODO
-    return -1;  // dummy return value! replace!!
-}
-
-/* 
- * Helper function that receives a message and either blocks or
- * returns a special value if the receive fails. Basically, it's both
- * MboxRecv and MboxCondRecv in one, and both of those functions call
- * this one. Since both of those functions do essentially the same
- * thing, it was recommended in class that we have a helper function
- * that does both and then call this helper function from both MboxRecv
- * and MboxCondRecv, with the parameter doesBlock giving guidance on
- * whether to block or return a value but do not block when receiving
- * fails.
- * 
- * Arguments: TODO
- * Returns: TODO
- */
-int receive(int mboxID, void *message, int maxMsgSize, int doesBlock) {
-    // TODO
-    return -1;  // dummy return value! replace!!
-}

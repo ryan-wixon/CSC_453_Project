@@ -16,11 +16,11 @@ XXp1(): sending message #4 to mailbox 7
 XXp1(): after send of message #4, result = 0
 start2(): joined with kid 4, status = 3
 XXp2a(): conditionally sending message 'hello from XXp2a' to mailbox 7, msg_size = 17
-XXp2a(): after conditional send of message 'hello from XXp2a', result = -1
+XXp2a(): after conditional send of message 'hello from XXp2a', result = -2
 start2(): joined with kid 5, status = 4
 XXp2b(): sending message 'hello from XXp2b' to mailbox 7, msg_size = 17
 XXp2c(): conditionally sending message 'hello from XXp2c' to mailbox 7, msg_size = 17
-XXp2c(): after conditional send of message 'hello from XXp2c', result = -1
+XXp2c(): after conditional send of message 'hello from XXp2c', result = -2
 start2(): joined with kid 7, status = 4
 XXp3(): started
 XXp3(): receiving message #0 from mailbox 7
