@@ -29,6 +29,7 @@ typedef struct Process2 {
 typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
+	int index;		// for access by other processes later if we need to access array directly
 
 	char message[MAX_MESSAGE];		// the raw bytes of the message; should not be treated as a string
 	int messageLength;		// the length of the message
@@ -191,6 +192,7 @@ void waitDevice(int type, int unit, int *status) {
 	// attempt to receive from the proper device's mailbox - it will block, but
 	// once a message is sent, MboxRecv will wake up and the message will be
 	// delivered here.
+	printf("in waitdevice\n");
 	MboxRecv(index, status, sizeof(int));
 
 	// restore old PSR
@@ -211,6 +213,7 @@ void clockHandler(int type, void *arg) {
 	// get current time, see if it has been 100 ms
 	// NOTE: as per Discord, current time is retrieved in microseconds!
 	if(currentTime() - time >= 100000) {
+		printf("process id is %d\n", getpid());
 		// enough time has passed; send another message to processes waiting
 		// on delay
 		int status = 0;
@@ -222,6 +225,9 @@ void clockHandler(int type, void *arg) {
 		}
 		// send message
 		MboxCondSend(CLOCK_INDEX, &status, sizeof(int));
+
+		// set time of last context switch
+		time = currentTime();
 		// call the dispatcher when control returns to the interrupt handler
 		dispatcher();
 	}
@@ -431,6 +437,7 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 		if (messages[i].occupied == 0) {
 			
 			messages[i].occupied = 1;
+			messages[i].index = i;
 
 			memcpy(&messages[i].message, msg_ptr, msg_size);
 			messages[i].messageLength = msg_size;
@@ -449,10 +456,18 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 	// check to see if the sender can fill a slot right away
 	int enqueued = 0;
 	int currentPID = getpid();
+	// check to see if we are in a zero slot mailbox: these are never expected to handle messages with length > 0
+	// as per the spec
+	if (mailboxes[mbox_id].numSlots == 0 && mailboxes[mbox_id].consumers != NULL && mailboxes[mbox_id].consumers->blocked == 1) {
+		unblockProc(mailboxes[mbox_id].consumers->pid);
+		return 0;
+	} 
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
+		printf("!!!!!!\n");
 		
 		// past this point, the process will block; if this is a nonblocking operation we must return here
 		if (doesBlock == 1) {
+			printf("block!\n");
 			return -2;
 		}
 
@@ -595,6 +610,7 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
 
 	mailboxes[mbox_id].numConsumers++; 
+	printf("about to block...\n");
 	blockMe();
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
@@ -605,13 +621,22 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 		curr = curr->nextConsumer;
 	}
 
+	if(mailboxes[mbox_id].numSlots == 0) {
+		// if we have a zero slot mailbox, just receive nothing and return since messages
+		// sent to zero slot mailboxes are always zero length (ie, nothing)
+		msg_ptr = NULL;
+		return 0;
+	}
+
 	Message* targetMessage = mailboxes[mbox_id].messageSlots;
 	for (int i = 0; i < position; i++) {
 		targetMessage = targetMessage->nextMessage;
 	}
+	int messageIndex = targetMessage->index;
 
 	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
+	messages[messageIndex].occupied = 0;
 	return targetMessage->messageLength;
 }
 
@@ -631,7 +656,7 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 		if (USLOSS_PsrSet(oldPSR - 2) == USLOSS_ERR_INVALID_PSR) {
 			fprintf(stderr, "Bad PSR set in MboxSend\n");
 		}
-    	}
+    }
 
 	int retval = send(mbox_id, msg_ptr, msg_size, 0);
 	
