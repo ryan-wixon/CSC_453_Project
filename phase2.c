@@ -634,6 +634,11 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 			addToConsumerQueue(mbox_id, currentPID);
 			blockMe();
+			if(mailboxes[mbox_id].occupied == 0) {
+				// can't receive from a nonexistent mailbox
+				removeFromConsumerQueue(mbox_id, currentPID);
+				return -1;
+			}
 			removeFromConsumerQueue(mbox_id, currentPID);
 		}
 		else {

@@ -18,13 +18,13 @@ Child1c(): starting, blocking on a mailbox receive
 
 Child2(): starting, releasing mailbox
 
-Child1a(): result = 0
+Child1a(): result = -1
 Process 4 joined with status: 1
 
-Child1b(): result = 0
+Child1b(): result = -1
 Process 5 joined with status: 1
 
-Child1c(): result = 0
+Child1c(): result = -1
 Process 6 joined with status: 1
 
 Child2(): done
