@@ -46,44 +46,5 @@ Mailbox has no more slots available, and so CondSend() returned -2: mailbox 40 a
 Mailbox has no more slots available, and so CondSend() returned -2: mailbox 41 and slot 55
 Mailbox has no more slots available, and so CondSend() returned -2: mailbox 42 and slot 55
 Mailbox has no more slots available, and so CondSend() returned -2: mailbox 43 and slot 55
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 36
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 37
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 38
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 39
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 40
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 41
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 42
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 43
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 44
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 45
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 46
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 47
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 48
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 49
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 50
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 51
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 52
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 53
-ERROR: No free global message slots; message could not be created.
-Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 54
-ERROR: No free global message slots; message could not be created.
 Mailbox has no more slots available, and so CondSend() returned -2: mailbox 44 and slot 55
 finish(): The simulation is now terminating.

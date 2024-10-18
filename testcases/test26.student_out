@@ -1,0 +1,44 @@
+phase3_start_service_processes() called -- currently a NOP
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start2(): started
+start2(): MboxCreate returned id = 7
+
+XXp3(): started, about to send 5 messages to the mailbox
+XXp3(): sending message #1 to mailbox 7
+XXp3(): MboxSend rc 0
+XXp3(): sending message #2 to mailbox 7
+XXp3(): MboxSend rc 0
+XXp3(): sending message #3 to mailbox 7
+XXp3(): MboxSend rc 0
+XXp3(): sending message #4 to mailbox 7
+XXp3(): MboxSend rc 0
+XXp3(): sending message #5 to mailbox 7
+XXp3(): MboxSend rc 0
+
+XXp3(): fork'ing XXp2 at priority 4
+
+XXp3(): fork'ing XXp2 at priority 3
+XXp2(): started
+XXp2(): priority 3, sending message to mailbox 7
+XXp2(): started
+XXp2(): priority 4, sending message to mailbox 7
+
+XXp3(): fork'ing XXp2 at priority 2
+XXp2(): started
+XXp2(): priority 2, sending message to mailbox 7
+
+XXp3(): fork'ing XXp1 at priority 1
+XXp1(): started
+XXp1(): received message #1 rc 14   message 'First message'
+ERROR: Attempting to wake up process 6, which is already runnable, from process 8.
+ PID  PPID  NAME              PRIORITY  STATE
+   1     0  init              6         Runnable
+   2     1  testcase_main     3         Blocked(waiting for child to quit)
+   3     2  start2            1         Blocked(waiting for child to quit)
+   4     3  XXp3              4         Runnable
+   5     4  XXp2              4         Blocked(3)
+   6     4  XXp2              3         Runnable
+   7     4  XXp2              2         Blocked(3)
+   8     4  XXp1              1         Running
+finish(): The simulation is now terminating.

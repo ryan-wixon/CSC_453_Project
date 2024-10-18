@@ -8,3 +8,14 @@ XXp1(): started
 XXp1(): sending message to mailbox 7
 XXp2(): started
 XXp2(): receiving message from mailbox 7
+XXp1(): after send of message, result = 0
+XXp1(): sending message to mailbox 7
+XXp2(): after receipt of message, result = 0
+XXp2(): receiving message from mailbox 7
+XXp1(): after send of message, result = 0
+
+start2(): joined with kid 4, status = 3
+XXp2(): after receipt of message, result = 0
+
+start2(): joined with kid 5, status = 4
+finish(): The simulation is now terminating.

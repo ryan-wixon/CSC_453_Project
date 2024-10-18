@@ -29,11 +29,12 @@ typedef struct Process2 {
 typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
-	int index;		// for access by other processes later if we need to access array directly
 
-	char message[MAX_MESSAGE];		// the raw bytes of the message; should not be treated as a string
+	char message[MAX_MESSAGE];	// the raw bytes of the message; should not be treated as a string
 	int messageLength;		// the length of the message
-	
+
+	int index;			// the index of the message in the global array
+
 	struct Message* nextMessage; 	// messages can form lists inside mailboxes
 	struct Message* prevMessage;
  
@@ -58,7 +59,7 @@ typedef struct Mailbox {
 } Mailbox;
 
 /* index of each of the interrupt handler mailboxes in the mailbox array */
-#define CLOCK_INDEX         0
+#define CLOCK_INDEX          0
 #define DISK_1_INDEX         1
 #define DISK_2_INDEX         2
 #define TERM_1_INDEX         3
@@ -216,7 +217,7 @@ void clockHandler(int type, void *arg) {
 		// on delay
 		int status = 0;
 		int requestStatus = USLOSS_DeviceInput(USLOSS_CLOCK_DEV, 0, &status);
-		if(requestStatus == USLOSS_DEV_INVALID) {
+		if (requestStatus == USLOSS_DEV_INVALID) {
 			// should never reach here, this is more for debugging.
 			fprintf(stderr, "ERROR: Invalid arguments used for USLOSS_DeviceInput in clockHandler.\n");
 			USLOSS_Halt(1);
@@ -224,8 +225,9 @@ void clockHandler(int type, void *arg) {
 		// send message
 		MboxCondSend(CLOCK_INDEX, &status, sizeof(int));
 
-		// set time of last context switch
+		// set time of the last context switch
 		time = currentTime();
+
 		// call the dispatcher when control returns to the interrupt handler
 		dispatcher();
 	}
@@ -307,8 +309,6 @@ int MboxCreate(int slots, int slot_size) {
 
 	// basic error checking for arguments
 	if (slots < 0 || slot_size < 0 || slots > MAXSLOTS || slot_size > MAX_MESSAGE) {
-		// do not need to include an error message here.
-		//fprintf(stderr, "ERROR: Bad arguments given to MboxCreate.\n");
 		return -1;
 	}
 
@@ -400,14 +400,59 @@ int MboxRelease(int mbox_id) {
 		return 0;
 	}
 	
-	fprintf(stderr, "ERROR: Attempting to release a mailbox which does not exist.\n");
-	
 	// restore old PSR
 	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
 		fprintf(stderr, "Bad PSR restored in MboxRelease\n");
 	}
 	return -1;
 }
+
+void addToProducerQueue(int mbox_id, int currentPID) {
+
+	if (mailboxes[mbox_id].producers == NULL) {
+		mailboxes[mbox_id].producers = &procTable2[currentPID % MAXPROC];
+	}
+	else {
+		mailboxes[mbox_id].lastProducer->nextProducer = &procTable2[currentPID % MAXPROC];
+		mailboxes[mbox_id].lastProducer->nextProducer->prevProducer = mailboxes[mbox_id].lastProducer;
+	}
+	mailboxes[mbox_id].lastProducer = &procTable2[currentPID % MAXPROC];
+
+	mailboxes[mbox_id].numProducers++;
+}
+
+void removeFromProducerQueue(int mbox_id, int currentPID) {
+
+	mailboxes[mbox_id].producers = procTable2[currentPID % MAXPROC].nextProducer;
+	if (mailboxes[mbox_id].producers == NULL) {
+		mailboxes[mbox_id].lastProducer = NULL;
+	}
+	mailboxes[mbox_id].numProducers--;
+}
+
+void addToConsumerQueue(int mbox_id, int currentPID) {
+
+	if (mailboxes[mbox_id].consumers == NULL) {
+		mailboxes[mbox_id].consumers = &procTable2[currentPID % MAXPROC];
+	}
+	else {
+		mailboxes[mbox_id].lastConsumer->nextConsumer = &procTable2[currentPID % MAXPROC];
+		mailboxes[mbox_id].lastConsumer->nextConsumer->prevConsumer = mailboxes[mbox_id].lastConsumer;
+	}
+	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
+
+	mailboxes[mbox_id].numConsumers++;
+}
+
+void removeFromConsumerQueue(int mbox_id, int currentPID) {
+
+	mailboxes[mbox_id].consumers = procTable2[currentPID % MAXPROC].nextConsumer;
+	if (mailboxes[mbox_id].consumers == NULL) {
+		mailboxes[mbox_id].lastConsumer = NULL;
+	}
+	mailboxes[mbox_id].numConsumers--;
+}
+
 
 /*
  * Helper function that sends a message and either blocks or returns
@@ -426,30 +471,38 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
     	
 	// basic error checking for arguments
 	if (mailboxes[mbox_id].occupied == 0) {
-		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
 		return -1;
-	} 
-
-	// try to create a message in a new slot
-	int messageIndex = -1;
-	for (int i = 0; i < MAXSLOTS; i++) {
-		if (messages[i].occupied == 0) {
-			
-			messages[i].occupied = 1;
-			messages[i].index = i;
-
-			memcpy(&messages[i].message, msg_ptr, msg_size);
-			messages[i].messageLength = msg_size;
-			
-			messages[i].nextMessage = NULL;
-		
-			messageIndex = i;
-			break;
-		}
 	}
-	if (messageIndex == -1) {
-		fprintf(stderr, "ERROR: No free global message slots; message could not be created.\n");
-		return -2;
+
+	// special case for zero slot mailboxes
+	if (mailboxes[mbox_id].numSlots == 0) {
+		
+		// try and find a blocked consumer
+		Process2* curr = mailboxes[mbox_id].consumers;
+		while (curr != NULL && curr->blocked == 0) {
+			curr = curr->nextConsumer;
+		}	
+		
+		// if there is no consumer waiting we need to block, if there is we need to wake it up 
+		if (curr == NULL) {
+		
+			int currentPID = getpid();
+			procTable2[currentPID % MAXPROC].pid = currentPID;
+			procTable2[currentPID % MAXPROC].blocked = 1;
+			procTable2[currentPID % MAXPROC].nextProducer = NULL;
+			procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+			procTable2[currentPID % MAXPROC].prevProducer = NULL;
+			procTable2[currentPID % MAXPROC].prevConsumer = NULL;
+
+			addToProducerQueue(mbox_id, getpid());
+			blockMe();
+			removeFromProducerQueue(mbox_id, getpid());
+		}
+		else {
+			curr->blocked = 0;
+			unblockProc(curr->pid);
+		}
+		return 0;
 	}
 
 	// check to see if the sender can fill a slot right away
@@ -477,16 +530,8 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 		procTable2[currentPID % MAXPROC].prevProducer = NULL;
 		procTable2[currentPID % MAXPROC].prevConsumer = NULL;
 
-		if (mailboxes[mbox_id].producers == NULL) {
-			mailboxes[mbox_id].producers = &procTable2[currentPID % MAXPROC];
-		}
-		else {
-			mailboxes[mbox_id].lastProducer->nextProducer = &procTable2[currentPID % MAXPROC];
-			mailboxes[mbox_id].lastProducer->nextProducer->prevProducer = mailboxes[mbox_id].lastProducer;
-		}
-		mailboxes[mbox_id].lastProducer = &procTable2[currentPID % MAXPROC];
+		addToProducerQueue(mbox_id, currentPID);
 
-		mailboxes[mbox_id].numProducers++;
 		enqueued = 1; 
 		blockMe();
 
@@ -494,6 +539,28 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 		if (mailboxes[mbox_id].occupied == 0) {
 			return -1;
 		}
+	}
+	
+	// try to create a message in a new slot
+	int messageIndex = -1;
+	for (int i = 0; i < MAXSLOTS; i++) {
+		if (messages[i].occupied == 0) {
+			
+			messages[i].occupied = 1;
+
+			memcpy(&messages[i].message, msg_ptr, msg_size);
+			messages[i].messageLength = msg_size;
+		
+			messages[i].index = i;
+	
+			messages[i].nextMessage = NULL;
+		
+			messageIndex = i;
+			break;
+		}
+	}
+	if (messageIndex == -1) {
+		return -2;
 	}
 
 	// now try to put the message into the queue of the target mailbox
@@ -514,11 +581,7 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 
 	// if the process was enqueued, it needs to be taken out of the queue
 	if (enqueued == 1) {
-		mailboxes[mbox_id].producers = procTable2[currentPID % MAXPROC].nextProducer;
-		if (mailboxes[mbox_id].producers == NULL) {
-			mailboxes[mbox_id].lastProducer = NULL;
-		}
-		mailboxes[mbox_id].numProducers--;
+		removeFromProducerQueue(mbox_id, currentPID);
 	}
 	return 0; 
 }
@@ -541,8 +604,38 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 	// basic error checking for arguments
 	if (mailboxes[mbox_id].occupied == 0) {
-		fprintf(stderr, "ERROR: Mailbox with id %d does not exist.\n", mbox_id);
 		return -1;
+	}
+
+	// special case for zero slot mailboxes
+	if (mailboxes[mbox_id].numSlots == 0) {
+		
+		// try and find a blocked producer
+		Process2* curr = mailboxes[mbox_id].producers;
+		while (curr != NULL && curr->blocked == 0) {
+			curr = curr->nextProducer;
+		}	
+		
+		// if there are no producers waiting we need to block, if there are we need to wake it up 
+		if (curr == NULL) {
+		
+			int currentPID = getpid();
+			procTable2[currentPID % MAXPROC].pid = currentPID;
+			procTable2[currentPID % MAXPROC].blocked = 1;
+			procTable2[currentPID % MAXPROC].nextProducer = NULL;
+			procTable2[currentPID % MAXPROC].nextConsumer = NULL;
+			procTable2[currentPID % MAXPROC].prevProducer = NULL;
+			procTable2[currentPID % MAXPROC].prevConsumer = NULL;
+
+			addToConsumerQueue(mbox_id, currentPID);
+			blockMe();
+			removeFromConsumerQueue(mbox_id, currentPID);
+		}
+		else {
+			curr->blocked = 0;
+			unblockProc(curr->pid);
+		}
+		return 0;
 	}
 
 	// check to see if the reciever can read a message right away
@@ -563,7 +656,7 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 		// copy the raw bytes from the message into the recipient's buffer
 		memcpy(msg_ptr, curr->message, curr->messageLength);
 
-		// remove the message from the queue, and if there are producers waiting, wake up the first
+		// remove the message from the queue
 		if (curr->prevMessage != NULL) {
 			curr->prevMessage->nextMessage = curr->nextMessage;
 		}
@@ -575,11 +668,13 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 		}
 		curr->occupied = 0;
 		mailboxes[mbox_id].filledSlots--;
+		
+		// wake up producers if they are waiting (save the message length first in case the producer overwrites it)
+		int retval = curr->messageLength;
 		if (mailboxes[mbox_id].producers != NULL) {
 			unblockProc(mailboxes[mbox_id].producers->pid);
 		}
-
-		return curr->messageLength;
+		return retval;
 	}
 
 	// past this point, the process will block; if this is a nonblocking operation we must return here
@@ -597,16 +692,7 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	procTable2[currentPID % MAXPROC].prevProducer = NULL;
 	procTable2[currentPID % MAXPROC].prevConsumer = NULL;
 
-	if (mailboxes[mbox_id].consumers == NULL) {
-		mailboxes[mbox_id].consumers = &procTable2[currentPID % MAXPROC];
-	}
-	else {
-		mailboxes[mbox_id].lastConsumer->nextConsumer = &procTable2[currentPID % MAXPROC];
-		mailboxes[mbox_id].lastConsumer->nextConsumer->prevConsumer = mailboxes[mbox_id].lastConsumer;
-	}
-	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
-
-	mailboxes[mbox_id].numConsumers++; 
+	addToConsumerQueue(mbox_id, currentPID); 
 	blockMe();
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
@@ -628,16 +714,13 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	for (int i = 0; i < position; i++) {
 		targetMessage = targetMessage->nextMessage;
 	}
-	int messageIndex = targetMessage->index;
 
 	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
 	
-	messages[messageIndex].occupied = 0;
-	int length = targetMessage->messageLength;
-	memset(&messages[messageIndex], 0, sizeof(Message));
+	messages[targetMessage->index].occupied = 0;
 	mailboxes[mbox_id].filledSlots--;
-	return length;
+	return targetMessage->messageLength;
 }
 
 int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
@@ -747,4 +830,3 @@ int MboxCondRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	}
 	return retval;
 }
-

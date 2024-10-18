@@ -21,6 +21,5 @@ start2(): joined with kid 5, status = 3
 XXp2c(): after receive of message, result = 0
 
 start2(): joined with kid 6, status = 3
-ERROR: Mailbox with id 7 does not exist.
 failed to recv from released mailbox ... success
 finish(): The simulation is now terminating.

@@ -12,15 +12,14 @@ XXp3(): started
 XXp3(): MboxRelease returned 0
 
 start2(): joined with kid 8, status = 4
-XXp2a(): after send of message, result = -1
+XXp2a(): after send of message, result = 0
 
 start2(): joined with kid 4, status = 3
-XXp2b(): after send of message, result = -1
+XXp2b(): after send of message, result = 0
 
 start2(): joined with kid 5, status = 3
-XXp2c(): after send of message, result = -1
+XXp2c(): after send of message, result = 0
 
 start2(): joined with kid 6, status = 3
-ERROR: Mailbox with id 7 does not exist.
 failed to send to released mailbox ... success
 finish(): The simulation is now terminating.
