@@ -48,6 +48,7 @@ typedef struct Mailbox {
 	Message* lastMessage; 	// last message stored in this mailbox; used for easy appends
 	int numSlots;		// total number of available slots
 	int filledSlots;	// number of slots that are occupied
+	int maxMessageSize;	// maximum size of message
 
 	Process2* producers;	// processes that want to write to this mailbox line up here
 	Process2* consumers;	// processes that want to read from this mailbox line up here
@@ -321,6 +322,7 @@ int MboxCreate(int slots, int slot_size) {
 			mailboxes[i].messageSlots = NULL;
 			mailboxes[i].numSlots = slots;
 			mailboxes[i].filledSlots = 0;
+			mailboxes[i].maxMessageSize = slot_size;
 			
 			mailboxes[i].producers = NULL;
 			mailboxes[i].consumers = NULL;
@@ -474,6 +476,11 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 		return -1;
 	}
 
+	if(mailboxes[mbox_id].maxMessageSize < msg_size) {
+		// message is too big to fit in the mailbox
+		return -1;
+	}
+
 	// special case for zero slot mailboxes
 	if (mailboxes[mbox_id].numSlots == 0) {
 		
@@ -496,6 +503,10 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 
 			addToProducerQueue(mbox_id, getpid());
 			blockMe();
+			if(mailboxes[mbox_id].occupied == 0) {
+				removeFromProducerQueue(mbox_id, getpid());
+				return -1;
+			}
 			removeFromProducerQueue(mbox_id, getpid());
 		}
 		else {
@@ -508,12 +519,6 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 	// check to see if the sender can fill a slot right away
 	int enqueued = 0;
 	int currentPID = getpid();
-	// check to see if we are in a zero slot mailbox: these are never expected to handle messages with length > 0
-	// as per the spec
-	if (mailboxes[mbox_id].numSlots == 0 && mailboxes[mbox_id].consumers != NULL && mailboxes[mbox_id].consumers->blocked == 1) {
-		unblockProc(mailboxes[mbox_id].consumers->pid);
-		return 0;
-	} 
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
 		
 		// past this point, the process will block; if this is a nonblocking operation we must return here
