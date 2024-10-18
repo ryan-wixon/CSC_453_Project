@@ -42,9 +42,7 @@ int XXp1(void *arg)
     USLOSS_Console("XXp1(): status = %d   -- Should be near 100k, but does not have to be an exact match.  Is often 90k or so on Russ's computer.\n", status);
 
     /* 2nd clock tick */
-    printf("control about to go to waitdevice from XXp1...\n");
     waitDevice(USLOSS_CLOCK_DEV, 0, &status);
-    printf("control returned to XXp1\n");
     USLOSS_Console("XXp1(): after waitDevice call\n");
 
     USLOSS_Console("XXp1(): About to print status from clock Handler:\n");

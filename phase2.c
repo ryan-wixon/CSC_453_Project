@@ -192,7 +192,6 @@ void waitDevice(int type, int unit, int *status) {
 	// attempt to receive from the proper device's mailbox - it will block, but
 	// once a message is sent, MboxRecv will wake up and the message will be
 	// delivered here.
-	printf("in waitdevice\n");
 	MboxRecv(index, status, sizeof(int));
 
 	// restore old PSR
@@ -213,7 +212,6 @@ void clockHandler(int type, void *arg) {
 	// get current time, see if it has been 100 ms
 	// NOTE: as per Discord, current time is retrieved in microseconds!
 	if(currentTime() - time >= 100000) {
-		printf("process id is %d\n", getpid());
 		// enough time has passed; send another message to processes waiting
 		// on delay
 		int status = 0;
@@ -309,7 +307,8 @@ int MboxCreate(int slots, int slot_size) {
 
 	// basic error checking for arguments
 	if (slots < 0 || slot_size < 0 || slots > MAXSLOTS || slot_size > MAX_MESSAGE) {
-		fprintf(stderr, "ERROR: Bad arguments given to MboxCreate.\n");
+		// do not need to include an error message here.
+		//fprintf(stderr, "ERROR: Bad arguments given to MboxCreate.\n");
 		return -1;
 	}
 
@@ -463,11 +462,9 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 		return 0;
 	} 
 	if (mailboxes[mbox_id].filledSlots == mailboxes[mbox_id].numSlots) {
-		printf("!!!!!!\n");
 		
 		// past this point, the process will block; if this is a nonblocking operation we must return here
 		if (doesBlock == 1) {
-			printf("block!\n");
 			return -2;
 		}
 
@@ -610,7 +607,6 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	mailboxes[mbox_id].lastConsumer = &procTable2[currentPID % MAXPROC];
 
 	mailboxes[mbox_id].numConsumers++; 
-	printf("about to block...\n");
 	blockMe();
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
@@ -636,8 +632,12 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
+	
 	messages[messageIndex].occupied = 0;
-	return targetMessage->messageLength;
+	int length = targetMessage->messageLength;
+	memset(&messages[messageIndex], 0, sizeof(Message));
+	mailboxes[mbox_id].filledSlots--;
+	return length;
 }
 
 int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {

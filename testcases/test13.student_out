@@ -7,3 +7,8 @@ XXp1(): started, calling waitDevice for clock
 XXp1(): after waitDevice call
 XXp1(): About to print status from clock Handler:
 XXp1(): status = 110017   -- Should be near 100k, but does not have to be an exact match.  Is often 90k or so on Russ's computer.
+XXp1(): after waitDevice call
+XXp1(): About to print status from clock Handler:
+XXp1(): status = 230012   -- Should be roughly 100k more than the previous report.
+start2(): joined with kid 4, status = 3
+finish(): The simulation is now terminating.
