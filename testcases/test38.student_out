@@ -3,6 +3,5 @@ phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 start2(): putting itself into user mode
 start2(): calling USLOSS_Syscall executing syscall 0, this should halt
-start2(): ERROR ERROR ERROR should not see this message!
-ERROR: Someone attempted to call quit while in user mode!
+nullsys(): Program called an unimplemented syscall.  syscall no: 0   PSR: 0x09
 finish(): The simulation is now terminating.

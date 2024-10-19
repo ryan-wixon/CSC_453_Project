@@ -85,12 +85,11 @@ void (*systemCallVec[MAXSYSCALLS])(USLOSS_Sysargs *args);
 int send(int mboxID, void *message, int msgSize, int doesBlock);
 int receive(int mboxID, void *message, int maxMsgSize, int doesBlock);
 void phase2_start_service_processes();
-void nullsys(void);
+void nullsys(USLOSS_Sysargs *unused);
 void clockHandler(int type, void *arg);
 void diskHandler(int type, void *arg);
 void terminalHandler(int type, void *arg);
 void syscallHandler(int type, void *arg);
-// TODO IMPLEMENT INTERRUPT HANDLERS (see below) -- need to wait for mailbox implementation
 
 void phase2_init(void) {
     unsigned int oldPSR = USLOSS_PsrGet();
@@ -108,6 +107,11 @@ void phase2_init(void) {
 
 	// will zero out all mailbox memory, including the occupied field (no mailboxes will be active)
 	memset(mailboxes, 0, sizeof(mailboxes));
+
+	// assign nullsys to each of the syscall handlers
+	for(int i = 0; i < MAXSYSCALLS; i++) {
+		systemCallVec[i] = nullsys;
+	}
 
 	// install the interrupt handlers
 	USLOSS_IntVec[USLOSS_CLOCK_INT] = clockHandler;
@@ -137,9 +141,7 @@ void phase2_init(void) {
 }
 
 void phase2_start_service_processes() {
-    // TODO - may end up being an NOP but we are required to have it
-    // this is where we start any service processes that we need
-    // but it's unlikely we will have them.
+    // NOP
 }
 
 // may not work.
@@ -270,9 +272,13 @@ void terminalHandler(int type, void *arg) {
 // TODO uncomment and possibly fix once we get everything else working.
 void syscallHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-	//USLOSS_Sysargs callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
-	//int index = callArgs->number;
-	//systemCallVec[index](void);
+	USLOSS_Sysargs *callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
+	int index = callArgs->number;
+	if(index >= MAXSYSCALLS) {
+		fprintf(stderr, "syscallHandler(): Invalid syscall number %d\n", index);
+		USLOSS_Halt(1);
+	}
+	systemCallVec[index](callArgs);
 }
 
 /*
@@ -283,9 +289,9 @@ void syscallHandler(int type, void *arg) {
  * Arguments: None.
  * Returns: None.
  */
-void nullsys(void) {
+void nullsys(USLOSS_Sysargs *args) {
     // do not disable interrupts. all we do is halt.
-    fprintf(stderr, "ERROR: System call detected. There should be no syscalls yet.\n");
+    fprintf(stderr, "nullsys(): Program called an unimplemented syscall.  syscall no: %d   PSR: 0x%.2x\n", args->number, USLOSS_PsrGet());
     USLOSS_Halt(1);
 }
 
@@ -677,7 +683,6 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	
 		// make sure the message is not to long for the consumer to read
 		if (curr->messageLength > msg_max_size) {
-			fprintf(stderr, "ERROR: Message is too long for the recipient to read");
 			return -1;
 		}
 
@@ -730,15 +735,7 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	if(mailboxes[mbox_id].occupied == 0) {
 		return -1;
 	}
-
-	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
-	int position = 0;
-	Process2* curr = mailboxes[mbox_id].consumers;
-	while (curr->pid != getpid()) {
-		position++;
-		curr = curr->nextConsumer;
-	}
-
+	
 	if(mailboxes[mbox_id].numSlots == 0) {
 		// if we have a zero slot mailbox, just receive nothing and return since messages
 		// sent to zero slot mailboxes are always zero length (ie, nothing)
@@ -747,10 +744,10 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	}
 
 	Message* targetMessage = mailboxes[mbox_id].messageSlots;
-	/*
-	for (int i = 0; i < position; i++) {
-		targetMessage = targetMessage->nextMessage;
-	}*/
+	// check to make sure message isn't too big
+	if(targetMessage->messageLength > msg_max_size) {
+		return -1;
+	}
 
 	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);

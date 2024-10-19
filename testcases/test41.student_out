@@ -7,6 +7,6 @@ start2(): after send of message, result = 0
 start2(): Attempting to receive message fm mailbox 7.
           Should fail here because its receive buffer
           is too small
-ERROR: Message is too long for the recipient to readstart2(): after receive of message, result = -1   message is 'xxxxxxxxxx'
+start2(): after receive of message, result = -1   message is 'xxxxxxxxxx'
 start2(): got that message was too big. PASSED!
 finish(): The simulation is now terminating.
