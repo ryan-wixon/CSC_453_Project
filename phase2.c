@@ -1,7 +1,14 @@
 /*
  * phase2.c
  * Ryan Wixon and Adrianna Koppes
- * documentation TODO
+ * CSC 452
+ * 
+ * Implementation of mailboxes and messages for interprocess communication.
+ * Includes all standard mailbox manipulation functionality like creating,
+ * deleting, sending to, and receiving from mailboxes. Also implements some
+ * interrupt and system call handling that we can use in later phases,
+ * including those which send messages to mailboxes to wake up processes
+ * waiting on interrupts.
  */
 
 #include <stdio.h>
@@ -26,6 +33,7 @@ typedef struct Process2 {
 
 } Process2;
 
+/* Information about messages/mail slots is included here. */
 typedef struct Message {
 	
 	int occupied;			// indicates whether or not this is an active message; do not read any other fields if it is 0	
@@ -40,6 +48,7 @@ typedef struct Message {
  
 } Message;
 
+/* Information about mailboxes is included here. */
 typedef struct Mailbox {
 	
 	int occupied;		// indicates whether or not this is an active mailbox; do not read any other fields if it is 0
@@ -91,6 +100,14 @@ void diskHandler(int type, void *arg);
 void terminalHandler(int type, void *arg);
 void syscallHandler(int type, void *arg);
 
+/* 
+ * Startup code for Phase 2. Initializes the mailboxes, system call
+ * vector, interrupt handlers, and creates the mailboxes for 
+ * interrupt handling.
+ * 
+ * Arguments: None
+ * Returns: None
+ */
 void phase2_init(void) {
     unsigned int oldPSR = USLOSS_PsrGet();
     if(oldPSR % 2 == 0) {
@@ -131,8 +148,6 @@ void phase2_init(void) {
 
 	// get current time to update for next clock interrupt
 	time = currentTime();
-	
-	// TODO - implement the rest of phase2_init
 
     // restore old PSR
     if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -140,11 +155,34 @@ void phase2_init(void) {
     }
 }
 
+/*
+ * Starts service processes for Phase 2. However, there are no
+ * service processes, so this function is a NOP. (But, we are
+ * required to have it since the testcase code calls it.)
+ * 
+ * Arguments: None
+ * Returns: None
+ */
 void phase2_start_service_processes() {
-    // NOP
+    // NOP -- however, implementation is required for testcases.
 }
 
-// may not work.
+/*
+ * Causes the current process to wait for a device interrupt to
+ * resume operation. This is done using the device's appropriate
+ * mailbox. When an interrupt comes in, it will send a message to
+ * the device mailbox, which will wake up the process waiting.
+ * In this case, waiting for a device means to block on that device
+ * and not unblock until the device interrupt occurs.
+ * 
+ * Arguments: type = the device type: clock, disk, or terminal. Types
+ *            are defined in usloss.h.
+ *            unit = the unit number of the device to wait on
+ *            status = out parameter (pointer) which will hold the
+ *            device status as reported by the device upon arrival of
+ *            interrupt.
+ * Returns: None
+ */
 void waitDevice(int type, int unit, int *status) {
 	// disable interrupts
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -204,13 +242,33 @@ void waitDevice(int type, int unit, int *status) {
     }
 }
 
+/*
+ * This function is in the phase2.h file, but as confirmed on Discord, it
+ * is not supposed to be implemented. So, it just prints a NOP message
+ * and returns.
+ * 
+ * Arguments: type = unused argument.
+ *            unit = unused argument.
+ *            status = unused argument.
+ * Returns: None
+ */
 void wakeupByDevice(int type, int unit, int status) {
     // NOP - as confirmed on Discord, we are not implementing this
     // but it's in the phase2.h file, so we have to include it.
     printf("NOP -- wakeupByDevice is not supposed to be implemented for this semester.\n");
 }
 
-// may not work.
+/*
+ * Handles clock interrupts. If 100 milliseconds have passed, it sends
+ * a message to the clock mailbox to wake up any processes that might 
+ * be waiting on a clock interrupt. Upon every clock interrupt, the
+ * dispatcher is called, in case we want to context switch.
+ * 
+ * Arguments: type = unused argument representing the device type.
+ *            arg = interrupt arguments. unused in this handler, but
+ *            a required argument for all interrupt handlers in USLOSS.
+ * Returns: None
+ */
 void clockHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
 	// get current time, see if it has been 100 ms
@@ -235,7 +293,18 @@ void clockHandler(int type, void *arg) {
 	dispatcher();
 }
 
-// may not work.
+/*
+ * Handles disk interrupts by sending a message to the mailbox reserved
+ * for the specific disk unit specified by the index (within the arg
+ * parameter). The message includes the status of the device in case the
+ * waiting process needs it later.
+ * 
+ * Arguments: type = unused argument representing device type
+ *            arg = mostly unused, but does hold the unit number of the
+ *            specific device that sent the interrupt so we can send
+ *            a message for that unit specifically.
+ * Returns: None
+ */
 void diskHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
 	int unitNo = (int)(long)arg;	// get unit number of disk
@@ -252,7 +321,18 @@ void diskHandler(int type, void *arg) {
 	MboxCondSend(index, &status, sizeof(int));
 }
 
-// may not work.
+/* 
+ * Handles terminal interrupts by sending a message to the mailbox 
+ * reserved for the specific terminal device unit specified by the index
+ * (within the arg parameter). The message includes the status of the 
+ * device in case the waiting process needs it later.
+ * 
+ * Arguments: type = unused argument representing device type
+ *            arg = mostly unused, but does hold the unit number of
+ *            the specific device that send the interrupt so we can send
+ *            a message for that unit specifically.
+ * Returns: None
+ */
 void terminalHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
 	int unitNo = (int)(long)arg;	// get unit number of terminal
@@ -269,10 +349,21 @@ void terminalHandler(int type, void *arg) {
 	MboxCondSend(index, &status, sizeof(int));
 }
 
-// TODO uncomment and possibly fix once we get everything else working.
+/*
+ * Handler for system calls. It takes the given arguments and calls
+ * the specified handler (at the index of the system call vector given
+ * as part of the arguments). If the specified handler index is invalid
+ * (that is, too large), it will give an error and halt the simulation.
+ * 
+ * Arguments: type = unused argument representing the type of interrupt.
+ *            arg = used to return possible results to the caller, also
+ *            specifies the syscall number (which indexes into the
+ *            system call vector to call the correct handler).
+ * Returns: None.
+ */
 void syscallHandler(int type, void *arg) {
 	// do not disable interrupts. USLOSS will do it for us.
-	USLOSS_Sysargs *callArgs = (USLOSS_Sysargs*)arg;	// may need to fix syntax here
+	USLOSS_Sysargs *callArgs = (USLOSS_Sysargs*)arg;
 	int index = callArgs->number;
 	if(index >= MAXSYSCALLS) {
 		fprintf(stderr, "syscallHandler(): Invalid syscall number %d\n", index);
@@ -286,7 +377,7 @@ void syscallHandler(int type, void *arg) {
  * (wait until Phase 3), so this "handler" simply prints an error
  * message and terminates the simulation if a syscall is detected.
  * 
- * Arguments: None.
+ * Arguments: args = unused in this function.
  * Returns: None.
  */
 void nullsys(USLOSS_Sysargs *args) {
@@ -295,6 +386,20 @@ void nullsys(USLOSS_Sysargs *args) {
     USLOSS_Halt(1);
 }
 
+/*
+ * Creates a mailbox with the given specifications. Will fail if the
+ * arguments do not make sense. If there are no more possible slots for
+ * mailboxes, it will fail. Otherwise, it creates a new and empty
+ * mailbox with the specifications provided.
+ * 
+ * Arguments: slots = the maximum number of messages the mailbox should
+ *            be able to hold.
+ *            slot_size = the maximum message size that the mailbox 
+ *            should be able to handle.
+ * Return: -1 if the mailbox creation failed (either due to invalid
+ *         arguments or due to there not being any space left); otherwise
+ *         the ID of the mailbox will be returned (as an integer).
+ */
 int MboxCreate(int slots, int slot_size) {
 	
 	// disable/restore interrupts
@@ -351,6 +456,17 @@ int MboxCreate(int slots, int slot_size) {
 	return -1;
 }
 
+/*
+ * Destroys a mailbox and frees all associated resources (including
+ * messages that have not yet been collected, and any available slots).
+ * Processes that were blocked waiting on this mailbox are unblocked
+ * and return -1 for whatever operation they were blocked on. The
+ * mailbox can never be reused again. Mailbox IDs may be reused.
+ * 
+ * Arguments: mbox_id = ID of the mailbox to destroy
+ * Returns: -1 if the mailbox did not exist in the first place; 0 if the
+ *          deletion of the mailbox was successful.
+ */
 int MboxRelease(int mbox_id) {
 	
 	// disable/restore interrupts
@@ -382,7 +498,7 @@ int MboxRelease(int mbox_id) {
 		// processes in the queue don't try to do anything when we wake them up
 		mailboxes[mbox_id].occupied = 0;
 
-		// unblock all processes that are currently waiting in the queues
+		// unblock all processes that are currently waiting in the queues one by one
 		Process2* curr2 = mailboxes[mbox_id].producers;
 		if(curr2 != NULL) {
 			if(curr2->blocked == 1) {
@@ -391,15 +507,6 @@ int MboxRelease(int mbox_id) {
 				unblockProc(newID);
 			}
 		}
-		/*
-		while (curr2 != NULL) {
-			if (curr2->blocked == 1) {
-				int newID = curr2->pid;
-				unblockProc(newID);
-				curr2->blocked = 0;
-			}
-			curr2 = curr2->nextProducer;
-		}*/
 		curr2 = mailboxes[mbox_id].consumers;
 		if(curr2 != NULL) {
 			if(curr2->blocked == 1) {
@@ -408,15 +515,6 @@ int MboxRelease(int mbox_id) {
 				unblockProc(newID);
 			}
 		}
-		/*
-		while (curr2 != NULL) {
-			if (curr2->blocked == 1) {
-				int newID = curr2->pid;
-				unblockProc(newID);
-				curr2->blocked = 0;
-			}
-			curr2 = curr2->nextConsumer;
-		}*/
 	
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -432,6 +530,15 @@ int MboxRelease(int mbox_id) {
 	return -1;
 }
 
+/*
+ * Adds a new process to the producer queue of the given mailbox. This
+ * allows the process to block waiting to send a message to the mailbox,
+ * in case of the mailbox being full (and it being a blocking operation).
+ * 
+ * Arguments: mbox_id = the ID of the mailbox for whom the queue belongs
+ *            currentPID = the PID of the process to be added to the queue
+ * Returns: None
+ */
 void addToProducerQueue(int mbox_id, int currentPID) {
 
 	if (mailboxes[mbox_id].producers == NULL) {
@@ -446,6 +553,18 @@ void addToProducerQueue(int mbox_id, int currentPID) {
 	mailboxes[mbox_id].numProducers++;
 }
 
+/*
+ * Removes the given process from the producer queue that it is currently
+ * in. This means that the process is no longer waiting to send a message
+ * to the queue, either because the message was already sent, or because
+ * the mailbox was deallocated and send is no longer possible. If there
+ * are other processes in the queue, removal from the queue will also wake
+ * those processes up.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to which the queue belongs
+ *            currentPID = the PID of the process to remove
+ * Returns: None
+ */
 void removeFromProducerQueue(int mbox_id, int currentPID) {
 
 	mailboxes[mbox_id].producers = procTable2[currentPID % MAXPROC].nextProducer;
@@ -459,6 +578,7 @@ void removeFromProducerQueue(int mbox_id, int currentPID) {
 			unblockProc(mailboxes[mbox_id].producers->pid);
 		}
 		else if(mailboxes[mbox_id].producers->blocked == 1 && mailboxes[mbox_id].occupied == 0) {
+			// mailbox was destroyed; wake up processes one by one
 			mailboxes[mbox_id].producers->blocked = 0;
 			unblockProc(mailboxes[mbox_id].producers->pid);
 		}
@@ -466,6 +586,15 @@ void removeFromProducerQueue(int mbox_id, int currentPID) {
 	mailboxes[mbox_id].numProducers--;
 }
 
+/*
+ * Adds a new process to the consumer queue of a given mailbox. This
+ * allows a process to queue up to receive a message from a mailbox,
+ * in case there are not yet messages to receive (or the messages are
+ * available, but are not for the current process).
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to which the queue belongs
+ *            currentPID = the PID of the process to queue up
+ */
 void addToConsumerQueue(int mbox_id, int currentPID) {
 
 	if (mailboxes[mbox_id].consumers == NULL) {
@@ -480,6 +609,19 @@ void addToConsumerQueue(int mbox_id, int currentPID) {
 	mailboxes[mbox_id].numConsumers++;
 }
 
+/*
+ * Removes a process from the consumer queue of a given mailbox (that it
+ * is currently in). This means that the process is no longer waiting to
+ * receive a message from the mailbox, either because it has already finished
+ * doing so or because the mailbox was deallocated. If the process already
+ * finished reading a message and there are other processes waiting, along
+ * with messages still queued up to read, this will also wake up the first
+ * waiting process remaining in the queue.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to which the queue belongs
+ *            currentPID = the PID of the process to queue up.
+ * Returns: None
+ */
 void removeFromConsumerQueue(int mbox_id, int currentPID) {
 
 	mailboxes[mbox_id].consumers = procTable2[currentPID % MAXPROC].nextConsumer;
@@ -511,8 +653,17 @@ void removeFromConsumerQueue(int mbox_id, int currentPID) {
  * parameter doesBlock giving us guidance on whether we should just
  * block or return a value but do not block when send fails.
  * 
- * Arguments: TODO
- * Returns: TODO
+ * Arguments: mbox_id = the ID of the mailbox to send the message to
+ *            msg_ptr = pointer to the message contents to send
+ *            msg_size = the size of the message to send.
+ *            doesBlock = specifies whether to block upon message slots
+ *            all being full or to return an error code.
+ * Returns: Depends on whether doesBlock is 1 or 0. If doesBlock = 1, then
+ *          we return -2 if the mailbox is full; if doesBlock = 0, we 
+ *          block when the mailbox is full. Otherwise, return -1 if bad
+ *          arguments passed to the function or if the mailbox was released
+ *          before send could complete. Returns 0 if success in sending
+ *          message to given mailbox.
  */
 int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
     	
@@ -651,8 +802,21 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
  * whether to block or return a value but do not block when receiving
  * fails.
  * 
- * Arguments: TODO
- * Returns: TODO
+ * Arguments: mbox_id = ID of the mailbox from which to receive
+ *            msg_ptr = out pointer to a buffer to which to copy the
+ *            received message
+ *            msg_max_size = maximum amount the buffer to put the received
+ *            message into can handle
+ *            doesBlock = specifies whether to block upon message slots
+ *            all being full or to return an error code.
+ * Returns: Depends on the value of doesBlock. If doesBlock = 1, then we 
+ *          return -2 if the receive failed due to lack of available
+ *          messages; otherwise, we block if there is not enough space. 
+ *          Otherwise, we return -1 if the user passed in bad arguments,
+ *          or if the received message did not fit into the provided
+ *          buffer, or if the mailbox was destroyed before the receive
+ *          could be completed. Otherwise, some nonnegative number
+ *          representing the message size is returned.
  */
 int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
@@ -789,6 +953,18 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	return targetMessage->messageLength;
 }
 
+/*
+ * Sends a message to the specified mailbox. If the mailbox is
+ * full, block until it is not full anymore, and then send the message.
+ * Otherwise, just send the message to a waiting receiver.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to send message to.
+ *            msg_ptr = pointer to the contents of the message to send
+ *            msg_size = size of the message about to be sent
+ * Returns: -1 if illegal arguments were given or if the mailbox was
+ *          destroyed before the message could be sent; 0 if the send
+ *          was successful.
+ */
 int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	
 	// disable/restore interrupts
@@ -816,6 +992,22 @@ int MboxSend(int mbox_id, void *msg_ptr, int msg_size) {
 	return retval;
 }
 
+/*
+ * Receives a message from the given mailbox and stores it in an
+ * accessible place for the current process. If there are no messages
+ * in the mailbox, block. If there are other processes in front of
+ * you waiting for messages, block. Otherwise, just receive the next
+ * possible message.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to receive from
+ *            msg_ptr = the pointer to the buffer where the received
+ *            message must be stored
+ *            msg_max_size = the maximum bytes the buffer can hold.
+ * Returns: -1 if arguments invalid, if the message was too big to
+ *          receive in the given buffer, or if the mailbox was 
+ *          released before the message could be received; else returns
+ *          the size of the returned message.
+ */
 int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
     
 	// disable/restore interrupts
@@ -843,6 +1035,22 @@ int MboxRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 	return retval;
 }
 
+/*
+ * Sends a message to the given mailbox. If the mailbox is full,
+ * return an error code, but ***do not block***. Otherwise it functions
+ * the same as the regular MboxSend function (see above). Allows us
+ * to have a version of send that doesn't block to avoid deadlock or
+ * blocking in inappropriate places.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to send message to.
+ *            msg_ptr = pointer to the contents of the message to send
+ *            msg_size = size of the message about to be sent
+ * Returns: -2 if the mailbox was full (do not block here!); 
+ *          -1 if arguments invalid, if the message was too big to
+ *          receive in the given buffer, or if the mailbox was 
+ *          released before the message could be received; else returns
+ *          the size of the returned message.
+ */
 int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
 
 	// disable/restore interrupts
@@ -870,6 +1078,23 @@ int MboxCondSend(int mbox_id, void *msg_ptr, int msg_size) {
 	return retval;
 }
 
+/*
+ * Receives a message from the given mailbox. If there are no messages
+ * in the given mailbox, ***do not block*** to wait for it, and instead
+ * return an error code. Otherwise, it works exactly like the MboxRecv
+ * function (see above). Provides a non-blocking receiving mechanism
+ * for applications in which blocking is prohibited/not ideal.
+ * 
+ * Arguments: mbox_id = the ID of the mailbox to receive from
+ *            msg_ptr = the pointer to the buffer where the received
+ *            message must be stored
+ *            msg_max_size = the maximum bytes the buffer can hold.
+ * Returns: -2 if the mailbox was empty (do not block here!); 
+ *          -1 if arguments invalid, if the message was too big to
+ *          receive in the given buffer, or if the mailbox was 
+ *          released before the message could be received; else returns
+ *          the size of the returned message.
+ */
 int MboxCondRecv(int mbox_id, void *msg_ptr, int msg_max_size) {
 
 	// disable/restore interrupts
