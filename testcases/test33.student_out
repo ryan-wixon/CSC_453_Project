@@ -8,3 +8,9 @@ XXp3(): receiving message from mailbox 7, should block
 XXp2(): receiving message from mailbox 7, should block
 XXp1(): receiving message from mailbox 7, should block
 XXp4(): Releasing Mailbox 7
+start2(): after send of message, result = -1
+XXp3(): after send of message, result = -1
+XXp2(): after send of message, result = -1
+XXp4(): after release of mailbox, result = 0
+XXp1(): after send of message, result = -1
+finish(): The simulation is now terminating.

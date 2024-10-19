@@ -380,7 +380,8 @@ int MboxRelease(int mbox_id) {
 		Process2* curr2 = mailboxes[mbox_id].producers;
 		while (curr2 != NULL) {
 			if (curr2->blocked == 1) {
-				unblockProc(curr2->pid);
+				int newID = curr2->pid;
+				unblockProc(newID);
 				curr2->blocked = 0;
 			}
 			curr2 = curr2->nextProducer;
@@ -388,7 +389,8 @@ int MboxRelease(int mbox_id) {
 		curr2 = mailboxes[mbox_id].consumers;
 		while (curr2 != NULL) {
 			if (curr2->blocked == 1) {
-				unblockProc(curr2->pid);
+				int newID = curr2->pid;
+				unblockProc(newID);
 				curr2->blocked = 0;
 			}
 			curr2 = curr2->nextConsumer;
@@ -723,6 +725,11 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 	addToConsumerQueue(mbox_id, currentPID); 
 	blockMe();
+
+	// make sure mailbox hasn't been deallocated
+	if(mailboxes[mbox_id].occupied == 0) {
+		return -1;
+	}
 
 	// find out what position the recipient is in the consumer queue after waking up, then get the corresponding message
 	int position = 0;
