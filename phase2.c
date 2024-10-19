@@ -384,6 +384,14 @@ int MboxRelease(int mbox_id) {
 
 		// unblock all processes that are currently waiting in the queues
 		Process2* curr2 = mailboxes[mbox_id].producers;
+		if(curr2 != NULL) {
+			if(curr2->blocked == 1) {
+				curr2->blocked = 0;
+				int newID = curr2->pid;
+				unblockProc(newID);
+			}
+		}
+		/*
 		while (curr2 != NULL) {
 			if (curr2->blocked == 1) {
 				int newID = curr2->pid;
@@ -391,8 +399,16 @@ int MboxRelease(int mbox_id) {
 				curr2->blocked = 0;
 			}
 			curr2 = curr2->nextProducer;
-		}
+		}*/
 		curr2 = mailboxes[mbox_id].consumers;
+		if(curr2 != NULL) {
+			if(curr2->blocked == 1) {
+				curr2->blocked = 0;
+				int newID = curr2->pid;
+				unblockProc(newID);
+			}
+		}
+		/*
 		while (curr2 != NULL) {
 			if (curr2->blocked == 1) {
 				int newID = curr2->pid;
@@ -400,7 +416,7 @@ int MboxRelease(int mbox_id) {
 				curr2->blocked = 0;
 			}
 			curr2 = curr2->nextConsumer;
-		}
+		}*/
 	
 		// restore old PSR
 		if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
@@ -442,6 +458,10 @@ void removeFromProducerQueue(int mbox_id, int currentPID) {
 			mailboxes[mbox_id].producers->blocked = 0;
 			unblockProc(mailboxes[mbox_id].producers->pid);
 		}
+		else if(mailboxes[mbox_id].producers->blocked == 1 && mailboxes[mbox_id].occupied == 0) {
+			mailboxes[mbox_id].producers->blocked = 0;
+			unblockProc(mailboxes[mbox_id].producers->pid);
+		}
 	}
 	mailboxes[mbox_id].numProducers--;
 }
@@ -469,6 +489,10 @@ void removeFromConsumerQueue(int mbox_id, int currentPID) {
 	else {
 		if(mailboxes[mbox_id].filledSlots != 0 && mailboxes[mbox_id].consumers->blocked == 1) {
 			// we still have messages remaining, and there's also someone waiting
+			mailboxes[mbox_id].consumers->blocked = 0;
+			unblockProc(mailboxes[mbox_id].consumers->pid);
+		}
+		else if(mailboxes[mbox_id].consumers->blocked == 1 && mailboxes[mbox_id].occupied == 0) {
 			mailboxes[mbox_id].consumers->blocked = 0;
 			unblockProc(mailboxes[mbox_id].consumers->pid);
 		}
@@ -563,6 +587,7 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 
 		// if the mailbox got released while the sender was asleep, it needs to just return -1
 		if (mailboxes[mbox_id].occupied == 0) {
+			removeFromProducerQueue(mbox_id, currentPID);
 			return -1;
 		}
 	}
@@ -733,9 +758,10 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 
 	// make sure mailbox hasn't been deallocated
 	if(mailboxes[mbox_id].occupied == 0) {
+		removeFromConsumerQueue(mbox_id, currentPID);
 		return -1;
 	}
-	
+
 	if(mailboxes[mbox_id].numSlots == 0) {
 		// if we have a zero slot mailbox, just receive nothing and return since messages
 		// sent to zero slot mailboxes are always zero length (ie, nothing)

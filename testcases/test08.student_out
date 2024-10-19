@@ -20,9 +20,9 @@ XXp2c(): sending message 'hello from XXp2c' to mailbox 7, msg_size = 17
 start2(): joined with kid 4, status = 3
 XXp3(): started
 XXp2a(): after send of message 'hello from XXp2a', result = -1
-start2(): joined with kid 5, status = 4
 XXp2b(): after send of message 'hello from XXp2b', result = -1
 start2(): joined with kid 6, status = 4
+start2(): joined with kid 5, status = 4
 XXp2c(): after send of message 'hello from XXp2c', result = -1
 start2(): joined with kid 7, status = 4
 XXp3(): MboxRelease returned 0
