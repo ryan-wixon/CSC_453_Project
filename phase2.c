@@ -228,10 +228,9 @@ void clockHandler(int type, void *arg) {
 
 		// set time of the last context switch
 		time = currentTime();
-
-		// call the dispatcher when control returns to the interrupt handler
-		dispatcher();
 	}
+	// call the dispatcher when control returns to the interrupt handler
+	dispatcher();
 }
 
 // may not work.
