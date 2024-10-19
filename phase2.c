@@ -429,6 +429,13 @@ void removeFromProducerQueue(int mbox_id, int currentPID) {
 	if (mailboxes[mbox_id].producers == NULL) {
 		mailboxes[mbox_id].lastProducer = NULL;
 	}
+	else {
+		if(mailboxes[mbox_id].filledSlots == 0 && mailboxes[mbox_id].producers->blocked == 1) {
+			// mailbox is empty, and there's also someone waiting
+			mailboxes[mbox_id].producers->blocked = 0;
+			unblockProc(mailboxes[mbox_id].producers->pid);
+		}
+	}
 	mailboxes[mbox_id].numProducers--;
 }
 
@@ -692,7 +699,10 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 		// wake up producers if they are waiting (save the message length first in case the producer overwrites it)
 		int retval = curr->messageLength;
 		if (mailboxes[mbox_id].producers != NULL) {
-			unblockProc(mailboxes[mbox_id].producers->pid);
+			if(mailboxes[mbox_id].producers->blocked == 1) {
+				mailboxes[mbox_id].producers->blocked = 0;
+				unblockProc(mailboxes[mbox_id].producers->pid);
+			}
 		}
 		return retval;
 	}
