@@ -24,14 +24,16 @@ XXp1(): started
 XXp1(): sending message #1 to mailbox 7
 XXp1(): MboxSend() rc 0
 XXp1(): sending message #2 to mailbox 7
-ERROR: Attempting to wake up process 5, which is already runnable, from process 8.
- PID  PPID  NAME              PRIORITY  STATE
-   1     0  init              6         Runnable
-   2     1  testcase_main     3         Blocked(waiting for child to quit)
-   3     2  start2            1         Blocked(waiting for child to quit)
-   4     3  XXp3              5         Runnable
-   5     4  XXp2              4         Runnable
-   6     4  XXp2              3         Blocked(3)
-   7     4  XXp2              2         Blocked(3)
-   8     4  XXp1              1         Running
+XXp1(): MboxSend() rc 0
+XXp1(): sending message #3 to mailbox 7
+XXp1(): MboxSend() rc 0
+XXp2(): priority 2, after receipt of message, result = 14   message = 'Third message'
+XXp2(): priority 3, after receipt of message, result = 15   message = 'Second message'
+XXp2(): priority 4, after receipt of message, result = 14   message = 'First message'
+XXp3(): join'd with child 8 whose status is 1
+XXp3(): join'd with child 7 whose status is 2
+XXp3(): join'd with child 6 whose status is 3
+XXp3(): join'd with child 5 whose status is 4
+
+start2(): joined with kid 4, status = 5
 finish(): The simulation is now terminating.

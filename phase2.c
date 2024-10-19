@@ -452,6 +452,13 @@ void removeFromConsumerQueue(int mbox_id, int currentPID) {
 	if (mailboxes[mbox_id].consumers == NULL) {
 		mailboxes[mbox_id].lastConsumer = NULL;
 	}
+	else {
+		if(mailboxes[mbox_id].filledSlots != 0 && mailboxes[mbox_id].consumers->blocked == 1) {
+			// we still have messages remaining, and there's also someone waiting
+			mailboxes[mbox_id].consumers->blocked = 0;
+			unblockProc(mailboxes[mbox_id].consumers->pid);
+		}
+	}
 	mailboxes[mbox_id].numConsumers--;
 }
 
@@ -580,8 +587,11 @@ int send(int mbox_id, void *msg_ptr, int msg_size, int doesBlock) {
 	mailboxes[mbox_id].filledSlots++;	
 	
 	// if there are consumers waiting, wake up the first (if it has not already been woken up)
-	if (mailboxes[mbox_id].consumers != NULL && mailboxes[mbox_id].consumers->blocked == 1) {
-		unblockProc(mailboxes[mbox_id].consumers->pid);
+	if (mailboxes[mbox_id].consumers != NULL) {
+		if(mailboxes[mbox_id].consumers->blocked == 1) {
+			mailboxes[mbox_id].consumers->blocked = 0;
+			unblockProc(mailboxes[mbox_id].consumers->pid);
+		}
 	} 
 
 	// if the process was enqueued, it needs to be taken out of the queue
@@ -721,15 +731,22 @@ int receive(int mbox_id, void *msg_ptr, int msg_max_size, int doesBlock) {
 	}
 
 	Message* targetMessage = mailboxes[mbox_id].messageSlots;
+	/*
 	for (int i = 0; i < position; i++) {
 		targetMessage = targetMessage->nextMessage;
-	}
+	}*/
 
 	// copy the raw bytes from the message into the recipient's buffer and return the bytes read
 	memcpy(msg_ptr, targetMessage->message, targetMessage->messageLength);
 	
 	messages[targetMessage->index].occupied = 0;
 	mailboxes[mbox_id].filledSlots--;
+	// advance message queue
+	mailboxes[mbox_id].messageSlots = mailboxes[mbox_id].messageSlots->nextMessage;
+	if(mailboxes[mbox_id].messageSlots != NULL) {
+		mailboxes[mbox_id].messageSlots->prevMessage = NULL;
+	}
+	removeFromConsumerQueue(mbox_id, currentPID);
 	return targetMessage->messageLength;
 }
 
