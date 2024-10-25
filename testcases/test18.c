@@ -1,54 +1,84 @@
+/* recursive terminate test */
 
-/* tests for exceeding the number of slots. start2 creates mailboxes whose
- * total slots will exceed the system limit. start2 then starts doing
- * conditional sends to each slot of each mailbox until the return code
- * of conditional send comes back as -2
- */
-
-#include <stdio.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int mboxids[45];
+int Child1(void *);
+int Child2(void *);
+int Child3(void *);
+
+int sem1;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-    int boxNum, slotNum, result;
+    int pid;
+    int status;
 
-    USLOSS_Console("start2(): started, trying to exceed systemwide mailslots...\n");
+    USLOSS_Console("start3(): started\n");
 
-    /* 45 mailboxes, capacity 55 each.  We'll try to send 56 messages to each one,
-     * and the 56th will fail because we're using CondSend().  There will never be
-     * a complete system-wide clog, however.
-     */
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned process %d\n", pid);
 
-    for (boxNum = 0; boxNum < 45; boxNum++)
-    {
-        mboxids[boxNum] = MboxCreate(55, 0);
-        if (mboxids[boxNum] < 0)
-            USLOSS_Console("start2(): MailBoxCreate returned id less than zero, id = %d\n", mboxids[boxNum]);
-    }
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
 
-    for (boxNum = 0; boxNum < 45; boxNum++)
-    {
-        for (slotNum = 0; slotNum < 56; slotNum++)
-        {
-            result = MboxCondSend(mboxids[boxNum], NULL,0);
-            if (result == -2)
-            {
-                USLOSS_Console("Mailbox has no more slots available, and so CondSend() returned -2: mailbox %d and slot %d\n", boxNum, slotNum);
-            }
-            else if (result != 0)
-            {
-                USLOSS_Console("UNEXPECTED ERROR %d: mailbox %d and slot %d\n", result, boxNum, slotNum);
-                quit(100);
-            }
-        }
-    }
+    USLOSS_Console("start3(): done\n");
+    Terminate(0);
+}
 
-    quit(0);
+
+int Child1(void *arg) 
+{
+    int pid;
+    int status;
+
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
+
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 2, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+
+    Spawn("Child3", Child3, "Child3", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+
+    USLOSS_Console("%s(): done\n", arg);
+    Terminate(9);
+}
+
+int Child2(void *arg) 
+{
+    int pid;
+
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
+
+    Spawn("Child2a", Child3, "Child2a", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Spawn("Child2b", Child3, "Child2b", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Spawn("Child2c", Child3, "Child2c", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Terminate(10);
+}
+
+
+int Child3(void *arg) 
+{
+    USLOSS_Console("%s(): starting\n", arg);
+    Terminate(11);
 }
 

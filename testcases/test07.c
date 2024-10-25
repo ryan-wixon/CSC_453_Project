@@ -1,108 +1,70 @@
-
-/* Creates a 5-slot mailbox. Creates XXp1 that sends five messages to the
- * mailbox, then terminates. Creates XXp2a,b,c each of which sends a
- * message to the mailbox and gets blocked since the box is full.
- * Creates XXp3 which receives all eight messages, unblocking XXp2a,b,c.
+/*
+ * Three process semaphore test: three processes block on semaphore, and
+ * then are released with three V's.
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp1(void *);
-int XXp2(void *);
-int XXp3(void *);
-char buf[256];
+int Child1(void *);
+int Child2(void *);
 
-int mbox_id;
+int semaphore;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-   int kid_status, kidpid;
+    int pid1,pid2,pid3, pid4;
+    int sem_result;
 
-   USLOSS_Console("start2(): started\n");
-   mbox_id = MboxCreate(5, 50);
-   USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
+    USLOSS_Console("start3(): started.  Creating semaphore.\n");
 
-   kidpid = spork("XXp1",  XXp1, NULL,    2 * USLOSS_MIN_STACK, 1);
-   kidpid = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 1);
-   kidpid = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 1);
-   kidpid = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 1);
-   kidpid = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 2);
+    sem_result = SemCreate(0, &semaphore);
+    if (sem_result != 0) {
+        USLOSS_Console("start3(): got non-zero semaphore result. Terminating...\n");
+        Terminate(1);
+    }
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+    USLOSS_Console("start3(): calling Spawn for Child1 (three times)\n");
+    Spawn("Child1a", Child1, "Child1a", USLOSS_MIN_STACK, 2, &pid1);
+    Spawn("Child1b", Child1, "Child1b", USLOSS_MIN_STACK, 2, &pid2);
+    Spawn("Child1c", Child1, "Child1c", USLOSS_MIN_STACK, 2, &pid3);
+    USLOSS_Console("start3(): after spawn of %d %d %d\n", pid1,pid2,pid3);
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+    USLOSS_Console("start3(): calling Spawn for Child2\n");
+    Spawn("Child2", Child2, NULL, USLOSS_MIN_STACK, 2, &pid4);
+    USLOSS_Console("start3(): after spawn of %d\n", pid4);
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   quit(0);
+    USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
+    Terminate(0);
 }
 
 
-int XXp1(void *arg)
+int Child1(void *arg) 
 {
-   int i, result;
-   char buffer[20];
+    USLOSS_Console("%s(): starting, P'ing semaphore\n", arg);
+    SemP(semaphore);
+    USLOSS_Console("%s(): done\n", arg);
 
-   USLOSS_Console("XXp1(): started\n");
-
-   for (i = 0; i < 5; i++) {
-      USLOSS_Console("XXp1(): sending message #%d to mailbox %d\n", i, mbox_id);
-      sprintf(buffer, "hello there, #%d", i);
-      result = MboxSend(mbox_id, buffer, strlen(buffer)+1);
-      USLOSS_Console("XXp1(): after send of message #%d, result = %d\n", i, result);
-   }
-
-   quit(3);
+    return 9;
 }
 
 
-int XXp2(void *arg)
+int Child2(void *arg) 
 {
-   int result;
-   char buffer[20];
+    int pid;
+    GetPID(&pid);
 
-   sprintf(buffer, "hello from %s", (char*)arg);
-   USLOSS_Console("%s(): sending message '%s' to mailbox %d, msg_size = %lu\n", arg, buffer, mbox_id, strlen(buffer)+1);
-   result = MboxSend(mbox_id, buffer, strlen(buffer)+1);
-   USLOSS_Console("%s(): after send of message '%s', result = %d\n", (char*)arg, buffer, result);
+    USLOSS_Console("Child2(): %d starting, V'ing semaphore\n", pid );
+    SemV(semaphore);
+    SemV(semaphore);
+    SemV(semaphore);
+    USLOSS_Console("Child2(): done\n");
 
-   quit(4);
-}
-
-
-int XXp3(void *arg)
-{
-   char buffer[100];
-   int i, result;
-
-  /* BUGFIX: initialize buffers to predictable contents */
-  memset(buffer, 'x', sizeof(buffer)-1);
-  buffer[sizeof(buffer)-1] = '\0';
-
-   USLOSS_Console("XXp3(): started\n");
-
-   for (i = 0; i < 8; i++) {
-      USLOSS_Console("XXp3(): receiving message #%d from mailbox %d\n", i, mbox_id);
-      result = MboxRecv(mbox_id, buffer, 100);
-      USLOSS_Console("XXp3(): after receipt of message #%d, result = %d   message = '%s'\n", i, result, buffer);
-   }
-
-   quit(5);
+    return 9;
 }
 

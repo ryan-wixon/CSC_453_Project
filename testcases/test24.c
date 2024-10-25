@@ -1,70 +1,91 @@
-/* Creates two children.  Higher priority child does a receive, and should
- * block.  Lower priority child then does a send and should unblock the
- * higher priority child.
- */
+/* recursive terminate test */
 
-#include <stdio.h>
-#include <string.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp1(void *);
-int XXp2(void *);
-char buf[256];
+int Child1(void *);
+int Child2(void *);
+int Child2a(void *);
+int Child2b(void *);
+int Child2c(void *);
 
-int mbox_id;
+int sem1;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-    int kid_status, kidpid;
+    int pid;
+    int status;
 
-    USLOSS_Console("start2(): started\n");
+    USLOSS_Console("start3(): started\n");
 
-    mbox_id = MboxCreate(0, 50);
-    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned process %d\n", pid);
 
-    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 2);
-    kidpid = spork("XXp2", XXp2, NULL, 2 * USLOSS_MIN_STACK, 1);
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
 
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    quit(0);
+    USLOSS_Console("start3(): done\n");
+    return 0;
 }
 
-int XXp1(void *arg)
+
+int Child1(void *arg) 
 {
-    int i, result;
+    int pid;
+    int status;
 
-    USLOSS_Console("XXp1(): started\n");
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
 
-    for (i = 0; i <= 1; i++) {
-        USLOSS_Console("XXp1(): sending message to mailbox %d\n", mbox_id);
-        result = MboxSend(mbox_id, NULL,0);
-        USLOSS_Console("XXp1(): after send of message, result = %d\n", result);
-    }
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 2, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
 
-    quit(3);
+    Wait(&pid, &status);
+    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+
+    USLOSS_Console("%s(): done\n", arg);
+    Terminate(9);
 }
 
-int XXp2(void *arg)
+int Child2(void *arg) 
 {
-    int i, result;
+    int pid;
 
-    USLOSS_Console("XXp2(): started\n");
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
 
-    for (i = 0; i <= 1; i++) {
-        USLOSS_Console("XXp2(): receiving message from mailbox %d\n", mbox_id);
-        result = MboxRecv(mbox_id, NULL,0);
-        USLOSS_Console("XXp2(): after receipt of message, result = %d\n", result);
-    }
+    Spawn("Child2a", Child2a, "Child2a", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
 
-    quit(4);
+    Spawn("Child2b", Child2b, "Child2b", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Spawn("Child2c", Child2c, "Child2c", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    return 10;
+}
+
+int Child2a(void *arg) 
+{
+    USLOSS_Console("%s(): starting the code for Child2a\n", arg);
+    Terminate(11);
+}
+
+int Child2b(void *arg) 
+{
+    USLOSS_Console("%s(): starting the code for Child2b\n", arg);
+    return 12;
+}
+
+int Child2c(void *arg) 
+{
+    USLOSS_Console("%s(): starting the code for Child2c\n", arg);
+    Terminate(13);
 }
 

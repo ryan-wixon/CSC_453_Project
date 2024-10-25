@@ -1,93 +1,103 @@
+/* recursive terminate test */
 
-/* checking for release: 3 instances of XXp2 send messages to a zero-slot
- * mailbox, which causes them to block. XXp4 then releases the mailbox.
- * XXp4 is higher priority than the 3 blocked processes.
- */
-
-#include <stdio.h>
-#include <string.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp2(void *);
-int XXp3(void *);
-int XXp4(void *);
-char buf[256];
+int Child1 (void *);
+int Child2 (void *);
+int Child2a(void *);
+int Child2b(void *);
+int Child2c(void *);
 
-int mbox_id;
+int sem1;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-    int kid_status, kidpid, pausepid;
-    int result;
+    int pid;
+    int status;
 
-    USLOSS_Console("start2(): started\n");
+    USLOSS_Console("start3(): started\n");
 
-    mbox_id  = MboxCreate(0, 50);
-    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned process %d\n", pid);
 
-    kidpid   = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 2);
-    kidpid   = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 2);
-    kidpid   = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 2);
-    pausepid = spork("XXp4",  XXp4, "XXp4",  2 * USLOSS_MIN_STACK, 2);
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
 
-    kidpid = join(&kid_status);
-    if (kidpid != pausepid)
-        USLOSS_Console("\n***Test Failed*** -- join with pausepid failed!\n\n");
-
-    kidpid   = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 1);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    result = MboxCondSend(mbox_id, NULL,0);
-
-    if(result == -1)
-        USLOSS_Console("failed to send to released mailbox ... success\n");
-    else
-        USLOSS_Console("test failed result = %d\n",result);
-
-    quit(0);
+    USLOSS_Console("start3(): done\n");
+    Terminate(0);
 }
 
-int XXp2(void *arg)
+
+int Child1(void *arg) 
 {
-    int result;
+    int pid;
+    int status;
 
-    USLOSS_Console("%s(): sending message to mailbox %d\n", arg, mbox_id);
-    result = MboxSend(mbox_id, NULL,0);
-    USLOSS_Console("%s(): after send of message, result = %d\n", arg, result);
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
 
-    quit(3);
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 2, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+
+    USLOSS_Console("%s(): done\n", arg);
+    Terminate(9);
 }
 
-int XXp3(void *arg)
+
+int Child2(void *arg) 
 {
-    int result;
+    int pid, kidpid, status, result;
 
-    USLOSS_Console("XXp3(): started\n");
+    GetPID(&pid);
+    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
 
-    result = MboxRelease(mbox_id);
-    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
+    Spawn("Child2a", Child2a, "Child2a", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
 
-    quit(4);
+    Spawn("Child2b", Child2b, "Child2b", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    Spawn("Child2c", Child2c, "Child2c", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+
+    result = Wait(&kidpid, &status);
+    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
+
+    result = Wait(&kidpid, &status);
+    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
+
+    result = Wait(&kidpid, &status);
+    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
+
+    Terminate(10);
+    return result;  // return result to avoid compiler warning
 }
 
-int XXp4(void *arg)
+
+int Child2a(void *arg) 
 {
-    USLOSS_Console("XXp4(): started and quitting\n");
-    quit(5);
+    USLOSS_Console("%s(): starting the code for Child2a\n", arg);
+    Terminate(11);
+}
+
+int Child2b(void *arg) 
+{
+    USLOSS_Console("%s(): starting the code for Child2b\n", arg);
+    Terminate(11);
+}
+
+int Child2c(void *arg) 
+{
+    USLOSS_Console("%s(): starting the code for Child2c\n", arg);
+    Terminate(11);
 }
 

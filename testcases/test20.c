@@ -1,83 +1,83 @@
+/* Counting Semaphore test */
 
-/* checking for release: 3 instances of XXp2 receive messages from a zero-slot
- * mailbox, which causes them to block. XXp4 then releases the mailbox.
- * All processes are at the same priority.
- */
-
-#include <stdio.h>
-#include <string.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp2(void *);
-int XXp3(void *);
-int XXp4(void *);
-char buf[256];
+int Child1(void *);
+int Child2(void *);
 
-int mbox_id;
+int sem1;
 
 
-
-int start2(void *arg)
-{
-    int kid_status, kidpid, pausepid;
-
-    USLOSS_Console("start2(): started\n");
-    mbox_id  = MboxCreate(0, 50);
-    USLOSS_Console("\nstart2(): MboxCreate returned id = %d\n", mbox_id);
-
-    kidpid   = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 2);
-    kidpid   = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 2);
-    kidpid   = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 2);
-    pausepid = spork("XXp4",  XXp4, "XXp4",  2 * USLOSS_MIN_STACK, 2);
-
-    kidpid = join(&kid_status);
-    if (kidpid != pausepid)
-        USLOSS_Console("\n***Test Failed*** -- join with pausepid failed!\n\n");
-
-    kidpid   = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 1);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("\nstart2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    quit(0);
-}
-
-int XXp2(void *arg)
+int start3(void *arg)
 {
     int result;
+    int pid;
+    int status;
 
-    result = MboxRecv(mbox_id, NULL,0);
-    USLOSS_Console("%s(): after recv of message, result = %d\n", arg, result);
+    USLOSS_Console("start3(): started\n");
 
-    quit(3);
+    result = SemCreate(3, &sem1);
+    USLOSS_Console("start3(): SemCreate returned %d\n", result);
+
+    SemP(sem1);
+    USLOSS_Console("start3(): After P in the CS\n");
+
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 2, &pid);
+    USLOSS_Console("start3(): spawn %d\n", pid);
+
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 3, &pid);
+    USLOSS_Console("start3(): spawn %d\n", pid);
+
+    SemV(sem1);
+    USLOSS_Console("start3(): After V -- may appear before: Child1(): After P attempt #3\n");
+
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): status of quit child = %d\n",status);
+
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): status of quit child = %d\n",status);
+
+    USLOSS_Console("start3(): Parent done\n");
+    Terminate(0);
 }
 
-int XXp3(void *arg)
+
+int Child1(void *arg) 
 {
-    int result;
+    int i;
 
-    USLOSS_Console("XXp3(): started\n");
+    USLOSS_Console("%s(): starting\n", arg);
+    for (i = 0; i < 5; i++)
+    {
+        SemP(sem1);
+        if (i == 3)
+            USLOSS_Console("%s(): After P attempt #3 -- may appear before: start3(): After V\n", arg);
+        else
+            USLOSS_Console("%s(): After P attempt #%d\n", arg, i);
+    }
 
-    result = MboxRelease(mbox_id);
-    USLOSS_Console("XXp3(): MboxRelease returned %d\n", result);
-
-    quit(4);
+    USLOSS_Console("%s(): done\n", arg);
+    Terminate(9);
 }
 
-int XXp4(void *arg)
+
+int Child2(void *arg) 
 {
-    USLOSS_Console("XXp4(): started and quitting\n");
-    quit(4);
+    int i;
+
+    USLOSS_Console("%s(): starting\n", arg);
+    for (i = 0; i < 5; i++)
+    {
+        SemV(sem1);
+        USLOSS_Console("%s(): After V attempt #%d\n", arg, i);
+    }
+
+    USLOSS_Console("%s(): done\n", arg);
+    Terminate(10);
 }
 

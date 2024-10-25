@@ -1,62 +1,49 @@
+/*
+  Check that spawn and it's return parameters work. 
+  Also check if start3 is in user mode.
+*/
 
-/* A test of waitDevice for a terminal.  Can be used to test other
- * three terminals as well.
- */
-
-#include <stdio.h>
-#include <string.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-int XXp1(void *);
-int XXp3(void *);
-char buf[256];
 
-
-
-int start2(void *arg)
+int Child1(void *arg) 
 {
-    int  kid_status, kidpid;
-    long control = 0;
-    int  result;
-
-    USLOSS_Console("start2(): started\n");
-
-    /* see macro definition in usloss.h */
-    control = USLOSS_TERM_CTRL_RECV_INT(control);
-
-    USLOSS_Console("start2(): calling USLOSS_DeviceOutput to enable receive interrupts, control = %d\n", control);
-
-    result = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void *)control);
-    if ( result != USLOSS_DEV_OK ) {
-        USLOSS_Console("start2(): USLOSS_DeviceOutput returned %d ", result);
-        USLOSS_Console("Halting...\n");
+    if(USLOSS_PsrGet() & USLOSS_PSR_CURRENT_MODE)
+    {
+        USLOSS_Console("Child1(): not in user mode\n");
         USLOSS_Halt(1);
     }
 
-    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 2);
-
-    kidpid = join(&kid_status);
-    USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-    quit(0);
+    USLOSS_Console("Child1(): just started, and will end immediately.\n");
+    Terminate(32);
 }
 
-int XXp1(void *arg)
+
+int start3(void *arg)
 {
-    int status;
+    int pid,id;
 
-    USLOSS_Console("XXp1(): started, calling waitDevice for terminal 1\n");
+    USLOSS_Console("start3(): started\n");
+    if(USLOSS_PsrGet() & USLOSS_PSR_CURRENT_MODE)
+    {
+        USLOSS_Console("start3 not in user mode\n");
+        USLOSS_Halt(1);
+    }
 
-    waitDevice(USLOSS_TERM_DEV, 1, &status);
-    USLOSS_Console("XXp1(): after waitDevice call\n");
+    Spawn("Child1", Child1, NULL, USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): Spawn %d\n", pid);
 
-    USLOSS_Console("XXp1(): status = %d\n", status);
+    Wait(&pid, &id);
+    assert(id == 32);
 
-    USLOSS_Console("XXp1(): receive status for terminal 1 = %d\n", USLOSS_TERM_STAT_RECV(status));
-    USLOSS_Console("XXp1(): character received = %c\n", USLOSS_TERM_STAT_CHAR(status));
-
-    quit(3);
+    USLOSS_Console("start3(): Done.\n");
+    Terminate(0);
 }
 

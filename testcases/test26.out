@@ -1,51 +1,20 @@
-phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-start2(): started
-start2(): MboxCreate returned id = 7
-
-XXp3(): started, about to send 5 messages to the mailbox
-XXp3(): sending message #1 to mailbox 7
-XXp3(): MboxSend rc 0
-XXp3(): sending message #2 to mailbox 7
-XXp3(): MboxSend rc 0
-XXp3(): sending message #3 to mailbox 7
-XXp3(): MboxSend rc 0
-XXp3(): sending message #4 to mailbox 7
-XXp3(): MboxSend rc 0
-XXp3(): sending message #5 to mailbox 7
-XXp3(): MboxSend rc 0
-
-XXp3(): fork'ing XXp2 at priority 4
-
-XXp3(): fork'ing XXp2 at priority 3
-XXp2(): started
-XXp2(): priority 3, sending message to mailbox 7
-XXp2(): started
-XXp2(): priority 4, sending message to mailbox 7
-
-XXp3(): fork'ing XXp2 at priority 2
-XXp2(): started
-XXp2(): priority 2, sending message to mailbox 7
-
-XXp3(): fork'ing XXp1 at priority 1
-XXp1(): started
-XXp1(): received message #1 rc 14   message 'First message'
-XXp1(): received message #2 rc 15   message 'Second message'
-XXp1(): received message #3 rc 14   message 'Third message'
-XXp1(): received message #4 rc 15   message 'Fourth message'
-XXp1(): received message #5 rc 14   message 'Fifth message'
-XXp1(): received message #6 rc 16   message 'Seventh message'
-XXp2(): priority 3, after sending message, result = 0
-XXp3(): join'd with child 6 whose status is 3
-XXp1(): received message #7 rc 14   message 'Sixth message'
-XXp1(): received message #8 rc 15   message 'Eighth message'
-XXp1(): done sending, now quitting
-
-XXp2(): priority 2, after sending message, result = 0
-XXp2(): priority 4, after sending message, result = 0
-XXp3(): join'd with child 8 whose status is 1
-XXp3(): join'd with child 7 whose status is 2
-XXp3(): join'd with child 5 whose status is 4
-start2(): joined with kid 4, status = 5
+start3(): started
+start3(): spawned the Child1 process 4
+start3(): spawned the Child2 process 5
+start3(): spawned the low-priority process 6
+Child1(): Semaphore 0 created.  I will now call V on it 250000 times.
+Child2(): Semaphore 1 created.  I will now call V on it 250000 times.
+Child2(): V operations completed.  I will now call P on the semaphore the same number of times.
+Child1(): V operations completed.  I will now call P on the semaphore the same number of times.
+Child1(): P operations completed.  I will now call P once more; this will force the process to block, until the Low-Priority Child is able to give us one more V operation.
+Child2(): P operations completed.  I will now call P once more; this will force the process to block, until the Low-Priority Child is able to give us one more V operation.
+LP_Child(): The low-priority child is finally running.  This must not happen until both Child1,Child2 have blocked on their last P operation.
+Child1(): Last P operation has returned.  This process will terminate.
+start3(): child 4 returned status of 1
+Child2(): Last P operation has returned.  This process will terminate.
+start3(): child 5 returned status of 2
+start3(): child 6 returned status of 9
+start3(): done
 finish(): The simulation is now terminating.

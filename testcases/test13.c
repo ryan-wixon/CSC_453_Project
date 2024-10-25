@@ -1,53 +1,55 @@
+/*
+ * Three process test of GetPID.
+ */
 
-/* A test of waitDevice for the clock */
-
-#include <stdio.h>
-#include <string.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp1(void *);
-int XXp3(void *);
-char buf[256];
+int Child1(void *);
+
+int semaphore;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-    int kid_status, kidpid;
+   int pid, status;
 
-    USLOSS_Console("start2(): at beginning, pid = %d\n", getpid());
+   USLOSS_Console("start3(): started\n");
 
-    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 2);
-    USLOSS_Console("start2(): fork'd child %d\n", kidpid);
+   USLOSS_Console("start3(): calling Spawn for Child1a\n");
+   Spawn("Child1a", Child1, "Child1a", USLOSS_MIN_STACK, 1, &pid);
 
-    kidpid = join(&kid_status);
-    USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+   USLOSS_Console("start3(): calling Spawn for Child1b\n");
+   Spawn("Child1b", Child1, "Child1b", USLOSS_MIN_STACK, 1, &pid);
 
-    quit(0);
+   USLOSS_Console("start3(): calling Spawn for Child1c\n");
+   Spawn("Child1c", Child1, "Child1c", USLOSS_MIN_STACK, 1, &pid);
+
+   USLOSS_Console("start3(): calling Wait for all 3 children\n");
+   Wait(&pid, &status);
+   Wait(&pid, &status);
+   Wait(&pid, &status);
+
+   USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
+   Terminate(0);
 }
 
-int XXp1(void *arg)
+
+int Child1(void *my_name_void) 
 {
-    int status;
+   char *my_name = my_name_void;
+   int pid;
 
-    USLOSS_Console("XXp1(): started, calling waitDevice for clock\n");
+   USLOSS_Console("%s(): starting\n", my_name);
 
-    /* 1st clock tick */
-    waitDevice(USLOSS_CLOCK_DEV, 0, &status);
-    USLOSS_Console("XXp1(): after waitDevice call\n");
+   GetPID(&pid);
+   USLOSS_Console("%s(): pid = %d\n", my_name, pid);
 
-    USLOSS_Console("XXp1(): About to print status from clock Handler:\n");
-    USLOSS_Console("XXp1(): status = %d   -- Should be near 100k, but does not have to be an exact match.  Is often 90k or so on Russ's computer.\n", status);
-
-    /* 2nd clock tick */
-    waitDevice(USLOSS_CLOCK_DEV, 0, &status);
-    USLOSS_Console("XXp1(): after waitDevice call\n");
-
-    USLOSS_Console("XXp1(): About to print status from clock Handler:\n");
-    USLOSS_Console("XXp1(): status = %d   -- Should be roughly 100k more than the previous report.\n", status);
-
-    quit(3);
+   USLOSS_Console("%s(): done\n", my_name);
+   return 9;
 }
 

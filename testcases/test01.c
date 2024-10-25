@@ -1,25 +1,40 @@
-
-/* start2 creates two mailboxes, then quits
+/*
+ * Simple Spawn test.
  */
 
-#include <stdio.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
 
 
-int start2(void *arg)
+int Child1(void *);
+
+int start3(void *arg)
 {
-  int mbox_id;
+    int pid;
 
-  USLOSS_Console("start2(): started\n");
+    USLOSS_Console("start3(): started.  Calling Spawn for Child1\n");
 
-  mbox_id = MboxCreate(10, 50);
-  USLOSS_Console("start2(): MailBoxCreate returned id = %d\n", mbox_id);
-  mbox_id = MboxCreate(20, 30);
-  USLOSS_Console("start2(): MailBoxCreate returned id = %d\n", mbox_id);
+    Spawn("Child1", Child1, NULL, USLOSS_MIN_STACK, 2, &pid);
 
-  quit(0);
+    USLOSS_Console("start3(): after spawn of %d\n", pid);
+    USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
+
+    Terminate(0);
+}
+
+
+
+int Child1(void *arg) 
+{
+    USLOSS_Console("Child1(): starting\n");
+    USLOSS_Console("Child1(): done\n");
+
+    // Terminate(9);
+    return 9;
 }
 

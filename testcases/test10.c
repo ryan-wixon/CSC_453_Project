@@ -1,125 +1,57 @@
-
-/* Creates a 5-slot mailbox. Creates XXp1 that sends five messages to the
- * mailbox, then terminates. Creates XXp2a,b,c each of which sends a
- * message to the mailbox.  XXp2a does a conditional send, which should
- * fail.  XXp2b does a send and gets blocked.  XXp2c does a conditional
- * send which should fail.
- * Creates XXp3 which receives the six messages that should be available,
- * five from slots and one from unblocking XXp2b.
+/*
+ * Three process test of GetTimeofDay.
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
 
-int XXp1(void *);
-int XXp2(void *);
-int XXp3(void *);
-char buf[256];
+int Child1(void *);
 
-int mbox_id;
-
+int semaphore;
 
 
-int start2(void *arg)
+int start3(void *arg)
 {
-   int kid_status, kidpid;
+   int pid, status;
 
-   USLOSS_Console("start2(): started\n");
+   USLOSS_Console("start3(): started\n");
 
-   mbox_id = MboxCreate(5, 50);
-   USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
+   USLOSS_Console("start3(): calling Spawn for Child1a\n");
+   Spawn("Child1a", Child1, "Child1a", USLOSS_MIN_STACK, 1, &pid);
 
-   kidpid = spork("XXp1",  XXp1, NULL,    2 * USLOSS_MIN_STACK, 1);
-   kidpid = spork("XXp2a", XXp2, "XXp2a", 2 * USLOSS_MIN_STACK, 2);
-   kidpid = spork("XXp2b", XXp2, "XXp2b", 2 * USLOSS_MIN_STACK, 3);
-   kidpid = spork("XXp2c", XXp2, "XXp2c", 2 * USLOSS_MIN_STACK, 4);
-   kidpid = spork("XXp3",  XXp3, NULL,    2 * USLOSS_MIN_STACK, 5);
+   USLOSS_Console("start3(): calling Spawn for Child1b\n");
+   Spawn("Child1b", Child1, "Child1b", USLOSS_MIN_STACK, 1, &pid);
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+   USLOSS_Console("start3(): calling Spawn for Child1c\n");
+   Spawn("Child1c", Child1, "Child1c", USLOSS_MIN_STACK, 1, &pid);
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+   USLOSS_Console("start3(): calling Wait for all 3 children\n");
+   Wait(&pid, &status);
+   Wait(&pid, &status);
+   Wait(&pid, &status);
 
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   kidpid = join(&kid_status);
-   USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
-
-   quit(0);
+   USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
+   Terminate(0);
 }
 
 
-int XXp1(void *arg)
+int Child1(void *my_name) 
 {
-   int i, result;
-   char buffer[20];
+   int i, j, temp, time;
 
-   USLOSS_Console("XXp1(): started\n");
-
-   for (i = 0; i < 5; i++)
-   {
-      USLOSS_Console("XXp1(): sending message #%d to mailbox %d\n", i, mbox_id);
-      sprintf(buffer, "hello there, #%d", i);
-      result = MboxSend(mbox_id, buffer, strlen(buffer)+1);
-      USLOSS_Console("XXp1(): after send of message #%d, result = %d\n", i, result);
+   USLOSS_Console("%s(): starting\n", my_name);
+   for (j = 0; j < 3; j++) {
+      for (i = 0; i < 1000; i++)
+         temp = 2 + temp;
+      GetTimeofDay(&time);
+      USLOSS_Console("%s(): current time = %d   Should be close, but does not have to be an exact match\n", my_name, time);
    }
 
-   quit(3);
-}
-
-
-int XXp2(void *arg)
-{
-   int result;
-   char buffer[20];
-
-   sprintf(buffer, "hello from %s", (char*)arg);
-
-   if ( strcmp( arg, "XXp2b" ) == 0 )
-   {
-      USLOSS_Console("%s(): sending message '%s' to mailbox %d, msg_size = %lu\n", (char*)arg, buffer, mbox_id, strlen(buffer)+1);
-      result = MboxSend(mbox_id, buffer, strlen(buffer)+1);
-      USLOSS_Console("%s(): after send of message '%s', result = %d\n", (char*)arg, buffer, result);
-   }
-   else
-   {
-      USLOSS_Console("%s(): conditionally sending message '%s' to mailbox %d, ", (char*)arg, buffer, mbox_id);
-      USLOSS_Console("msg_size = %lu\n", strlen(buffer)+1);
-      result = MboxCondSend(mbox_id, buffer, strlen(buffer)+1);
-      USLOSS_Console("%s(): after conditional send of message '%s', result = %d\n", (char*)arg, buffer, result);
-   }
-
-   quit(4);
-}
-
-
-int XXp3(void *arg)
-{
-   char buffer[100];
-   int i, result;
-
-  /* BUGFIX: initialize buffers to predictable contents */
-  memset(buffer, 'x', sizeof(buffer)-1);
-  buffer[sizeof(buffer)-1] = '\0';
-
-   USLOSS_Console("XXp3(): started\n");
-
-   for (i = 0; i < 6; i++)
-   {
-      USLOSS_Console("XXp3(): receiving message #%d from mailbox %d\n", i, mbox_id);
-      result = MboxRecv(mbox_id, buffer, 100);
-      USLOSS_Console("XXp3(): after receipt of message #%d, result = %d   message = '%s'\n", i, result, buffer);
-   }
-
-   quit(5);
+   USLOSS_Console("%s(): done\n", my_name);
+   return 9;
 }
 

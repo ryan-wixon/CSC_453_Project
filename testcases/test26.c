@@ -1,145 +1,119 @@
-/* start2 creates a 5 slot mailbox, then fork's XXp3 at priority 5.
- * XXp3 sends 5 messages to the mailbox (filling all the slots); XXp3 then
- * creates three instances of XXp2 running at priorities 4, 3, 2 respectively.
- * Each instance of XXp2 sends a message to the mailbox (and blocks, since
- * the mailbox slots are all full). This leaves all three instances of XXp2
- * blocked on the mailbox in the order 4, 3, 2.
- * XXp3 then fork's XXp1 running at priority 1. XXp1 receives 8 messages,
- * printing the contents of each.
+/* test huge V amounts, to see if the user is *counting* the value, or if they
+ * are storing up messages in a mailbox.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
-
-int XXp1(void *);
-int XXp2(void *);
-int XXp3(void *);
-
-int mbox_id;
+#include <phase3_usermode.h>
+#include <stdio.h>
+#include <assert.h>
 
 
 
-int start2(void *arg)
+/* will race for CPU time */
+int Child1(void *);
+int Child2(void *);
+
+/* low-priority child; only runs when the others block */
+int LP_Child(void *);
+
+
+
+/* each process saves its semaphore ID here.  The semaphores are not shared
+ * except at the very end; each process does N V-ops followed by N+1 P-ops;
+ * therefore, the last one blocks.  The low-priority process will supply the
+ * one missing V for each semaphore, but it cannot do that until both of the
+ * other child processes block.
+ */
+int sem1, sem2;
+
+#define N (250*1000)
+
+
+
+int start3(void *arg)
 {
-    int kid_status, kidpid;
+    int pid;
+    int status;
 
-    USLOSS_Console("start2(): started\n");
+    sem1 = sem2 = -1;
 
-    mbox_id = MboxCreate(5, MAX_MESSAGE);
-    USLOSS_Console("start2(): MboxCreate returned id = %d\n", mbox_id);
+    USLOSS_Console("start3(): started\n");
 
-    kidpid = spork("XXp3", XXp3, NULL, 2 * USLOSS_MIN_STACK, 4);
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned the Child1 process %d\n", pid);
 
-    kidpid = join(&kid_status);
-    USLOSS_Console("start2(): joined with kid %d, status = %d\n", kidpid, kid_status);
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned the Child2 process %d\n", pid);
 
-    quit(0);
+    Spawn("LP_Child", LP_Child, "LP_Child", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("start3(): spawned the low-priority process %d\n", pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+
+    USLOSS_Console("start3(): done\n");
+    Terminate(0);
 }
 
-int XXp1(void *arg)
+
+
+int Child_common_func(void *arg, int *sem, int retval);
+
+int Child1(void *arg)
 {
-    int i, result;
-    char buffer[MAX_MESSAGE];
-
-    /* BUGFIX: initialize buffers to predictable contents */
-    memset(buffer, 'x', sizeof(buffer)-1);
-    buffer[sizeof(buffer)-1] = '\0';
-
-    USLOSS_Console("XXp1(): started\n");
-
-    for (i = 1; i <= 8; i++) {
-        result = MboxRecv(mbox_id, buffer, MAX_MESSAGE);
-        USLOSS_Console("XXp1(): received message #%d rc %d   message '%s'\n", i, result, buffer);
-    }
-
-    USLOSS_Console("XXp1(): done sending, now quitting\n\n");
-
-    quit(1);
+    return Child_common_func(arg, &sem1, 1);
+}
+int Child2(void *arg)
+{
+    return Child_common_func(arg, &sem2, 2);
 }
 
-int XXp2(void *arg)
+int Child_common_func(void *arg, int *sem, int retval)
 {
-    int result = -5;
-    int my_priority = atoi(arg);
+    int rc = SemCreate(0, sem);
+    assert(rc == 0);
 
-    USLOSS_Console("XXp2(): started\n");
-
-    USLOSS_Console("XXp2(): priority %d, sending message to mailbox %d\n", my_priority, mbox_id);
-
-    switch (my_priority) {
-    case 2:
-        result = MboxSend(mbox_id, "Eighth message", 15);
-        break;
-    case 3:
-        result = MboxSend(mbox_id, "Seventh message", 16);
-        break;
-    case 4:
-        result = MboxSend(mbox_id, "Sixth message", 14);
-        break;
-    default:
-        USLOSS_Console("XXp2(): problem in switch!!!!\n");
+    USLOSS_Console("%s(): Semaphore %d created.  I will now call V on it %d times.\n", arg, *sem, N);
+    for (int i=0; i<N; i++)
+    {
+        rc = SemV(*sem);
+        assert(rc == 0);
     }
 
-    USLOSS_Console("XXp2(): priority %d, after sending message, result = %d\n", my_priority, result);
+    USLOSS_Console("%s(): V operations completed.  I will now call P on the semaphore the same number of times.\n", arg);
+    for (int i=0; i<N; i++)
+    {
+        rc = SemP(*sem);
+        assert(rc == 0);
+    }
 
-    quit(my_priority);
+    USLOSS_Console("%s(): P operations completed.  I will now call P once more; this will force the process to block, until the Low-Priority Child is able to give us one more V operation.\n", arg);
+
+    rc = SemP(*sem);
+    assert(rc == 0);
+
+    USLOSS_Console("%s(): Last P operation has returned.  This process will terminate.\n", arg);
+    return retval;
 }
 
-int XXp3(void *arg)
+
+
+int LP_Child(void *arg)
 {
-    int kidpid, status, i;
-    int result;
+    USLOSS_Console("%s(): The low-priority child is finally running.  This must not happen until both Child1,Child2 have blocked on their last P operation.\n", arg);
 
-    USLOSS_Console("\nXXp3(): started, about to send 5 messages to the mailbox\n");
+    SemV(sem1);
+    SemV(sem2);
 
-    for (i = 1; i <= 5; i++) {
-        USLOSS_Console("XXp3(): sending message #%d to mailbox %d\n", i, mbox_id);
-
-        switch (i) {
-        case 1:
-            result = MboxSend(mbox_id, "First message", 14);
-            break;
-        case 2:
-            result = MboxSend(mbox_id, "Second message", 15);
-            break;
-        case 3:
-            result = MboxSend(mbox_id, "Third message", 14);
-            break;
-        case 4:
-            result = MboxSend(mbox_id, "Fourth message", 15);
-            break;
-        case 5:
-            result = MboxSend(mbox_id, "Fifth message", 14);
-            break;
-        default:
-            USLOSS_Console("XXp3(): problem in switch!!!!\n");
-        }
-
-        USLOSS_Console("XXp3(): MboxSend rc %d\n", result);
-    }
-
-    USLOSS_Console("\nXXp3(): fork'ing XXp2 at priority 4\n");
-    kidpid = spork("XXp2", XXp2, "4", 2 * USLOSS_MIN_STACK, 4);
-
-    USLOSS_Console("\nXXp3(): fork'ing XXp2 at priority 3\n");
-    kidpid = spork("XXp2", XXp2, "3", 2 * USLOSS_MIN_STACK, 3);
-
-    USLOSS_Console("\nXXp3(): fork'ing XXp2 at priority 2\n");
-    kidpid = spork("XXp2", XXp2, "2", 2 * USLOSS_MIN_STACK, 2);
-
-    USLOSS_Console("\nXXp3(): fork'ing XXp1 at priority 1\n");
-    kidpid = spork("XXp1", XXp1, NULL, 2 * USLOSS_MIN_STACK, 1);
-
-    for (i = 0; i < 4; i++) {
-        kidpid = join(&status);
-        USLOSS_Console("XXp3(): join'd with child %d whose status is %d\n", kidpid, status);
-    }
-
-    quit(5);
+    return 9;
 }
 

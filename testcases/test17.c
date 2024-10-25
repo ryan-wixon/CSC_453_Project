@@ -1,55 +1,78 @@
+/* basic terminate test */
 
-/* tests for exceeding the number of slots. start2 creates mailboxes whose
- * total slots will exceed the system limit. start2 then starts doing
- * conditional sends to each slot of each mailbox until the return code
- * of conditional send comes back as -2
- */
-
-#include <stdio.h>
 #include <usloss.h>
+#include <usyscall.h>
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3_usermode.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int mboxids[50];
+int Child1(void *);
+int Child2(void *);
+
+int sem1;
 
 
-
-int start2(void *arg)
+int start3(void *arg)
 {
-    int boxNum, slotNum, result;
+    int pid;
+    int status;
 
-    USLOSS_Console("start2(): started, trying to exceed systemwide mailslots...\n");
+    USLOSS_Console("start3(): started\n");
 
-    /* See the previous testcase for explanation.  This is the EXACT SAME,
-     * except that we call CondSend() instead.
-     */
+    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
+    USLOSS_Console("start3(): spawned process %d\n", pid);
 
-    for (boxNum = 0; boxNum < 50; boxNum++)
+    Wait(&pid, &status);
+    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+
+    USLOSS_Console("start3(): done\n");
+    Terminate(0);
+}
+
+
+int Child1(void *arg) 
+{
+    int pid, status;
+
+    USLOSS_Console("Child1() starting\n");
+
+    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("Child1(): spawned process %d\n", pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("Child1(): child %d returned status of %d\n", pid, status);
+
+    Spawn("Child3", Child2, "Child3", USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("Child1(): spawned process %d\n", pid);
+
+    Wait(&pid, &status);
+    USLOSS_Console("Child1(): child %d returned status of %d\n", pid, status);
+
+    USLOSS_Console("Child1(): done\n");
+    Terminate(9);
+}
+
+
+int Child2(void *arg) 
+{
+    if (strcmp(arg,"Child2") == 0)
     {
-        mboxids[boxNum] = MboxCreate(55, 0);
-        if (mboxids[boxNum] < 0)
-            USLOSS_Console("start2(): MailBoxCreate returned id less than zero, id = %d\n", mboxids[boxNum]);
+        USLOSS_Console("Child2(): starting\n");
+        Terminate(9);
     }
-
-    for (boxNum = 0; boxNum < 50; boxNum++)
+    else if (strcmp(arg,"Child3") == 0)
     {
-        for (slotNum = 0; slotNum < 55; slotNum++)
-        {
-            result = MboxCondSend(mboxids[boxNum], NULL,0);
-            if (result == -2)
-            {
-                USLOSS_Console("No slots available: mailbox %d and slot %d\n", boxNum, slotNum);
-                quit(0);
-            }
-            else if (result != 0)
-            {
-                USLOSS_Console("UNEXPECTED ERROR %d: mailbox %d and slot %d\n", result, boxNum, slotNum);
-                quit(100);
-            }
-        }
+        USLOSS_Console("Child3(): starting\n");
+        Terminate(10);
     }
-
-    USLOSS_Console("ERROR: You should not get here!!!\n");
-    quit(100);
+    else
+    {
+        USLOSS_Console("wrong argument passed ... test failed\n");
+        USLOSS_Halt(1);
+    }
+    return 0;
 }
 

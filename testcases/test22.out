@@ -1,25 +1,15 @@
-phase3_start_service_processes() called -- currently a NOP
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-start2(): started
-
-start2(): MboxCreate returned id = 7
-XXp2a(): receiving message from mailbox 7
-XXp2b(): receiving message from mailbox 7
-XXp2c(): receiving message from mailbox 7
-XXp4(): started and quitting
-XXp3(): started
-XXp3(): MboxRelease returned 0
-
-start2(): joined with kid 8, status = 4
-XXp2a(): after receive of message, result = -1
-
-start2(): joined with kid 4, status = 3
-XXp2b(): after receive of message, result = -1
-
-start2(): joined with kid 5, status = 3
-XXp2c(): after receive of message, result = -1
-
-start2(): joined with kid 6, status = 3
-failed to recv from released mailbox ... success
+start3(): started
+start3(): spawned process 4
+Child1(): starting, pid = 4
+Child2(): starting, pid = 5
+Child2(): spawned process 6
+Child2(): terminating
+Child1(): spawned process 5
+Child2a(): starting the code for Child2a
+Child1(): child 5 returned status of 10
+Child1(): done
+start3(): child 4 returned status of 9
+start3(): done
 finish(): The simulation is now terminating.
