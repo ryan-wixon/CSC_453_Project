@@ -75,6 +75,25 @@ void phase3_start_service_processes() {
 
 /* Below: All functions called by the syscall handler. */
 
+int trampolineMain(int(*main)(void*), void* arg) {
+
+	// switch to user mode
+	unsigned int oldPSR = USLOSS_PsrGet();
+	if (USLOSS_PsrSet(oldPSR - 1) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR set in trampolineMain\n");
+	}
+
+	int mainReturn = (*main)(arg);
+
+	// switch back to kernal mode
+	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
+		fprintf(stderr, "Bad PSR set in trampolineMain\n");
+	}
+
+	return mainReturn;
+}
+
+
 void spawn(USLOSS_Sysargs *args) {
     getLock();
 
