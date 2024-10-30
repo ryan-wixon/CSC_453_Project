@@ -3,4 +3,4 @@ phase5_start_service_processes() called -- currently a NOP
 start3(): started.  Calling SemCreate
 start3(): sem_result = 0, semaphore = 0
 start3(): sem_result = 0, semaphore = 1
-test04: phase3_usermode.c:77: Terminate: Assertion `0' failed.
+finish(): The simulation is now terminating.

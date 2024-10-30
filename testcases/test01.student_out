@@ -1,6 +1,7 @@
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 start3(): started.  Calling Spawn for Child1
-start3(): after spawn of -651280031
-start3(): Parent done. Calling Terminate.
-test01: phase3_usermode.c:77: Terminate: Assertion `0' failed.
+Child1(): starting
+Child1(): done
+ERROR: Someone attempted to call quit while in user mode!
+finish(): The simulation is now terminating.

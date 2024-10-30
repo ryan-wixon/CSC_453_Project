@@ -203,4 +203,4 @@ i = 198, sem_result =  0, semaphore = 198
 i = 199, sem_result =  0, semaphore = 199
 i = 200, sem_result = -1, semaphore =  0
 i = 201, sem_result = -1, semaphore =  0
-test05: phase3_usermode.c:77: Terminate: Assertion `0' failed.
+finish(): The simulation is now terminating.

@@ -21,6 +21,11 @@ typedef struct Semaphore {
     int blockOn;    /* ID of the mailbox to block on if count = 0 */
 } Semaphore;
 
+typedef struct FuncMessage {
+    int(*funcMain)(void*);
+    void *arg;
+} FuncMessage;
+
 /* function declarations */
 void phase3_start_service_processes();
 void spawn(USLOSS_Sysargs *args);
@@ -45,7 +50,7 @@ int lock = -1;  /* the ID of the mailbox used as a lock */
 #define EMPTY         0
 #define FULL         1
 
-Semaphore semaphores[MAXSEMS];  /* array of available semaphores */
+Semaphore allocatedSems[MAXSEMS];  /* array of available semaphores */
 int filledSems[MAXSEMS];
 int allFull = EMPTY;
 
@@ -53,8 +58,8 @@ void phase3_init() {
     // TODO
     // create lock
     lock = MboxCreate(1, 0);
-    // initialize filledSems and semaphores to 0
-    memset(semaphores, 0, sizeof(semaphores));
+    // initialize filledSems and allocatedSems to 0
+    memset(allocatedSems, 0, sizeof(allocatedSems));
     memset(filledSems, 0, sizeof(filledSems));
     // install the proper functions in the syscallVec (from phase 2)
     systemCallVec[SYS_SPAWN] = spawn;
@@ -75,7 +80,15 @@ void phase3_start_service_processes() {
 
 /* Below: All functions called by the syscall handler. */
 
-int trampolineMain(int(*main)(void*), void* arg) {
+//int trampolineMain(int(*main)(void*), void* arg) {
+int trampolineMain(void* arg) {
+    // receive the correct data on which function to call from the mailbox
+    int infoBox = (int)(long)arg;
+    FuncMessage mainInfo = {.funcMain = NULL, .arg = NULL};
+    MboxRecv(infoBox, (void*)&mainInfo, sizeof(FuncMessage));
+
+    int(*funcMain)(void*) = mainInfo.funcMain;
+    void *args = mainInfo.arg;
 
 	// switch to user mode
 	unsigned int oldPSR = USLOSS_PsrGet();
@@ -83,21 +96,40 @@ int trampolineMain(int(*main)(void*), void* arg) {
 		fprintf(stderr, "Bad PSR set in trampolineMain\n");
 	}
 
-	int mainReturn = (*main)(arg);
+    // now actually run the main function.
+	int mainReturn = (*funcMain)(args);
 
-	// switch back to kernal mode
-	if (USLOSS_PsrSet(oldPSR) == USLOSS_ERR_INVALID_PSR) {
-		fprintf(stderr, "Bad PSR set in trampolineMain\n");
-	}
+	// we cannot switch back to kernel mode (since once a process is in
+    // user mode, it can never return to kernel mode)
 
-	return mainReturn;
+    return mainReturn;
 }
 
 
 void spawn(USLOSS_Sysargs *args) {
     getLock();
 
-    int sporkReturn = spork((char*)args->arg5, (int(*)(void*))args->arg1, args->arg2, (int)(long)args->arg3, (int)(long)args->arg4);
+    // create mailbox for the process
+    int sendFuncID = MboxCreate(1, sizeof(FuncMessage));
+
+    // get the variables related to the process main function
+    int(*funcMain)(void*) = (int(*)(void*))args->arg1;
+    void *funcArgs = args->arg2;
+
+    // send message
+    FuncMessage funcInfo = {.funcMain = funcMain, .arg = funcArgs};
+    FuncMessage *functionInfo = &funcInfo;
+
+    MboxSend(sendFuncID, (void*)functionInfo, sizeof(FuncMessage));
+
+    // now use trampoline
+    int(*trampoline)(void*) = trampolineMain;
+
+    releaseLock();
+    int sporkReturn = spork((char*)args->arg5, trampoline, (void*)(long)sendFuncID, (int)(long)args->arg3, (int)(long)args->arg4);
+    getLock();
+
+    //int sporkReturn = spork((char*)args->arg5, (int(*)(void*))args->arg1, args->arg2, (int)(long)args->arg3, (int)(long)args->arg4);
 
     if (sporkReturn > 0) {
 	args->arg1 = (void*)(long)sporkReturn;
@@ -120,7 +152,11 @@ void wait(USLOSS_Sysargs *args) {
     getLock();
    
     int joinStatus;
-    int joinReturn = join(&joinStatus);
+    int joinReturn;
+    // release lock before calling other function, get it back when returning
+    releaseLock();
+    joinReturn = join(&joinStatus);
+    getLock();
 
     if (joinReturn > 0) {
 	args->arg1 = (void*)(long)joinReturn;
@@ -140,12 +176,14 @@ void terminate(USLOSS_Sysargs *args) {
     int joinStatus;
     int joinReturn = -1;
     while (joinReturn != -2) {
-	joinReturn = join(&joinStatus);
+	    joinReturn = join(&joinStatus);
     }
 
-    quit((int)(long)args->arg1);
-    
+    int status = (int)(long)args->arg1;
+
+    // just before calling another function, release lock.
     releaseLock();
+    quit(status);
 }
 
 void semCreate(USLOSS_Sysargs *args) {
@@ -172,10 +210,10 @@ void semCreate(USLOSS_Sysargs *args) {
     }
     filledSems[slot] = FULL;
     // keep track of the semaphore's value here
-    semaphores[slot].count = (int)(long)(args->arg1);
+    allocatedSems[slot].count = (int)(long)(args->arg1);
     // mailbox is only used for blocking, not used to store values
     // this is to save space and only allocate resources we need
-    semaphores[slot].blockOn = MboxCreate(1, 0);
+    allocatedSems[slot].blockOn = MboxCreate(1, 0);
     args->arg1 = (void*)(long)slot;
     args->arg4 = (void*)(long)(0);
     releaseLock();
@@ -191,15 +229,15 @@ void p(USLOSS_Sysargs *args) {
         return;
     }
     // arguments passed validity check, now attempt to decrement
-    if(semaphores[slot].count == 0) {
+    if(allocatedSems[slot].count == 0) {
         // block!
-        int mailbox = semaphores[slot].blockOn;
+        int mailbox = allocatedSems[slot].blockOn;
         releaseLock();
         MboxRecv(mailbox, NULL, 0);
         // after here, we are awake again.
         getLock();
     }
-    semaphores[slot].count--;
+    allocatedSems[slot].count--;
     args->arg4 = (void*)(long)(0);
     releaseLock();
 }
@@ -207,7 +245,7 @@ void p(USLOSS_Sysargs *args) {
 void v(USLOSS_Sysargs *args) {
     getLock();
     int slot = (int)(long)(args->arg1);
-    semaphores[slot].count++;
+    allocatedSems[slot].count++;
     // conditionally send message to unblock potentially blocked
     // processes (conditional since we have no way to check if
     // any processes currently blocked)

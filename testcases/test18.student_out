@@ -1,7 +1,12 @@
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 start3(): started
-start3(): spawned process 818106773
-start3(): child 0 returned status of 0
-start3(): done
-test18: phase3_usermode.c:77: Terminate: Assertion `0' failed.
+start3(): spawned process 4
+Child1(): starting, pid = 4
+Child2(): starting, pid = 5
+Child2(): spawned process 6
+Child2(): spawned process 7
+Child2(): spawned process 8
+Child2a(): starting
+Child2b(): starting
+Child2c(): starting
