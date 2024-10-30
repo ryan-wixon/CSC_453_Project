@@ -1,0 +1,9 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start3(): started.  Creating semaphore.
+start3(): calling Spawn for Child1 (three times)
+start3(): after spawn of -1183657342 -1183657342 -1183657342
+start3(): calling Spawn for Child2
+start3(): after spawn of -1183657252
+start3(): Parent done. Calling Terminate.
+test07: phase3_usermode.c:77: Terminate: Assertion `0' failed.

@@ -1,0 +1,12 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start3(): started
+start3(): SemCreate returned 0
+start3(): After P in the CS
+start3(): spawn -432565634
+start3(): spawn -432565457
+start3(): After V -- may appear before: Child1(): After P attempt #3
+start3(): status of quit child = 0
+start3(): status of quit child = 0
+start3(): Parent done
+test20: phase3_usermode.c:77: Terminate: Assertion `0' failed.

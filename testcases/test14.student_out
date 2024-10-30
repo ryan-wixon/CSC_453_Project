@@ -1,0 +1,5 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start3(): started
+start3(): Spawn -2062024505
+test14: testcases/test14.c:44: start3: Assertion `id == 32' failed.

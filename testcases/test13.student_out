@@ -1,0 +1,9 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start3(): started
+start3(): calling Spawn for Child1a
+start3(): calling Spawn for Child1b
+start3(): calling Spawn for Child1c
+start3(): calling Wait for all 3 children
+start3(): Parent done. Calling Terminate.
+test13: phase3_usermode.c:77: Terminate: Assertion `0' failed.

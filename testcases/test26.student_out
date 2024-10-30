@@ -1,0 +1,11 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+start3(): started
+start3(): spawned the Child1 process 1965314725
+start3(): spawned the Child2 process 1965314770
+start3(): spawned the low-priority process 1965315258
+start3(): child 0 returned status of 0
+start3(): child 0 returned status of 0
+start3(): child 0 returned status of 0
+start3(): done
+test26: phase3_usermode.c:77: Terminate: Assertion `0' failed.

@@ -13,6 +13,7 @@
 #include <usyscall.h> /* for system call constants, etc. */
 #include <phase1.h>  /* to access phase 1 functions, if necessary */
 #include <phase2.h>  /* to access phase2 functions, for mailboxes */
+#include <phase3.h>
 
 /* semaphore struct -- can change later if necessary */
 typedef struct Semaphore {
@@ -34,6 +35,10 @@ void getPID(USLOSS_Sysargs *args);
 /* mailbox lock functions */
 void getLock();
 void releaseLock();
+
+
+/* semephore helper functions */
+int nextAvailableSem();
 
 int lock = -1;  /* the ID of the mailbox used as a lock */
 
@@ -72,6 +77,19 @@ void phase3_start_service_processes() {
 
 void spawn(USLOSS_Sysargs *args) {
     getLock();
+
+    int sporkReturn = spork((char*)args->arg5, (int(*)(void*))args->arg1, args->arg2, (int)(long)args->arg3, (int)(long)args->arg4);
+
+    if (sporkReturn > 0) {
+	args->arg1 = (void*)(long)sporkReturn;
+    }
+    else {
+	args->arg1 = (void*)(long)-1;
+    }
+
+    // TODO not sure how to set this yet, leaving as 0 for now
+    args->arg4 = 0;
+
     // TODO
     // note: the only time you can modify PSR is in the trampoline function
     // for the user-main function, which is not yet implemented.
@@ -81,13 +99,33 @@ void spawn(USLOSS_Sysargs *args) {
 
 void wait(USLOSS_Sysargs *args) {
     getLock();
-    // TODO
+   
+    int joinStatus;
+    int joinReturn = join(&joinStatus);
+
+    if (joinReturn > 0) {
+	args->arg1 = (void*)(long)joinReturn;
+	args->arg2 = (void*)(long)joinStatus;
+	args->arg4 = (void*)(long)0;
+    }
+    else {
+    	args->arg4 = (void*)(long)-2;
+    }
+
     releaseLock();
 }
 
 void terminate(USLOSS_Sysargs *args) {
     getLock();
-    // TODO
+    
+    int joinStatus;
+    int joinReturn = -1;
+    while (joinReturn != -2) {
+	joinReturn = join(&joinStatus);
+    }
+
+    quit((int)(long)args->arg1);
+    
     releaseLock();
 }
 

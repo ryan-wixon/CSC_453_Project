@@ -1,0 +1,3 @@
+phase4_start_service_processes() called -- currently a NOP
+phase5_start_service_processes() called -- currently a NOP
+test15: testcases/test15.c:26: start3: Assertion `id == 32' failed.
