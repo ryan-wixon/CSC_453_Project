@@ -218,7 +218,7 @@ void semCreate(USLOSS_Sysargs *args) {
     allocatedSems[slot].count = (int)(long)(args->arg1);
     // mailbox is only used for blocking, not used to store values
     // this is to save space and only allocate resources we need
-    allocatedSems[slot].blockOn = MboxCreate(1, 0);
+    allocatedSems[slot].blockOn = MboxCreate(MAXSLOTS, 0);
     allocatedSems[slot].waiting = 0;
     args->arg1 = (void*)(long)slot;
     args->arg4 = (void*)(long)(0);
