@@ -1,7 +1,18 @@
 phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
 start3(): started
-start3(): spawned process -773197402
-start3(): child 0 returned status of 0
+start3(): spawned process 4
+Child1(): starting, pid = 4
+Child2(): starting, pid = 5
+Child2(): spawned process 6
+Child2(): spawned process 7
+Child2(): spawned process 8
+Child1(): spawned process 5
+Child2a(): starting the code for Child2a
+Child2b(): starting the code for Child2b
+Child2c(): starting the code for Child2c
+Child1(): child 5 returned status of 10
+Child1(): done
+start3(): child 4 returned status of 9
 start3(): done
-test24: phase3_usermode.c:77: Terminate: Assertion `0' failed.
+finish(): The simulation is now terminating.

@@ -17,4 +17,10 @@ Child1(): After P attempt #4
 Child1(): done
 Child2(): After V attempt #1
 Child2(): After V attempt #2
+Child2(): After V attempt #3
+Child2(): After V attempt #4
+Child2(): done
+start3(): status of quit child = 10
 start3(): status of quit child = 9
+start3(): Parent done
+finish(): The simulation is now terminating.

@@ -20,6 +20,7 @@
 typedef struct Semaphore {
     int count;  /* value of semaphore */
     int blockOn;    /* ID of the mailbox to block on if count = 0 */
+    int waiting;    /* indicates num of processes waiting to p on semaphore */
 } Semaphore;
 
 typedef struct FuncMessage {
@@ -218,6 +219,7 @@ void semCreate(USLOSS_Sysargs *args) {
     // mailbox is only used for blocking, not used to store values
     // this is to save space and only allocate resources we need
     allocatedSems[slot].blockOn = MboxCreate(1, 0);
+    allocatedSems[slot].waiting = 0;
     args->arg1 = (void*)(long)slot;
     args->arg4 = (void*)(long)(0);
     releaseLock();
@@ -236,6 +238,7 @@ void p(USLOSS_Sysargs *args) {
     if(allocatedSems[slot].count == 0) {
         // block!
         int mailbox = allocatedSems[slot].blockOn;
+        allocatedSems[slot].waiting++;
         releaseLock();
         MboxRecv(mailbox, NULL, 0);
         // after here, we are awake again.
@@ -257,11 +260,15 @@ void v(USLOSS_Sysargs *args) {
     allocatedSems[slot].count++;
     args->arg4 = (void*)(long)0;
     int wakeBox = allocatedSems[slot].blockOn;
-    // conditionally send message to unblock potentially blocked
-    // processes (conditional since we have no way to check if
-    // any processes currently blocked)
+    if(allocatedSems[slot].waiting > 0) {
+        // only send message if someone waiting
+        allocatedSems[slot].waiting--;
+        releaseLock();
+        MboxSend(wakeBox, NULL, 0);
+        return;
+    }
+    // don't send message if no one waiting, just exit
     releaseLock();
-    MboxSend(wakeBox, NULL, 0);
 }
 
 void getTime(USLOSS_Sysargs *args) {
