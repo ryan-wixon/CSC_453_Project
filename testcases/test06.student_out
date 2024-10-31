@@ -7,5 +7,7 @@ start3(): after spawn of 4
 start3(): calling Spawn for Child2
 Child2(): starting, V'ing semaphore
 Child2(): done
-ERROR: Someone attempted to call quit while in user mode!
+Child1(): done
+start3(): after spawn of 5
+start3(): Parent done. Calling Terminate.
 finish(): The simulation is now terminating.

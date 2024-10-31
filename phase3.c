@@ -14,6 +14,7 @@
 #include <phase1.h>  /* to access phase 1 functions, if necessary */
 #include <phase2.h>  /* to access phase2 functions, for mailboxes */
 #include <phase3.h>
+#include <phase3_usermode.h>    /* so trampoline can access syscalls */
 
 /* semaphore struct -- can change later if necessary */
 typedef struct Semaphore {
@@ -99,9 +100,10 @@ int trampolineMain(void* arg) {
     // now actually run the main function.
 	int mainReturn = (*funcMain)(args);
 
-	// we cannot switch back to kernel mode (since once a process is in
-    // user mode, it can never return to kernel mode)
+	// call Terminate to end the process since the process won't end itself
+    Terminate(mainReturn);
 
+    // should never reach here (just put it here to placate gcc)
     return mainReturn;
 }
 
@@ -176,7 +178,9 @@ void terminate(USLOSS_Sysargs *args) {
     int joinStatus;
     int joinReturn = -1;
     while (joinReturn != -2) {
+        releaseLock();
 	    joinReturn = join(&joinStatus);
+        getLock();
     }
 
     int status = (int)(long)args->arg1;
@@ -221,7 +225,7 @@ void semCreate(USLOSS_Sysargs *args) {
 
 void p(USLOSS_Sysargs *args) {
     getLock();
-    int slot = (int)(long)(args->arg1);
+    int slot = (int)(long)args->arg1;
     if(slot < 0 || filledSems[slot] == EMPTY) {
         // invalid arguments!
         args->arg4 = (void*)(long)(-1);
@@ -245,13 +249,19 @@ void p(USLOSS_Sysargs *args) {
 void v(USLOSS_Sysargs *args) {
     getLock();
     int slot = (int)(long)(args->arg1);
+    if(slot < 0 || filledSems[slot] == EMPTY) {
+        args->arg4 = (void*)(long)-1;
+        releaseLock();
+        return;
+    }
     allocatedSems[slot].count++;
+    args->arg4 = (void*)(long)0;
+    int wakeBox = allocatedSems[slot].blockOn;
     // conditionally send message to unblock potentially blocked
     // processes (conditional since we have no way to check if
     // any processes currently blocked)
-    MboxCondSend(slot, NULL, 0);
-    // TODO
     releaseLock();
+    MboxSend(wakeBox, NULL, 0);
 }
 
 void getTime(USLOSS_Sysargs *args) {

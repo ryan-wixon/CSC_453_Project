@@ -5,5 +5,14 @@ start3(): calling Spawn for Child1a
 Child1a(): starting
 Child1a(): pid = 4
 Child1a(): done
-ERROR: Someone attempted to call quit while in user mode!
+start3(): calling Spawn for Child1b
+Child1b(): starting
+Child1b(): pid = 5
+Child1b(): done
+start3(): calling Spawn for Child1c
+Child1c(): starting
+Child1c(): pid = 6
+Child1c(): done
+start3(): calling Wait for all 3 children
+start3(): Parent done. Calling Terminate.
 finish(): The simulation is now terminating.
