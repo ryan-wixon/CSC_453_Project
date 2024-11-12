@@ -1,15 +1,76 @@
-phase4_start_service_processes() called -- currently a NOP
 phase5_start_service_processes() called -- currently a NOP
-start3(): started
-start3(): spawned process 4
-Child1(): starting, pid = 4
-Child2(): starting, pid = 5
-Child2(): spawned process 6
-Child2(): terminating
-Child1(): spawned process 5
-Child2a(): starting the code for Child2a
-Child1(): child 5 returned status of 10
+start4(): Spawn four children.
+Child0(): start
+Child1(): start
+Child2(): start
+Child3(): start
+buffer written 'one: first line   (shortest first line)
+'
+buffer written 'two: first line   (third longest line of the set)
+'
+buffer written 'zero: first line   (second longest first line in the inputs)
+'
+buffer written 'three: first line   (definitely the longest first line of all the files)
+'
+buffer written 'one: second line
+'
+buffer written 'two: second line
+'
+buffer written 'one: third line, longer than previous ones
+'
+buffer written 'two: third line, longer than previous ones
+'
+buffer written 'zero: second line
+'
+buffer written 'zero: third line, longer than previous ones
+'
+buffer written 'three: second line
+'
+buffer written 'three: third line, longer than previous ones
+'
+buffer written 'one: fourth line, will be 80 characters long when I get through typing it in..
+'
+buffer written 'two: fourth line, will be 80 characters long when I get through typing it in..
+'
+buffer written 'zero: fourth line, will be 80 characters long when I get through typing it in.
+'
+buffer written 'three: fourth line, will be 80 characters long when I get through typing it in
+'
+buffer written 'one: fifth line
+'
+buffer written 'two: fifth line
+'
 Child1(): done
-start3(): child 4 returned status of 9
-start3(): done
+buffer written 'zero: fifth line
+'
+Child2(): done
+buffer written 'three: fifth line
+'
+Child0(): done
+Child3(): done
+start4(): done.
 finish(): The simulation is now terminating.
+----- term0.out -----
+zero: first line   (second longest first line in the inputs)
+zero: second line
+zero: third line, longer than previous ones
+zero: fourth line, will be 80 characters long when I get through typing it in.
+zero: fifth line
+----- term1.out -----
+one: first line   (shortest first line)
+one: second line
+one: third line, longer than previous ones
+one: fourth line, will be 80 characters long when I get through typing it in..
+one: fifth line
+----- term2.out -----
+two: first line   (third longest line of the set)
+two: second line
+two: third line, longer than previous ones
+two: fourth line, will be 80 characters long when I get through typing it in..
+two: fifth line
+----- term3.out -----
+three: first line   (definitely the longest first line of all the files)
+three: second line
+three: third line, longer than previous ones
+three: fourth line, will be 80 characters long when I get through typing it in
+three: fifth line

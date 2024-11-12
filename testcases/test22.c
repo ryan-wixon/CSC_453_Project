@@ -1,73 +1,82 @@
-/* recursive terminate test */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
-
-int Child1(void *);
-int Child2(void *);
-int Child2a(void *);
-
-int sem1;
+#include <phase4.h>
+#include <phase4_usermode.h>
 
 
-int start3(void *arg)
+
+int Child1(char *arg)
 {
-    int pid;
-    int status;
+    int term = atoi(arg);
+    char buf[MAXLINE] = "";
+    int read_length;
+    int i, result, size;
 
-    USLOSS_Console("start3(): started\n");
+    USLOSS_Console("Child%d(): start\n", term);
 
-    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
-    USLOSS_Console("start3(): spawned process %d\n", pid);
+    for (i = 0; i< 5; i++)
+    {
+        int retval = TermRead(buf, MAXLINE, term, &read_length);
+        if (retval < 0)
+        {
+            USLOSS_Console("ERROR: ReadTerm\n");
+            return -1;
+        }
+        buf[read_length] = '\0';
 
-    Wait(&pid, &status);
-    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+        USLOSS_Console("buffer written '%s'\n", buf);
 
-    USLOSS_Console("start3(): done\n");
+        result = TermWrite(buf, strlen(buf), term, &size);
+        if (result < 0 || size != strlen(buf))
+        {
+            USLOSS_Console("\n ***** Child(%d): got bad result or ", term);
+            USLOSS_Console("bad size! *****\n\n");
+        }
+    }
+
+    USLOSS_Console("Child%d(): done\n", term);
     Terminate(0);
 }
 
 
-int Child1(void *arg) 
+
+extern int testcase_timeout;   // defined in the testcase common code
+
+int start4(void *arg)
 {
-    int pid;
-    int status;
+    int  pid, status, i;
+    char buf[4][12];
+    char child_buf[12];
 
-    GetPID(&pid);
-    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
+    testcase_timeout = 60;
 
-    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 2, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+    USLOSS_Console("start4(): Spawn four children.\n");
 
-    Wait(&pid, &status);
-    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+    for (i=0; i<4; i++)
+    {
+        sprintf(buf[i], "%d", i);
+        sprintf(child_buf, "Child%d", i);
+        status = Spawn(child_buf, Child1, buf[i], USLOSS_MIN_STACK,2, &pid);
+        assert(status == 0);
+    }
 
-    USLOSS_Console("%s(): done\n", arg);
-    Terminate(9);
-}
+    for (i=0; i<4; i++)
+    {
+        Wait(&pid, &status);
+        assert(status == 0);
+    }
 
-
-int Child2(void *arg) 
-{
-    int pid;
-
-    GetPID(&pid);
-    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
-
-    Spawn("Child2a", Child2a, "Child2a", USLOSS_MIN_STACK, 5, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
-
-    USLOSS_Console("%s(): terminating\n", arg);
-    Terminate(10);
-}
-
-int Child2a(void *arg) 
-{
-    USLOSS_Console("%s(): starting the code for Child2a\n", arg);
-    Terminate(11);
+    USLOSS_Console("start4(): done.\n");
+    Terminate(0);
 }
 

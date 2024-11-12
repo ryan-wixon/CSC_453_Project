@@ -1,103 +1,78 @@
-/* recursive terminate test */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
-
-int Child1 (void *);
-int Child2 (void *);
-int Child2a(void *);
-int Child2b(void *);
-int Child2c(void *);
-
-int sem1;
+#include <phase4.h>
+#include <phase4_usermode.h>
 
 
-int start3(void *arg)
+
+int Child1(char *arg)
 {
-    int pid;
-    int status;
+    int term = atoi(arg);
+    char buf[MAXLINE + 1] = "";
+    int result, read_length;
+    int i, size;
 
-    USLOSS_Console("start3(): started\n");
+    USLOSS_Console("Child%d(): start\n", term);
 
-    Spawn("Child1", Child1, "Child1", USLOSS_MIN_STACK, 4, &pid);
-    USLOSS_Console("start3(): spawned process %d\n", pid);
+    for (i = 0; i< 10; i++)
+    {
+        memset(buf, 'x', sizeof(buf));
 
-    Wait(&pid, &status);
-    USLOSS_Console("start3(): child %d returned status of %d\n", pid, status);
+        int rc = TermRead(buf, MAXLINE, term, &read_length);
+        if (rc < 0)
+        {
+            USLOSS_Console("ERROR: ReadTeam\n");
+            return -1;
+        }
 
-    USLOSS_Console("start3(): done\n");
+        buf[read_length] = '\0';
+        USLOSS_Console("Child%d(): buffer read from term%d   '%s'\n", term, term, buf);
+
+        result = TermWrite(buf, strlen(buf), term, &size);
+        if (result < 0 || size != strlen(buf))
+        {
+            USLOSS_Console("\n ***** Child(%d): got bad result = %d ", term, result);
+            USLOSS_Console("or bad size = %d! *****\n\n ", size);
+        }
+    }
+
+    USLOSS_Console("Child%d(): done\n", term);
     Terminate(0);
 }
 
 
-int Child1(void *arg) 
+
+extern int testcase_timeout;   // defined in the testcase common code
+
+int start4(void *arg)
 {
-    int pid;
-    int status;
+    int  pid, status;
+    char buf[12];
+    char child_buf[12];
 
-    GetPID(&pid);
-    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
+    testcase_timeout = 60;
 
-    Spawn("Child2", Child2, "Child2", USLOSS_MIN_STACK, 2, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
+    USLOSS_Console("start4(): Spawn one child.\n");
+
+    sprintf(buf, "%d", 0);
+    sprintf(child_buf, "Child%d", 0);
+    status = Spawn(child_buf, Child1, buf, USLOSS_MIN_STACK,2, &pid);
+    assert(status == 0);
 
     Wait(&pid, &status);
-    USLOSS_Console("%s(): child %d returned status of %d\n", arg, pid, status);
+    assert(status == 0);
 
-    USLOSS_Console("%s(): done\n", arg);
-    Terminate(9);
-}
-
-
-int Child2(void *arg) 
-{
-    int pid, kidpid, status, result;
-
-    GetPID(&pid);
-    USLOSS_Console("%s(): starting, pid = %d\n", arg, pid);
-
-    Spawn("Child2a", Child2a, "Child2a", USLOSS_MIN_STACK, 5, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
-
-    Spawn("Child2b", Child2b, "Child2b", USLOSS_MIN_STACK, 5, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
-
-    Spawn("Child2c", Child2c, "Child2c", USLOSS_MIN_STACK, 5, &pid);
-    USLOSS_Console("%s(): spawned process %d\n", arg, pid);
-
-    result = Wait(&kidpid, &status);
-    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
-
-    result = Wait(&kidpid, &status);
-    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
-
-    result = Wait(&kidpid, &status);
-    USLOSS_Console("%s(): Wait result for child %d has status %d\n", arg, kidpid, status);
-
-    Terminate(10);
-    return result;  // return result to avoid compiler warning
-}
-
-
-int Child2a(void *arg) 
-{
-    USLOSS_Console("%s(): starting the code for Child2a\n", arg);
-    Terminate(11);
-}
-
-int Child2b(void *arg) 
-{
-    USLOSS_Console("%s(): starting the code for Child2b\n", arg);
-    Terminate(11);
-}
-
-int Child2c(void *arg) 
-{
-    USLOSS_Console("%s(): starting the code for Child2c\n", arg);
-    Terminate(11);
+    USLOSS_Console("start4(): done.\n");
+    Terminate(0);
 }
 

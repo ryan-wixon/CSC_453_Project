@@ -1,40 +1,68 @@
-/*
- * Simple Spawn test.
- */
+#include <stdlib.h>
+#include <stdio.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
+#include <phase4.h>
+#include <phase4_usermode.h>
 
 
 
-int Child1(void *);
+#define ABS(a,b) (a-b > 0 ? a-b : -(a-b))
 
-int start3(void *arg)
+
+
+int Child(char *arg) 
 {
-    int pid;
+    int begin, end, time;
+    int me = atoi(arg);
 
-    USLOSS_Console("start3(): started.  Calling Spawn for Child1\n");
+    USLOSS_Console("Child%d(): Going to sleep for 10 seconds\n", me);
+    GetTimeofDay(&begin);
+    Sleep(10);
+    GetTimeofDay(&end);
 
-    Spawn("Child1", Child1, NULL, USLOSS_MIN_STACK, 2, &pid);
+    time = end - begin;
+    if (time < 10*1000*1000 || time > 13*1000*1000)
+        USLOSS_Console("Child%d(): Sleep bad: %d\n", me, time);
+    else
+        USLOSS_Console("Child%d(): Sleep done at time %d\n", me, end);
 
-    USLOSS_Console("start3(): after spawn of %d\n", pid);
-    USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
-
-    Terminate(0);
+    Terminate(1);
 }
 
 
 
-int Child1(void *arg) 
-{
-    USLOSS_Console("Child1(): starting\n");
-    USLOSS_Console("Child1(): done\n");
+extern int testcase_timeout;   // defined in the testcase common code
 
-    // Terminate(9);
-    return 9;
+int start4(void *arg)
+{
+    int pid, status;
+
+    testcase_timeout = 15;
+  
+    USLOSS_Console("start4(): Start 5 children who all sleep for 10 seconds. Upon\n");
+    USLOSS_Console("          waking up, each child checks if its sleep time was at\n");
+    USLOSS_Console("          least 10 seconds.\n");
+
+    Spawn("Child1", Child, "1", USLOSS_MIN_STACK, 4, &pid);
+    Spawn("Child2", Child, "2", USLOSS_MIN_STACK, 4, &pid);
+    Spawn("Child3", Child, "3", USLOSS_MIN_STACK, 4, &pid);
+    Spawn("Child4", Child, "4", USLOSS_MIN_STACK, 4, &pid);
+    Spawn("Child5", Child, "5", USLOSS_MIN_STACK, 4, &pid);
+
+    Wait(&pid, &status);
+    Wait(&pid, &status);
+    Wait(&pid, &status);
+    Wait(&pid, &status);
+    Wait(&pid, &status);
+
+    USLOSS_Console("start4(): Test sleep done.\n");
+    Terminate(0);
 }
 

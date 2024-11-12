@@ -1,43 +1,46 @@
-/*
- * Simple Spawn test. Child of lower priority than parent.
- */
+#include <stdlib.h>
+#include <stdio.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
+#include <phase4.h>
+#include <phase4_usermode.h>
 
 
 
-int Child1(void *);
+#define ABS(a,b) (a-b > 0 ? a-b : -(a-b))
 
-int start3(void *arg)
+
+
+int start4(void *arg)
 {
-    int pid;
-    int status;
+    int begin, end, time;
+  
+    USLOSS_Console("start4(): started\n");
+    USLOSS_Console("          going to sleep for 5 seconds.\n");
 
-    USLOSS_Console("start3(): started.  Calling Spawn for Child1\n");
+    GetTimeofDay(&begin);
 
-    Spawn("Child1", Child1, NULL, USLOSS_MIN_STACK, 5, &pid);
+    USLOSS_Console("start4(): Sleep starts at %6d\n", begin);
+    Sleep(5);
 
-    USLOSS_Console("start3(): Spawn %d\n", pid);
+    GetTimeofDay(&end);
+    time = end - begin;
+    time = ABS(5000000, time);
+    if (time > 1000000) {
+        USLOSS_Console("start4(): Sleep bad: %d %d\n",
+                       time, ABS(10000000, time));
+    }
+    else {
+        USLOSS_Console("start4(): Sleep done at %8d\n", end);
+    }
 
-    Wait(&pid, &status);
-
-    USLOSS_Console("start3(): result of wait, pid = %d, status = %d\n", pid, status);
-    USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
-
+    USLOSS_Console("start4(): done.\n");
     Terminate(0);
-}
-
-
-
-int Child1(void *arg) 
-{
-    USLOSS_Console("Child1(): starting\n");
-    USLOSS_Console("Child1(): done\n");
-    Terminate(9);
 }
 

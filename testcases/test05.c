@@ -1,28 +1,51 @@
-/*
- * Max Sem Create test.
+/* TERMTEST
+ * Read exactly 13 bytes from term 1. Display the bytes to stdout.
  */
+
+#include <stdio.h>
+#include <string.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
 #include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
+#include <phase4.h>
+#include <phase4_usermode.h>
 
-int start3(void *arg)
+char buf[256];
+
+
+
+int start4(void *arg)
 {
-    int semaphore;
-    int sem_result;
-    int i;
+    int j, length;
+    char dataBuffer[256];
+    int result;
+  
+    USLOSS_Console("start4(): Read from terminal 1, but ask for fewer chars than are present on the first line.\n");
 
-    USLOSS_Console("start3(): started.  Calling SemCreate\n");
+    length = 0;
+    memset(dataBuffer, 'a', 256);  // Fill dataBuffer with a's
+    dataBuffer[254] = '\n';
+    dataBuffer[255] = '\0';
 
-    for (i = 0; i < MAXSEMS + 2; i++) {
-        sem_result = SemCreate(0, &semaphore);
-        USLOSS_Console("i = %3d, sem_result = %2d, semaphore = %2d\n", i, sem_result, semaphore);
-    }
+    result = TermRead(dataBuffer, 13, 1, &length);
+    if (result < 0)
+    {
+        USLOSS_Console("start4(): ERROR from Readterm, result = %d\n", result);
+        Terminate(1);
+    }	
 
+    USLOSS_Console("start4(): term1 read %d bytes, first 13 bytes: '", length);
+    USLOSS_Console(buf);
+    for (j = 0; j < 13; j++)
+        USLOSS_Console("%c", dataBuffer[j]);	    
+    USLOSS_Console("'\n");
+  
+    USLOSS_Console("start4(): simple terminal test is done.\n");
     Terminate(0);
 }
 

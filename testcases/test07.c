@@ -1,70 +1,90 @@
-/*
- * Three process semaphore test: three processes block on semaphore, and
- * then are released with three V's.
- */
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #include <usloss.h>
 #include <usyscall.h>
+
 #include <phase1.h>
 #include <phase2.h>
+#include <phase3.h>
 #include <phase3_usermode.h>
-#include <stdio.h>
+#include <phase4.h>
+#include <phase4_usermode.h>
 
-int Child1(void *);
-int Child2(void *);
-
-int semaphore;
+int Child(char *arg);
 
 
-int start3(void *arg)
+
+extern int testcase_timeout;   // defined in the testcase common code
+
+int start4(void *arg)
 {
-    int pid1,pid2,pid3, pid4;
-    int sem_result;
+    int  kidpid, status;
+    int  i;
+    char buf[4][12];
 
-    USLOSS_Console("start3(): started.  Creating semaphore.\n");
+    testcase_timeout = 60;
 
-    sem_result = SemCreate(0, &semaphore);
-    if (sem_result != 0) {
-        USLOSS_Console("start3(): got non-zero semaphore result. Terminating...\n");
-        Terminate(1);
+    USLOSS_Console("start4(): Spawn 4 children. Each child writes one line to each terminal\n");
+    for (i = 0; i < 4; i++) {
+        sprintf(buf[i], "%d", i);
+        Spawn("Child", Child, buf[i], 2 * USLOSS_MIN_STACK, 4, &kidpid);
     }
 
-    USLOSS_Console("start3(): calling Spawn for Child1 (three times)\n");
-    Spawn("Child1a", Child1, "Child1a", USLOSS_MIN_STACK, 2, &pid1);
-    Spawn("Child1b", Child1, "Child1b", USLOSS_MIN_STACK, 2, &pid2);
-    Spawn("Child1c", Child1, "Child1c", USLOSS_MIN_STACK, 2, &pid3);
-    USLOSS_Console("start3(): after spawn of %d %d %d\n", pid1,pid2,pid3);
+    USLOSS_Console("start4(): calling Wait four times\n");
+    for (i = 0; i < 4; i++)
+        Wait(&kidpid, &status);
 
-    USLOSS_Console("start3(): calling Spawn for Child2\n");
-    Spawn("Child2", Child2, NULL, USLOSS_MIN_STACK, 2, &pid4);
-    USLOSS_Console("start3(): after spawn of %d\n", pid4);
-
-    USLOSS_Console("start3(): Parent done. Calling Terminate.\n");
+    USLOSS_Console("start4(): calling Terminate\n");
     Terminate(0);
+
+    USLOSS_Console("start4(): should not see this message!\n");
+    return 0;    // so that gcc won't complain
 }
 
 
-int Child1(void *arg) 
+
+int Child(char *arg)
 {
-    USLOSS_Console("%s(): starting, P'ing semaphore\n", arg);
-    SemP(semaphore);
-    USLOSS_Console("%s(): done\n", arg);
+    char buffer[MAXLINE];
+    int  result, size;
+    int  unit = atoi(arg);
+    int  i;
 
-    return 9;
-}
+    USLOSS_Console("Child(%d): started\n", unit);
 
+    sprintf(buffer, "Child %d: A Something interesting to print here...", unit);
+    switch(unit) {
+    case 0:
+        strcat(buffer, "zero\n");
+        break;
+    case 1:
+        strcat(buffer, "one\n");
+        break;
+    case 2:
+        strcat(buffer, "second\n");
+        break;
+    case 3:
+        strcat(buffer, "three\n");
+        break;
+    }
 
-int Child2(void *arg) 
-{
-    int pid;
-    GetPID(&pid);
+    for (i = 0; i < 4; i++)
+    {
+        result = TermWrite(buffer, strlen(buffer), i, &size);
+        if ( result < 0 || size != strlen(buffer) )
+        {
+            USLOSS_Console("\n ***** Child(%d): ", unit);
+            USLOSS_Console("got bad result or bad size! *****\n\n");
+        }
+        USLOSS_Console("Child(%d): done with write #%d\n", unit, i);
+    }
 
-    USLOSS_Console("Child2(): %d starting, V'ing semaphore\n", pid );
-    SemV(semaphore);
-    SemV(semaphore);
-    SemV(semaphore);
-    USLOSS_Console("Child2(): done\n");
+    USLOSS_Console("Child(%d): terminating\n", unit);
+    Terminate(1);
 
-    return 9;
+    USLOSS_Console("Child(%d): should not see this message!\n", unit);
+    return 0;    // so that gcc won't complain
 }
 
