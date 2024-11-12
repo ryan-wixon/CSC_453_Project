@@ -3,7 +3,7 @@
  * CSC 452
  * phase3.h
  * 
- * documentation TODO
+ * documentation is in the submitted file on Gradescope
  */
 
 #include <stdio.h>
