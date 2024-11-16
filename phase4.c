@@ -18,7 +18,26 @@
 
 void phase4_start_service_processes();
 
+/* for queueing processes for sleeping/waking */
+typedef struct SleepProc {
+    int pid;    /* ID of the process that is sleeping */
+    long wakeTime;   /* time at which the process should wake up (in microseconds) */
+    SleepProc *next;  /* next process in the queue */
+} SleepProc;
+
+int sleepLock = -1;    /* lock for Sleep handler - can no longer use global lock */
+int readLock = -1;  /* lock for reading from terminal */
+int writeLock = -1;   /* lock for writing to terminal */
+// Phase 4b -- add locks for the other interrupts
+
+SleepProc sleepQueue = NULL; /* head of the sleep queue */
+
 void phase4_init(void) {
+    // create locks
+    sleepLock = MboxCreate(1, 0);
+    readLock = MboxCreate(1, 0);
+    writeLock = MboxCreate(1, 0);
+
     // TODO
 }
 
@@ -47,6 +66,19 @@ void termRead(USLOSS_Sysargs *args) {
 
 void termWrite(USLOSS_Sysargs *args) {
     // TODO
+}
+
+/* 
+ * main function for a daemon that handles putting other processes to sleep
+ * and waking them up when their sleep time is up.
+ * 
+ * Arguments: 
+ * Returns: integer representing the status of the daemon, but daemon 
+ * should never actually return, so this value can be any integer.
+*/
+int sleepDaemon(void *arg) {
+    // TODO
+    return 0;  // should never reach this.
 }
 
 
