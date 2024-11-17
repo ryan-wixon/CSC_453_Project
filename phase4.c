@@ -46,8 +46,10 @@ void phase4_init(void) {
 }
 
 void phase4_start_service_processes() {
+    // start sleep daemon -- will have max priority.
+    int (*sleepFunc)(void*) = sleepDaemon;
+    spork("sleepDaemon", sleepFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
     // TODO -- start daemons
-    //   - clock daemon (to call waitDevice)
     //   - read terminal daemon (the way I think this is supposed to work is, 
     // you have a daemon reading terminal input all the time, sending the 
     // buffers it reads in to a mailbox. Mailbox can only store 10 buffers max. 
@@ -64,7 +66,7 @@ void sleep(USLOSS_Sysargs *args) {
     
     getLock(sleepLock);
     int waitTime = (int)(long)args->arg1;
-    if(waitTime < 0) {  // TODO -- is wait time = 0 valid or invalid? need Russ response
+    if(waitTime < 0) {
         
         // illegal wait time!
         args->arg4 = (void*)(long)-1;
@@ -72,7 +74,7 @@ void sleep(USLOSS_Sysargs *args) {
         return;
     }
 
-    // valid wait time
+    // valid wait time (includes 0 -- it will just be put at front of queue)
     numSleeping++;
 
     // recall: USLOSS clock gives microseconds!!
