@@ -9,8 +9,8 @@
 #include <string.h>
 #include <math.h>
 #include <usyscall.h> /* for system call constants, etc. */
-#include <phase1.h>  /* to access phase 1 functions, if necessary */
-#include <phase2.h>  /* to access phase2 functions, for mailboxes */
+#include <phase1.h>   /* to access phase 1 functions, if necessary */
+#include <phase2.h>   /* to access phase2 functions, for mailboxes */
 #include <phase3.h>
 #include <phase3_kernelInterfaces.h> /* for semaphore functionality */
 //#include <phase3_usermode.h>
@@ -20,21 +20,24 @@ void phase4_start_service_processes();
 
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
-    int pid;    /* ID of the process that is sleeping */
-    long wakeTime;   /* time at which the process should wake up (in microseconds) */
-    int wakeBox;   /* ID of the mailbox used to wake the process */
+
+    int pid;          /* ID of the process that is sleeping */
+    long wakeTime;    /* time at which the process should wake up (in microseconds) */
+    int wakeBox;      /* ID of the mailbox used to wake the process */
     SleepProc *next;  /* next process in the queue */
 } SleepProc;
 
-int sleepLock = -1;    /* lock for Sleep handler - can no longer use global lock */
-int readLock = -1;  /* lock for reading from terminal */
+int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
+int readLock = -1;    /* lock for reading from terminal */
 int writeLock = -1;   /* lock for writing to terminal */
+
 // Phase 4b -- add locks for the other interrupts
 
 SleepProc sleepQueue = NULL; /* head of the sleep queue */
 int numSleeping = 0;
 
 void phase4_init(void) {
+    
     // create locks
     sleepLock = MboxCreate(1, 0);
     readLock = MboxCreate(1, 0);
@@ -58,16 +61,20 @@ void phase4_start_service_processes() {
 /* Phase 4a system call handlers */
 
 void sleep(USLOSS_Sysargs *args) {
+    
     getLock(sleepLock);
     int waitTime = (int)(long)args->arg1;
     if(waitTime < 0) {  // TODO -- is wait time = 0 valid or invalid? need Russ response
+        
         // illegal wait time!
         args->arg4 = (void*)(long)-1;
         releaseLock(sleepLock);
         return;
     }
+
     // valid wait time
     numSleeping++;
+
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
     SleepProc curr = sleepQueue;
@@ -85,6 +92,7 @@ void sleep(USLOSS_Sysargs *args) {
             prev = prev->next;
         }
     }
+
     // add new process to the queue
     int toWake = MboxCreate(1, 0);
     SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, 
@@ -97,6 +105,7 @@ void sleep(USLOSS_Sysargs *args) {
     // put the process to sleep
     releaseLock(sleepLock);
     MboxRecv(toWake, NULL, 0);
+
     // control returns to the current process -- it can now continue.
 }
 
@@ -105,7 +114,34 @@ void termRead(USLOSS_Sysargs *args) {
 }
 
 void termWrite(USLOSS_Sysargs *args) {
-    // TODO
+    
+	char* buffer = (char*)(args->arg1);
+	int bufSize = (int)(args->arg2);
+	int unit = (int)(args->arg3);
+	
+	// check for invalid input and return if needed
+	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+		args->arg4 = (void*)(long)-1;
+		return;
+	}
+	else {
+		args->arg4 = (void*)(long)0;
+	}
+
+
+	// writing must be done atomically, so we need to grab a lock first
+	getLock(0);
+
+	// TODO write atomically
+	int charactersWritten = 0;
+	
+	for (int i = 0; i < bufSize; i++) {
+		buffer[i];
+	}
+	
+	args->arg2 = (void*)(long)charactersWritten;
+
+	releaseLock(0);	
 }
 
 /* 
@@ -119,21 +155,23 @@ void termWrite(USLOSS_Sysargs *args) {
 int sleepDaemon(void *arg) {
     int currTime = 0;
     while(1) {
+        
         // it is a daemon, so it runs an infinite loop
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
         if(numSleeping > 0 && currTime >= sleepQueue.wakeTime) {
+        
             // need to wake up next process in the queue
             numSleeping--;
             int waker = sleepQueue.wakeBox;
             sleepQueue = sleepQueue->next;
+        
             // send wakeup message
             MboxSend(waker, NULL, 0);
         }
     }
     return 0;  // should never reach this.
 }
-
 
 /*
  * Attempts to grab the lock; blocks and waits if it is unable to.
@@ -142,10 +180,10 @@ int sleepDaemon(void *arg) {
  *   Returns: Void
 */
 void getLock(int lock) {
+    
     // will block if mailbox is full - prevent concurrency
     MboxSend(lock, NULL, 0);
 }
-
 
 /*
  * Releases the lock; should not be called unless the lock is currently owned.
@@ -154,6 +192,7 @@ void getLock(int lock) {
  *   Returns: Void
 */
 void releaseLock(int lock) {
+    
     // will block if mailbox is empty, so be careful about when you call this!
     MboxRecv(lock, NULL, 0);
 }
