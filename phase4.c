@@ -151,12 +151,12 @@ void termWrite(USLOSS_Sysargs *args, int statusRegister) {
 
 
 	// writing must be done atomically, so we need to grab a lock first
-	getLock(0);
+	getLock(writeLock);
 
 	int charactersWritten = 0;
 	args->arg2 = (void*)(long)charactersWritten;
 
-	releaseLock(0);	
+	releaseLock(writeLock);	
 }
 
 /* 
