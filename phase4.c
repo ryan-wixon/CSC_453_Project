@@ -111,10 +111,43 @@ void sleep(USLOSS_Sysargs *args) {
     // control returns to the current process -- it can now continue.
 }
 
-// will handle all terminal interupts and call termRead/termWrite accordingly;
-// both reading and writing trigger the same input, so we have to check the status
-// register to find out what to do (not sure if params are correct)
-void terminalInterrupt(USLOSS_Sysargs *args, int unit, int status) {
+void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
+    	
+	int status;
+	waitDevice(USLOSS_TERM_DEV, unit, &status);
+
+	// read the status register; this must not be done again in this function
+	// or there is a risk of losing data!
+	if (USLOSS_DeviceInput(USLOSS_TERM_DEV, unit, &status) == USLOSS_DEV_INVALID) {
+		fprintf(stderr, "ERROR: Invlaid parameters passed to USLOSS_DeviceInput");
+	}
+
+	if (/*ready to write a character*/ 0) {
+		//TODO something related to writing?
+	}
+	
+	// check for invalid input and return if needed
+	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+		//args->arg4 = (void*)(long)-1;
+		return;
+	}
+	else {
+		//args->arg4 = (void*)(long)0;
+	}
+
+	// do we need to grab a lock for this?
+	getLock(readLock);
+
+	int charactersRead = 0;
+	//args->arg2 = (void*)(long)charactersRead;
+
+	releaseLock(readLock);	
+}
+
+void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
+
+	int status;
+	waitDevice(USLOSS_TERM_DEV, unit, &status);
 
 	// read the status register; this must not be done again in this function
 	// or there is a risk of losing data!
@@ -123,38 +156,23 @@ void terminalInterrupt(USLOSS_Sysargs *args, int unit, int status) {
 	}
 
 	if (/*ready to read a character*/ 0) {
-		termRead(args);
+		//TODO something related to reading?
 	}
-	if (/*ready to write a character*/ 0) {
-		termWrite(args, status);
-	}
-}
-
-void termRead(USLOSS_Sysargs *args) {
-    // TODO
-}
-
-void termWrite(USLOSS_Sysargs *args, int statusRegister) {
-    
-	char* buffer = (char*)(args->arg1);
-	int bufSize = (int)(args->arg2);
-	int unit = (int)(args->arg3);
 	
 	// check for invalid input and return if needed
 	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-		args->arg4 = (void*)(long)-1;
+		//args->arg4 = (void*)(long)-1;
 		return;
 	}
 	else {
-		args->arg4 = (void*)(long)0;
+		//args->arg4 = (void*)(long)0;
 	}
-
 
 	// writing must be done atomically, so we need to grab a lock first
 	getLock(writeLock);
 
 	int charactersWritten = 0;
-	args->arg2 = (void*)(long)charactersWritten;
+	//args->arg2 = (void*)(long)charactersWritten;
 
 	releaseLock(writeLock);	
 }
