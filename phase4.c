@@ -48,15 +48,16 @@ void phase4_init(void) {
 void phase4_start_service_processes() {
     // start daemons -- will all have max priority.
     int (*sleepFunc)(void*) = sleepDaemon;
-    int (*termFunc)(void*) = terminalDaemon;
+    int (*termFunc0)(void*) = terminalDaemon;
     int (*termFunc1)(void*) = terminalDaemon;
     int (*termFunc2)(void*) = terminalDaemon;
     int (*termFunc3)(void*) = terminalDaemon;
     spork("sleepDaemon", sleepFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
-    spork("termDaemon0", termFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
+    spork("termDaemon0", termFunc0, (void*)(long)0, USLOSS_MIN_STACK, 1);
     spork("termDaemon1", termFunc1, (void*)(long)1, USLOSS_MIN_STACK, 1);
     spork("termDaemon2", termFunc2, (void*)(long)2, USLOSS_MIN_STACK, 1);
     spork("termDaemon3", termFunc3, (void*)(long)3, USLOSS_MIN_STACK, 1);
+
     // TODO -- start daemons
     //   - read terminal daemon (the way I think this is supposed to work is, 
     // you have a daemon reading terminal input all the time, sending the 
@@ -120,19 +121,6 @@ void sleep(USLOSS_Sysargs *args) {
 }
 
 void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
-    	
-	int status;
-	waitDevice(USLOSS_TERM_DEV, unit, &status);
-
-	// read the status register; this must not be done again in this function
-	// or there is a risk of losing data!
-	if (USLOSS_DeviceInput(USLOSS_TERM_DEV, unit, &status) == USLOSS_DEV_INVALID) {
-		fprintf(stderr, "ERROR: Invlaid parameters passed to USLOSS_DeviceInput");
-	}
-
-	if (/*ready to write a character*/ 0) {
-		//TODO something related to writing?
-	}
 	
 	// check for invalid input and return if needed
 	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
@@ -153,19 +141,6 @@ void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
 }
 
 void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
-
-	int status;
-	waitDevice(USLOSS_TERM_DEV, unit, &status);
-
-	// read the status register; this must not be done again in this function
-	// or there is a risk of losing data!
-	if (USLOSS_DeviceInput(USLOSS_TERM_DEV, unit, &status) == USLOSS_DEV_INVALID) {
-		fprintf(stderr, "ERROR: Invlaid parameters passed to USLOSS_DeviceInput");
-	}
-
-	if (/*ready to read a character*/ 0) {
-		//TODO something related to reading?
-	}
 	
 	// check for invalid input and return if needed
 	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
@@ -194,6 +169,7 @@ void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
  * should never actually return, so this value can be any integer.
 */
 int sleepDaemon(void *arg) {
+    
     int currTime = 0;
     while(1) {
         
@@ -211,17 +187,25 @@ int sleepDaemon(void *arg) {
             MboxSend(waker, NULL, 0);
         }
     }
-    return 0;  // should never reach this.
+    return 0; // should never reach this
 }
 
 int terminalDaemon(void *arg) {
-    int unit = (int)(long)arg;
-    int termStatus = 0;
-    while(1) {
-        waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
+    	
+	int unit = (int)(long)arg;
+    	int termStatus = 0;
+    	while(1) {
+        			
+		waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
 
-        // TODO -- process results of terminal waitDevice
-    }
+        	if (/*ready for terminal to read a character*/ 0) {
+			termRead(buffer, bufSize, unit, lenOut);
+		}
+		if (/*ready for terminal to write a character*/ 0) {
+			termWrite(buffer, bufSize, unit, lenOut);
+		}
+    	}
+	return 0; // should never reach this 
 }
 
 /*
