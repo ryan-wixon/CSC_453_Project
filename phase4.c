@@ -46,9 +46,17 @@ void phase4_init(void) {
 }
 
 void phase4_start_service_processes() {
-    // start sleep daemon -- will have max priority.
+    // start daemons -- will all have max priority.
     int (*sleepFunc)(void*) = sleepDaemon;
+    int (*termFunc)(void*) = terminalDaemon;
+    int (*termFunc1)(void*) = terminalDaemon;
+    int (*termFunc2)(void*) = terminalDaemon;
+    int (*termFunc3)(void*) = terminalDaemon;
     spork("sleepDaemon", sleepFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
+    spork("termDaemon0", termFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
+    spork("termDaemon1", termFunc1, (void*)(long)1, USLOSS_MIN_STACK, 1);
+    spork("termDaemon2", termFunc2, (void*)(long)2, USLOSS_MIN_STACK, 1);
+    spork("termDaemon3", termFunc3, (void*)(long)3, USLOSS_MIN_STACK, 1);
     // TODO -- start daemons
     //   - read terminal daemon (the way I think this is supposed to work is, 
     // you have a daemon reading terminal input all the time, sending the 
@@ -204,6 +212,16 @@ int sleepDaemon(void *arg) {
         }
     }
     return 0;  // should never reach this.
+}
+
+int terminalDaemon(void *arg) {
+    int unit = (int)(long)arg;
+    int termStatus = 0;
+    while(1) {
+        waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
+
+        // TODO -- process results of terminal waitDevice
+    }
 }
 
 /*
