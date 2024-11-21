@@ -27,6 +27,16 @@ typedef struct SleepProc {
     SleepProc *next;  /* next process in the queue */
 } SleepProc;
 
+/* for queuing processes for writing to the terminal */
+typedef struct WriteProc {
+    int pid;   /* ID of the process writing to the terminal */
+    char *buf;  /* buffer to write */
+    int bufLength;  /* buffer length */
+    int curr;    /* index of next char to write */
+    int wakeBox;  /* mailbox to wake the process up */
+    WriteProc *next;  /* next process in the queue */
+} WriteProc;
+
 int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
 int readLock = -1;    /* lock for reading from terminal */
 int writeLock = -1;   /* lock for writing to terminal */
@@ -34,7 +44,19 @@ int writeLock = -1;   /* lock for writing to terminal */
 // Phase 4b -- add locks for the other interrupts
 
 SleepProc sleepQueue = NULL; /* head of the sleep queue */
-int numSleeping = 0;
+int numSleeping = 0;  /* number of processes waiting to sleep */
+
+// mailbox IDs for mailboxes used as read queues
+int readQueue0;
+int readQueue1;
+int readQueue2;
+int readQueue3;
+
+/* head of each write queue */
+WriteProc writeQueue0 = NULL;
+WriteProc writeQueue1 = NULL;
+WriteProc writeQueue2 = NULL;
+WriteProc writeQueue3 = NULL;
 
 void phase4_init(void) {
     
@@ -42,7 +64,14 @@ void phase4_init(void) {
     sleepLock = MboxCreate(1, 0);
     readLock = MboxCreate(1, 0);
     writeLock = MboxCreate(1, 0);
-    // TODO
+
+    // create read mailboxes (one for each terminal)
+    readQueue0 = MboxCreate(10, MAXLINE + 1);
+    readQueue1 = MboxCreate(10, MAXLINE + 1);
+    readQueue2 = MboxCreate(10, MAXLINE + 1);
+    readQueue3 = MboxCreate(10, MAXLINE + 1);
+
+    // TODO - maybe.
 }
 
 void phase4_start_service_processes() {
@@ -120,6 +149,48 @@ void sleep(USLOSS_Sysargs *args) {
     // control returns to the current process -- it can now continue.
 }
 
+void termRead(USLOSS_Sysargs *args) {
+    getLock(readLock);
+    char *buffer = (char*)args->arg1;   // possibly need to fix syntax here
+    int bufSize = (int)(long)args->arg2;
+    int unit = (int)(long)args->arg3;
+    // check for invalid input and return if needed
+	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+		args->arg4 = (void*)(long)-1;
+		return;
+	}
+	else {
+		args->arg4 = (void*)(long)0;
+	}
+
+    int readQueue = -1;
+
+    // figure out which terminal to read to
+    if(unit == 0) {
+        readQueue = readQueue0;
+    }
+    else if(unit == 1) {
+        readQueue = readQueue1;
+    }
+    else if(unit == 2) {
+        readQueue = readQueue2;
+    }
+    else {
+        // we already filtered out invalid terminal units
+        readQueue = readQueue3;
+    }
+
+    // receive from the read mailbox.
+    int size = 0;
+    releaseLock(readLock);
+    size = MboxRecv(readQueue, buffer, bufSize);
+
+    getLock(readLock);
+    args->arg2 = (void*)(long)size;
+    return;
+}
+
+/*
 void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
 	
 	// check for invalid input and return if needed
@@ -139,7 +210,59 @@ void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
 
 	releaseLock(readLock);	
 }
+*/
 
+void termWrite(USLOSS_Sysargs *args) {
+    getLock(writeLock);
+    char *buffer = (char*)args->arg1;
+    int bufSize = (int)(long)args->arg2;
+    int unit = (int)(long)args->arg3;
+    if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+		args->arg4 = (void*)(long)-1;
+		return;
+	}
+    else {
+		args->arg4 = (void*)(long)0;
+	}
+
+    // we know we can write to the terminal since our arguments are valid
+    WriteProc *queue = NULL;
+    // figure out which write queue to enter
+    if(unit == 0) {
+        queue = writeQueue0;
+    }
+    else if(unit == 1) {
+        queue = writeQueue1;
+    }
+    else if(unit == 2) {
+        queue = writeQueue2;
+    }
+    else {
+        queue = writeQueue3;
+    }
+
+    int toWake = MboxCreate(1, 0);
+
+    // put the process in the appropriate queue
+    WriteProc currentProc = {
+        .pid = getpid(), .buf = buffer, .bufLength = bufSize, 
+        .curr = 0, .wakeBox = toWake, .next = NULL
+    };
+
+    WriteProc prev = queue;
+    while(prev->next != NULL) {
+        prev = prev->next;
+    }
+    prev->next = currentProc;
+
+    // note: number of characters written to terminal is the same as
+    // the buffer size. So args->arg2 doesn't change.
+    // now put the process to sleep.
+    releaseLock(writeLock);
+    MboxRecv(toWake, NULL, 0);
+}
+
+/*
 void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
 	
 	// check for invalid input and return if needed
@@ -159,6 +282,7 @@ void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
 
 	releaseLock(writeLock);	
 }
+*/
 
 /* 
  * main function for a daemon that handles putting other processes to sleep
@@ -193,18 +317,30 @@ int sleepDaemon(void *arg) {
 int terminalDaemon(void *arg) {
     	
 	int unit = (int)(long)arg;
-    	int termStatus = 0;
-    	while(1) {
+    int termStatus = 0;
+    while(1) {
         			
 		waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
 
-        	if (/*ready for terminal to read a character*/ 0) {
-			termRead(buffer, bufSize, unit, lenOut);
+        int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
+        int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
+        if(recvStatus == USLOSS_DEV_ERROR || xmitStatus == USLOSS_DEV_ERROR) {
+            // fatal error. exit as mentioned in the terminal supplement.
+            fprintf(stderr, "ERROR: Cannot get data from the terminal.\n");
+            USLOSS_Halt(1);
+        }
+
+        if (recvStatus == USLOSS_DEV_BUSY /* todo: maybe wrong?? */) {
+            // TODO -- add received character to a buffer.
+			//termRead(buffer, bufSize, unit, lenOut);
 		}
-		if (/*ready for terminal to write a character*/ 0) {
-			termWrite(buffer, bufSize, unit, lenOut);
+		if (xmitStatus == USLOSS_DEV_READY /* todo: maybe wrong?? */) {
+            // TODO TODO TODO
+            // if write buffer is empty, wake up waiting process.
+            // else, write next character from the write buffer to terminal.
+			//termWrite(buffer, bufSize, unit, lenOut);
 		}
-    	}
+    }
 	return 0; // should never reach this 
 }
 
