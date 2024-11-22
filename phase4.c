@@ -71,7 +71,7 @@ void phase4_init(void) {
     readQueue2 = MboxCreate(10, MAXLINE + 1);
     readQueue3 = MboxCreate(10, MAXLINE + 1);
 
-    // TODO - maybe.
+    // TODO - register the syscalls and unmask terminal interrupts
 }
 
 void phase4_start_service_processes() {
@@ -86,16 +86,6 @@ void phase4_start_service_processes() {
     spork("termDaemon1", termFunc1, (void*)(long)1, USLOSS_MIN_STACK, 1);
     spork("termDaemon2", termFunc2, (void*)(long)2, USLOSS_MIN_STACK, 1);
     spork("termDaemon3", termFunc3, (void*)(long)3, USLOSS_MIN_STACK, 1);
-
-    // TODO -- start daemons
-    //   - read terminal daemon (the way I think this is supposed to work is, 
-    // you have a daemon reading terminal input all the time, sending the 
-    // buffers it reads in to a mailbox. Mailbox can only store 10 buffers max. 
-    // Use MboxCondSend to send the buffers, so when it reaches 10, it'll just
-    // stop and all other data is discarded as described in the spec. Then, when
-    // TermRead is called, all we do is just receive from the mailbox and get the
-    // next available buffer. Use regular MboxRecv because the TermRead syscall
-    // is supposed to block if there is no available input.)
 }
 
 /* Phase 4a system call handlers */
@@ -318,6 +308,28 @@ int terminalDaemon(void *arg) {
     	
 	int unit = (int)(long)arg;
     int termStatus = 0;
+
+    int readQueue = -1;
+    WriteProc *writeQueue = NULL;
+
+    // figure out which terminal to set up for reading/writing
+    if(unit == 0) {
+        readQueue = readQueue0;
+        writeQueue = writeQueue0;
+    }
+    else if(unit == 1) {
+        readQueue = readQueue1;
+        writeQueue = writeQueue1;
+    }
+    else if(unit == 2) {
+        readQueue = readQueue2;
+        writeQueue = writeQueue2;
+    }
+    else {
+        // this is guaranteed to be 3
+        readQueue = readQueue3;
+        writeQueue = writeQueue3;
+    }
     while(1) {
         			
 		waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
@@ -330,15 +342,20 @@ int terminalDaemon(void *arg) {
             USLOSS_Halt(1);
         }
 
-        if (recvStatus == USLOSS_DEV_BUSY /* todo: maybe wrong?? */) {
+        if (recvStatus == USLOSS_DEV_BUSY) {
             // TODO -- add received character to a buffer.
-			//termRead(buffer, bufSize, unit, lenOut);
+            // if the buffer is full, send message to associated mailbox
+            // if there is a waiting process, this will wake up that process without us having to do anything
+			
+            //termRead(buffer, bufSize, unit, lenOut);
 		}
-		if (xmitStatus == USLOSS_DEV_READY /* todo: maybe wrong?? */) {
+		if (xmitStatus == USLOSS_DEV_READY) {
             // TODO TODO TODO
-            // if write buffer is empty, wake up waiting process.
-            // else, write next character from the write buffer to terminal.
-			//termWrite(buffer, bufSize, unit, lenOut);
+            // write a character to the terminal
+            // if we are now at the end of the buffer, wake up the waiting process
+            // if we want to wake up the waiting process, remove it from queue
+			
+            //termWrite(buffer, bufSize, unit, lenOut);
 		}
     }
 	return 0; // should never reach this 
