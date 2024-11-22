@@ -76,7 +76,17 @@ void phase4_init(void) {
     readQueue2 = MboxCreate(10, MAXLINE + 1);
     readQueue3 = MboxCreate(10, MAXLINE + 1);
 
-    // TODO - register the syscalls and unmask terminal interrupts
+    // unmask terminal interrupts
+    int control = 0x0;  // don't send a character
+    control |= 0x2;     // enable read interrupts
+    control |= 0x4;     // enable write interrupts
+    // now unmask interrupts for each terminal
+    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 0, (void*)(long)control);
+    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void*)(long)control);
+    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 2, (void*)(long)control);
+    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 3, (void*)(long)control);
+
+    // TODO - register the syscalls
 }
 
 void phase4_start_service_processes() {
