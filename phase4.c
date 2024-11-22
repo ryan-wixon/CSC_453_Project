@@ -86,7 +86,10 @@ void phase4_init(void) {
     USLOSS_DeviceOutput(USLOSS_TERM_DEV, 2, (void*)(long)control);
     USLOSS_DeviceOutput(USLOSS_TERM_DEV, 3, (void*)(long)control);
 
-    // TODO - register the syscalls
+    // register the syscalls
+    systemCallVec[SYS_SLEEP] = sleep;
+    systemCallVec[SYS_TERMREAD] = termRead;
+    systemCallVec[SYS_TERMWRITE] = termWrite;
 }
 
 void phase4_start_service_processes() {
