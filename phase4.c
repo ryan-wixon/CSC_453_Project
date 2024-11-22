@@ -16,7 +16,12 @@
 //#include <phase3_usermode.h>
 #include <phase4.h>
 
+// function prototypes
 void phase4_start_service_processes();
+void getLock(int lock);
+void releaseLock(int lock);
+int sleepDaemon(void* arg);
+int terminalDaemon(void* arg);
 
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
@@ -24,17 +29,17 @@ typedef struct SleepProc {
     int pid;          /* ID of the process that is sleeping */
     long wakeTime;    /* time at which the process should wake up (in microseconds) */
     int wakeBox;      /* ID of the mailbox used to wake the process */
-    SleepProc *next;  /* next process in the queue */
+    struct SleepProc *next;  /* next process in the queue */
 } SleepProc;
 
 /* for queuing processes for writing to the terminal */
 typedef struct WriteProc {
-    int pid;   /* ID of the process writing to the terminal */
-    char *buf;  /* buffer to write */
-    int bufLength;  /* buffer length */
-    int curr;    /* index of next char to write */
-    int wakeBox;  /* mailbox to wake the process up */
-    WriteProc *next;  /* next process in the queue */
+    int pid;         /* ID of the process writing to the terminal */
+    char *buf;       /* buffer to write */
+    int bufLength;   /* buffer length */
+    int curr;        /* index of next char to write */
+    int wakeBox;     /* mailbox to wake the process up */
+    struct WriteProc *next; /* next process in the queue */
 } WriteProc;
 
 int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
@@ -43,7 +48,7 @@ int writeLock = -1;   /* lock for writing to terminal */
 
 // Phase 4b -- add locks for the other interrupts
 
-SleepProc sleepQueue = NULL; /* head of the sleep queue */
+SleepProc* sleepQueue = NULL; /* head of the sleep queue */
 int numSleeping = 0;  /* number of processes waiting to sleep */
 
 // mailbox IDs for mailboxes used as read queues
@@ -53,10 +58,10 @@ int readQueue2;
 int readQueue3;
 
 /* head of each write queue */
-WriteProc writeQueue0 = NULL;
-WriteProc writeQueue1 = NULL;
-WriteProc writeQueue2 = NULL;
-WriteProc writeQueue3 = NULL;
+WriteProc* writeQueue0 = NULL;
+WriteProc* writeQueue1 = NULL;
+WriteProc* writeQueue2 = NULL;
+WriteProc* writeQueue3 = NULL;
 
 void phase4_init(void) {
     
@@ -107,10 +112,10 @@ void sleep(USLOSS_Sysargs *args) {
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
-    SleepProc curr = sleepQueue;
-    SleepProc prev = sleepQueue;
+    SleepProc* curr = sleepQueue;
+    SleepProc* prev = sleepQueue;
     while(curr != NULL) {
-        if(curr.wakeTime > wakeInterval) {
+        if(curr->wakeTime > wakeInterval) {
             // found our curr and prev values
             break;
         }
@@ -127,7 +132,7 @@ void sleep(USLOSS_Sysargs *args) {
     int toWake = MboxCreate(1, 0);
     SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, 
                     .wakeTime = wakeInterval, .next = NULL};
-    prev->next = sleeping;
+    prev->next = &sleeping; //TODO Will sleeping every need to be accessed after this function returns? I don't think so, but it will cause a segfualt if so, so I'm leaving this note
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
@@ -141,28 +146,29 @@ void sleep(USLOSS_Sysargs *args) {
 
 void termRead(USLOSS_Sysargs *args) {
     getLock(readLock);
-    char *buffer = (char*)args->arg1;   // possibly need to fix syntax here
+    
+    char* buffer = (char*)args->arg1;   // possibly need to fix syntax here
     int bufSize = (int)(long)args->arg2;
     int unit = (int)(long)args->arg3;
+    
     // check for invalid input and return if needed
-	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-		args->arg4 = (void*)(long)-1;
-		return;
-	}
-	else {
-		args->arg4 = (void*)(long)0;
-	}
-
-    int readQueue = -1;
+    if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+	args->arg4 = (void*)(long)-1;
+	return;
+    }
+    else {
+	args->arg4 = (void*)(long)0;
+    }
 
     // figure out which terminal to read to
-    if(unit == 0) {
+    int readQueue =  -1;
+    if (unit == 0) {
         readQueue = readQueue0;
     }
-    else if(unit == 1) {
+    else if (unit == 1) {
         readQueue = readQueue1;
     }
-    else if(unit == 2) {
+    else if (unit == 2) {
         readQueue = readQueue2;
     }
     else {
@@ -175,7 +181,7 @@ void termRead(USLOSS_Sysargs *args) {
     releaseLock(readLock);
     size = MboxRecv(readQueue, buffer, bufSize);
 
-    getLock(readLock);
+    //getLock(readLock); // pretty sure this shouldn't be here, but not 100% sure
     args->arg2 = (void*)(long)size;
     return;
 }
@@ -207,24 +213,25 @@ void termWrite(USLOSS_Sysargs *args) {
     char *buffer = (char*)args->arg1;
     int bufSize = (int)(long)args->arg2;
     int unit = (int)(long)args->arg3;
+    
+    // check for invalid input and return if needed
     if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-		args->arg4 = (void*)(long)-1;
-		return;
-	}
+	args->arg4 = (void*)(long)-1;
+	return;
+    }
     else {
-		args->arg4 = (void*)(long)0;
-	}
+	args->arg4 = (void*)(long)0;
+    }
 
-    // we know we can write to the terminal since our arguments are valid
-    WriteProc *queue = NULL;
     // figure out which write queue to enter
-    if(unit == 0) {
+    WriteProc* queue = NULL;
+    if (unit == 0) {
         queue = writeQueue0;
     }
-    else if(unit == 1) {
+    else if (unit == 1) {
         queue = writeQueue1;
     }
-    else if(unit == 2) {
+    else if (unit == 2) {
         queue = writeQueue2;
     }
     else {
@@ -239,11 +246,11 @@ void termWrite(USLOSS_Sysargs *args) {
         .curr = 0, .wakeBox = toWake, .next = NULL
     };
 
-    WriteProc prev = queue;
-    while(prev->next != NULL) {
+    WriteProc* prev = queue;
+    while (prev->next != NULL) {
         prev = prev->next;
     }
-    prev->next = currentProc;
+    prev->next = &currentProc; //TODO Will currentProc ever need to be accessed after this function returns? I don't think so, but it will cause a segfualt if so, so I'm leaving this note
 
     // note: number of characters written to terminal is the same as
     // the buffer size. So args->arg2 doesn't change.
@@ -290,11 +297,11 @@ int sleepDaemon(void *arg) {
         // it is a daemon, so it runs an infinite loop
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
-        if(numSleeping > 0 && currTime >= sleepQueue.wakeTime) {
+        if(numSleeping > 0 && currTime >= sleepQueue->wakeTime) {
         
             // need to wake up next process in the queue
             numSleeping--;
-            int waker = sleepQueue.wakeBox;
+            int waker = sleepQueue->wakeBox;
             sleepQueue = sleepQueue->next;
         
             // send wakeup message
@@ -306,7 +313,7 @@ int sleepDaemon(void *arg) {
 
 int terminalDaemon(void *arg) {
     	
-	int unit = (int)(long)arg;
+    int unit = (int)(long)arg;
     int termStatus = 0;
 
     int readQueue = -1;
@@ -330,14 +337,21 @@ int terminalDaemon(void *arg) {
         readQueue = readQueue3;
         writeQueue = writeQueue3;
     }
+
+    // create a buffer to hold characters being read from the terminal
+    char readBuffer[MAXLINE];
+    int curr = 0;
+    memset(readBuffer, 0, MAXLINE);
+
     while(1) {
         			
-		waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
+	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
         int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
         if(recvStatus == USLOSS_DEV_ERROR || xmitStatus == USLOSS_DEV_ERROR) {
-            // fatal error. exit as mentioned in the terminal supplement.
+            
+	    // fatal error; exit as mentioned in the terminal supplement
             fprintf(stderr, "ERROR: Cannot get data from the terminal.\n");
             USLOSS_Halt(1);
         }
@@ -346,19 +360,41 @@ int terminalDaemon(void *arg) {
             // TODO -- add received character to a buffer.
             // if the buffer is full, send message to associated mailbox
             // if there is a waiting process, this will wake up that process without us having to do anything
-			
-            //termRead(buffer, bufSize, unit, lenOut);
-		}
-		if (xmitStatus == USLOSS_DEV_READY) {
-            // TODO TODO TODO
-            // write a character to the terminal
-            // if we are now at the end of the buffer, wake up the waiting process
-            // if we want to wake up the waiting process, remove it from queue
-			
-            //termWrite(buffer, bufSize, unit, lenOut);
-		}
+
+	    // read the character in
+	    readBuffer[curr] = USLOSS_TERM_STAT_CHAR(termStatus);
+	    curr++;
+
+	    // if the character was a newline, or the buffer is full, send to the mailbox and reset the buffer
+	    if (readBuffer[curr - 1] == '\n' || curr == MAXLINE) {
+	    	MboxCondSend(readQueue, readBuffer, curr);
+		curr = 0;
+		memset(readBuffer, 0, MAXLINE);
+	    }		
+	}
+	if (xmitStatus == USLOSS_DEV_READY) {
+
+	    // create the integer value that will be sent to to the terminal
+	    int sendValue = 0x1;
+	    sendValue |= (writeQueue->buf[writeQueue->curr] << 8);
+	    
+            printf("DEBUG: Writing char %c to terminal %d\n", writeQueue->buf[writeQueue->curr] , unit);
+
+	    // send the value
+	    if (USLOSS_DeviceOutput(USLOSS_TERM_DEV, unit, (void*)(long)sendValue) == USLOSS_DEV_INVALID) {
+		fprintf(stderr, "ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+	    }
+	    writeQueue->curr++;
+
+	    // if the end of the string has been reached, wake up the waiting process and remove it from the queue
+	    if (writeQueue->curr == writeQueue->bufLength) {
+		WriteProc* finishedProcess = writeQueue;
+		writeQueue = writeQueue->next;
+		MboxSend(finishedProcess->wakeBox, NULL, 0);
+	    }    
+	}
     }
-	return 0; // should never reach this 
+    return 0; // should never reach this 
 }
 
 /*
