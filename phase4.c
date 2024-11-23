@@ -22,6 +22,9 @@ void getLock(int lock);
 void releaseLock(int lock);
 int sleepDaemon(void* arg);
 int terminalDaemon(void* arg);
+void sleep(USLOSS_Sysargs *args);
+void termRead(USLOSS_Sysargs *args);
+void termWrite(USLOSS_Sysargs *args);
 
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
@@ -81,10 +84,16 @@ void phase4_init(void) {
     control |= 0x2;     // enable read interrupts
     control |= 0x4;     // enable write interrupts
     // now unmask interrupts for each terminal
-    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 0, (void*)(long)control);
-    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void*)(long)control);
-    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 2, (void*)(long)control);
-    USLOSS_DeviceOutput(USLOSS_TERM_DEV, 3, (void*)(long)control);
+    int result0 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 0, (void*)(long)control);
+    int result1 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void*)(long)control);
+    int result2 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 2, (void*)(long)control);
+    int result3 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 3, (void*)(long)control);
+    
+    if(result0 == USLOSS_DEV_INVALID || result1 == USLOSS_DEV_INVALID || 
+            result2 == USLOSS_DEV_INVALID || result3 == USLOSS_DEV_INVALID) {
+        fprintf(stderr, "ERROR: Failed to unmask interrupts in the terminals.\n");
+        USLOSS_Halt(1);
+    }
 
     // register the syscalls
     systemCallVec[SYS_SLEEP] = sleep;
