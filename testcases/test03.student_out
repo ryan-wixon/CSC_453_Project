@@ -1,0 +1,4 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): started
+XXterm2(): started
+XXterm2(): reading a line from terminal 2

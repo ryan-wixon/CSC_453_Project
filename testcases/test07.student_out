@@ -1,0 +1,4 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Spawn 4 children. Each child writes one line to each terminal
+start4(): calling Wait four times
+Child(0): started

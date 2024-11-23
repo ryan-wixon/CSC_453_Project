@@ -1,0 +1,5 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Start 5 children who all sleep for 10 seconds. Upon
+          waking up, each child checks if its sleep time was at
+          least 10 seconds.
+Child1(): Going to sleep for 10 seconds

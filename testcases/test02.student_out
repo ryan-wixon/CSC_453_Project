@@ -1,0 +1,13 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Spawning Child(0)
+start4(): Spawning Child(1)
+start4(): Spawning Child(2)
+start4(): Spawning Child(3)
+start4(): Spawning Child(4)
+start4(): Spawning Child(5)
+start4(): Spawning Child(6)
+start4(): Spawning Child(7)
+start4(): Spawning Child(8)
+start4(): Spawning Child(9)
+start4(): Waiting on Child
+Child0(): Sleeping for 30 seconds

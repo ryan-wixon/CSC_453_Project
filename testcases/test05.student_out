@@ -1,0 +1,2 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Read from terminal 1, but ask for fewer chars than are present on the first line.

@@ -1,0 +1,7 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Spawn eight children.  
+          4 write 5 lines to a diff terminal.
+          4 read 5 lines to a diff terminal.
+Child0(): start
+Child_20(): start
+Child_20(): writing to term0
