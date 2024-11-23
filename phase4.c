@@ -118,7 +118,9 @@ void phase4_start_service_processes() {
 /* Phase 4a system call handlers */
 
 void sleep(USLOSS_Sysargs *args) {
-    
+   
+	printf("DEBUG: Starting Sleep (%d seconds)\n", (int)(long)args->arg1);
+ 
     getLock(sleepLock);
     int waitTime = (int)(long)args->arg1;
     if(waitTime < 0) {
@@ -131,17 +133,19 @@ void sleep(USLOSS_Sysargs *args) {
 
     // valid wait time (includes 0 -- it will just be put at front of queue)
     numSleeping++;
+	
+	printf("DEBUG: Sleep Checkpoint 1\n");
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
     SleepProc* curr = sleepQueue;
     SleepProc* prev = sleepQueue;
-    while(curr != NULL) {
-        if(curr->wakeTime > wakeInterval) {
+    while (curr != NULL) {
+        if (curr->wakeTime > wakeInterval) {
             // found our curr and prev values
             break;
         }
-        if(prev == sleepQueue) {
+        if (prev == sleepQueue) {
             curr = curr->next;
         }
         else {
@@ -150,11 +154,19 @@ void sleep(USLOSS_Sysargs *args) {
         }
     }
 
+	printf("DEBUG: Sleep Checkpoint 2\n");	
+	
     // add new process to the queue
     int toWake = MboxCreate(1, 0);
-    SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, 
-                    .wakeTime = wakeInterval, .next = NULL};
-    prev->next = &sleeping; //TODO Will sleeping every need to be accessed after this function returns? I don't think so, but it will cause a segfualt if so, so I'm leaving this note
+    SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, .wakeTime = wakeInterval, .next = NULL};
+    if (prev == NULL) {
+	sleepQueue = &sleeping;
+    }
+    else {
+	prev->next = &sleeping;
+    }
+
+	printf("DEBUG: Sleep Checkpoint 3\n");
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
@@ -164,6 +176,8 @@ void sleep(USLOSS_Sysargs *args) {
     MboxRecv(toWake, NULL, 0);
 
     // control returns to the current process -- it can now continue.
+
+	printf("DEBUG: Ending Sleep\n");
 }
 
 void termRead(USLOSS_Sysargs *args) {
@@ -312,6 +326,8 @@ void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
  * should never actually return, so this value can be any integer.
 */
 int sleepDaemon(void *arg) {
+
+	printf("DEBUG: sleepDaemon starting\n");
     
     int currTime = 0;
     while(1) {
@@ -319,6 +335,9 @@ int sleepDaemon(void *arg) {
         // it is a daemon, so it runs an infinite loop
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
+
+	printf("DEBUG: sleepDaemon recieved interrupt\n");	
+
         if(numSleeping > 0 && currTime >= sleepQueue->wakeTime) {
         
             // need to wake up next process in the queue
