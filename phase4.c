@@ -120,6 +120,7 @@ void phase4_start_service_processes() {
 void sleep(USLOSS_Sysargs *args) {
    
 	printf("DEBUG: Starting Sleep (%d seconds)\n", (int)(long)args->arg1);
+    printf("DEBUG: Process being called is %d\n", getpid());
  
     getLock(sleepLock);
     int waitTime = (int)(long)args->arg1;
@@ -140,7 +141,7 @@ void sleep(USLOSS_Sysargs *args) {
     long wakeInterval = currentTime() + (waitTime * 1000000);
     SleepProc* curr = sleepQueue;
     SleepProc* prev = sleepQueue;
-    while (curr != NULL) {
+    while (curr != NULL && prev != NULL) {
         if (curr->wakeTime > wakeInterval) {
             // found our curr and prev values
             break;
@@ -160,24 +161,31 @@ void sleep(USLOSS_Sysargs *args) {
     int toWake = MboxCreate(1, 0);
     SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, .wakeTime = wakeInterval, .next = NULL};
     if (prev == NULL) {
-	sleepQueue = &sleeping;
+	    sleepQueue = &sleeping;
     }
     else {
-	prev->next = &sleeping;
+	    prev->next = &sleeping;
     }
 
 	printf("DEBUG: Sleep Checkpoint 3\n");
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
+
+    int resultSize = 0;
+
+    printf("DEBUG: the wakeup mailbox is %d\n", toWake);
+    dumpProcesses();
     
     // put the process to sleep
     releaseLock(sleepLock);
-    MboxRecv(toWake, NULL, 0);
+    resultSize = MboxRecv(toWake, NULL, 0);
 
     // control returns to the current process -- it can now continue.
 
-	printf("DEBUG: Ending Sleep\n");
+    getLock(sleepLock);
+    printf("DEBUG: Ending Sleep\n");
+    sleepQueue = sleepQueue->next;
 }
 
 void termRead(USLOSS_Sysargs *args) {
@@ -343,7 +351,7 @@ int sleepDaemon(void *arg) {
             // need to wake up next process in the queue
             numSleeping--;
             int waker = sleepQueue->wakeBox;
-            sleepQueue = sleepQueue->next;
+            //sleepQueue = sleepQueue->next;
         
             // send wakeup message
             MboxSend(waker, NULL, 0);

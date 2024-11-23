@@ -1,3 +1,4 @@
+DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): started
           going to sleep for 5 seconds.

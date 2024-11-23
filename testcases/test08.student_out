@@ -1,3 +1,4 @@
+DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): Spawn four children.  Each child reads from a different terminal.  The child reading the shortest line will finish first, etc.
 Child0(): start

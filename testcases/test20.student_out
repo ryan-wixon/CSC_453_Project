@@ -1,3 +1,4 @@
+DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): Spawn eight children.  
           4 write 5 lines to a diff terminal.

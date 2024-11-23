@@ -1,5 +1,26 @@
+DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): Start 5 children who all sleep for 10 seconds. Upon
           waking up, each child checks if its sleep time was at
           least 10 seconds.
 Child1(): Going to sleep for 10 seconds
+DEBUG: Starting Sleep (10 seconds)
+DEBUG: Sleep Checkpoint 1
+DEBUG: Sleep Checkpoint 2
+DEBUG: Sleep Checkpoint 3
+Child2(): Going to sleep for 10 seconds
+DEBUG: Starting Sleep (10 seconds)
+DEBUG: Sleep Checkpoint 1
+DEBUG: Sleep Checkpoint 2
+DEBUG: Sleep Checkpoint 3
+Child3(): Going to sleep for 10 seconds
+DEBUG: Starting Sleep (10 seconds)
+DEBUG: Sleep Checkpoint 1
+DEBUG: Sleep Checkpoint 2
+DEBUG: Sleep Checkpoint 3
+Child4(): Going to sleep for 10 seconds
+DEBUG: Starting Sleep (10 seconds)
+DEBUG: Sleep Checkpoint 1
+DEBUG: Sleep Checkpoint 2
+DEBUG: Sleep Checkpoint 3
+Child5(): Going to sleep for 10 seconds
