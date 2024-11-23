@@ -51,7 +51,9 @@ int writeLock = -1;   /* lock for writing to terminal */
 
 // Phase 4b -- add locks for the other interrupts
 
-SleepProc* sleepQueue = NULL; /* head of the sleep queue */
+SleepProc sleepQueue[MAXPROC];  /* process table for sleep queue */
+int sleepOccupied[MAXPROC];  /* contains whether slots are occupied */
+SleepProc *sleepHead;    /* head of the sleep queue */
 int numSleeping = 0;  /* number of processes waiting to sleep */
 
 // mailbox IDs for mailboxes used as read queues
@@ -95,6 +97,12 @@ void phase4_init(void) {
         USLOSS_Halt(1);
     }
 
+    // null out the process tables and set occupancy tables to vacant
+    memset(sleepQueue, 0, sizeof(sleepQueue));
+    for(int i = 0; i < MAXPROC; i++) {
+        sleepOccupied[i] = 0;
+    }
+
     // register the syscalls
     systemCallVec[SYS_SLEEP] = sleep;
     systemCallVec[SYS_TERMREAD] = termRead;
@@ -135,57 +143,84 @@ void sleep(USLOSS_Sysargs *args) {
     // valid wait time (includes 0 -- it will just be put at front of queue)
     numSleeping++;
 	
-	printf("DEBUG: Sleep Checkpoint 1\n");
+	printf("DEBUG: Sleep Checkpoint 1 -- we have valid arguments\n");
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
-    SleepProc* curr = sleepQueue;
-    SleepProc* prev = sleepQueue;
+    SleepProc* curr = sleepHead;
+    SleepProc* prev = sleepHead;
     while (curr != NULL && prev != NULL) {
         if (curr->wakeTime > wakeInterval) {
             // found our curr and prev values
+            printf("DEBUG: Found place in the queue\n");
             break;
         }
-        if (prev == sleepQueue) {
+        if (prev == sleepHead) {
+            printf("DEBUG: We are at the element in queue, keep moving\n");
             curr = curr->next;
         }
         else {
+            printf("DEBUG: Keep going.\n");
             curr = curr->next;
             prev = prev->next;
         }
     }
 
-	printf("DEBUG: Sleep Checkpoint 2\n");	
+	printf("DEBUG: Sleep Checkpoint 2 -- we have found a spot in the queue for the process\n");	
 	
     // add new process to the queue
-    int toWake = MboxCreate(1, 0);
-    SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, .wakeTime = wakeInterval, .next = NULL};
-    if (prev == NULL) {
-	    sleepQueue = &sleeping;
+    //int toWake = MboxCreate(1, 0);
+    SleepProc sleeping = {.pid = getpid(), .wakeBox = MboxCreate(1,0), .wakeTime = wakeInterval, .next = NULL};
+    int index = 0;
+    while(sleepOccupied[index] != 0) {
+        index++;
+    }
+    sleepQueue[index] = sleeping;
+    sleepOccupied[index] = 1;
+    if(prev == NULL) {
+        // first element to be added to the queue
+        printf("DEBUG: first element being added to empty queue\n");
+        sleepHead = &sleepQueue[index];
+    }
+    else if(prev == curr) {
+        // add to front of the queue
+        printf("DEBUG: add element to the front of the queue\n");
+        sleepQueue[index].next = sleepHead;
+        sleepHead = &sleepQueue[index];
     }
     else {
-	    prev->next = &sleeping;
+        // add to middle of queue
+        printf("DEBUG: add element to middle or end of queue\n");
+        sleepQueue[index].next = prev->next;
+        prev->next = &sleepQueue[index];
     }
+        //sleeping.next = sleepQueue;
+        //sleepQueue = &sleeping;
+    //else {
+        //printf("DEBUG: add element to middle or end of queue\n");
+	    //prev->next = &sleeping;
+    //}
 
-	printf("DEBUG: Sleep Checkpoint 3\n");
+	printf("DEBUG: Sleep Checkpoint 3 -- added the process to the queue\n");
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
 
     int resultSize = 0;
+    int wakeBoxTemp = sleepQueue[index].wakeBox;
 
-    printf("DEBUG: the wakeup mailbox is %d\n", toWake);
+    printf("DEBUG: the wakeup mailbox is %d\n", wakeBoxTemp);
     dumpProcesses();
     
     // put the process to sleep
     releaseLock(sleepLock);
-    resultSize = MboxRecv(toWake, NULL, 0);
+    resultSize = MboxRecv(wakeBoxTemp, NULL, 0);
 
     // control returns to the current process -- it can now continue.
 
     getLock(sleepLock);
-    printf("DEBUG: Ending Sleep\n");
-    sleepQueue = sleepQueue->next;
+    printf("DEBUG: Ending Sleep and removing process from queue\n");
+    releaseLock(sleepLock);
 }
 
 void termRead(USLOSS_Sysargs *args) {
@@ -346,13 +381,24 @@ int sleepDaemon(void *arg) {
 
 	printf("DEBUG: sleepDaemon recieved interrupt\n");	
 
-        if(numSleeping > 0 && currTime >= sleepQueue->wakeTime) {
+        if(numSleeping > 0 && currTime >= sleepHead->wakeTime) {
         
             // need to wake up next process in the queue
             numSleeping--;
-            int waker = sleepQueue->wakeBox;
-            //sleepQueue = sleepQueue->next;
-        
+            int waker = sleepHead->wakeBox;
+            // take head of queue off
+            // find head of queue
+            int headIndex = 0;
+            for(int i = 0; i < MAXPROC; i++) {
+                if(sleepOccupied[i] == 1 && sleepQueue[i].wakeBox == sleepHead->wakeBox) {
+                    // found the correct head in the queue
+                    headIndex = i;
+                    break;
+                }
+            }
+            sleepHead = sleepHead->next;
+            sleepOccupied[headIndex] = 0;
+            
             // send wakeup message
             MboxSend(waker, NULL, 0);
         }
