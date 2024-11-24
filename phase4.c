@@ -32,7 +32,7 @@ typedef struct SleepProc {
     int pid;          /* ID of the process that is sleeping */
     long wakeTime;    /* time at which the process should wake up (in microseconds) */
     int wakeBox;      /* ID of the mailbox used to wake the process */
-    struct SleepProc *next;  /* next process in the queue */
+    //struct SleepProc *next;  /* next process in the queue */
 } SleepProc;
 
 /* for queuing processes for writing to the terminal */
@@ -147,6 +147,7 @@ void sleep(USLOSS_Sysargs *args) {
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
+    /*
     SleepProc* curr = sleepHead;
     SleepProc* prev = sleepHead;
     while (curr != NULL && prev != NULL) {
@@ -164,19 +165,32 @@ void sleep(USLOSS_Sysargs *args) {
             curr = curr->next;
             prev = prev->next;
         }
-    }
+    }*/
 
 	printf("DEBUG: Sleep Checkpoint 2 -- we have found a spot in the queue for the process\n");	
 	
     // add new process to the queue
     //int toWake = MboxCreate(1, 0);
-    SleepProc sleeping = {.pid = getpid(), .wakeBox = MboxCreate(1,0), .wakeTime = wakeInterval, .next = NULL};
+    //SleepProc sleeping = {.pid = getpid(), .wakeBox = MboxCreate(1,0), .wakeTime = wakeInterval, .next = NULL};
     int index = 0;
+    for(int i = 0; i < MAXPROC; i++) {
+        if(sleepOccupied[i] == 0) {
+            sleepOccupied[i] = 1;
+            sleepQueue[i].pid = getpid();
+            sleepQueue[i].wakeBox = MboxCreate(1,0);
+            sleepQueue[i].wakeTime = currentTime() + (waitTime * 1000000);
+            index = i;
+            break;
+        }
+    }
+    /*
     while(sleepOccupied[index] != 0) {
         index++;
     }
     sleepQueue[index] = sleeping;
     sleepOccupied[index] = 1;
+    */
+    /*
     if(prev == NULL) {
         // first element to be added to the queue
         printf("DEBUG: first element being added to empty queue\n");
@@ -193,7 +207,7 @@ void sleep(USLOSS_Sysargs *args) {
         printf("DEBUG: add element to middle or end of queue\n");
         sleepQueue[index].next = prev->next;
         prev->next = &sleepQueue[index];
-    }
+    }*/
         //sleeping.next = sleepQueue;
         //sleepQueue = &sleeping;
     //else {
@@ -381,10 +395,19 @@ int sleepDaemon(void *arg) {
 
 	printf("DEBUG: sleepDaemon recieved interrupt\n");	
 
-        if(numSleeping > 0 && currTime >= sleepHead->wakeTime) {
+        //if(numSleeping > 0 && currTime >= sleepHead->wakeTime) {
+        if(numSleeping > 0) {
         
             // need to wake up next process in the queue
-            numSleeping--;
+            for(int i = 0; i < MAXPROC; i++) {
+                if(currTime > sleepQueue[i].wakeTime) {
+                    numSleeping--;
+                    int waker = sleepQueue[i].wakeBox;
+                    sleepOccupied[i] = 0;
+                    MboxSend(waker, NULL, 0);
+                }
+            }
+            /*
             int waker = sleepHead->wakeBox;
             // take head of queue off
             // find head of queue
@@ -398,9 +421,9 @@ int sleepDaemon(void *arg) {
             }
             sleepHead = sleepHead->next;
             sleepOccupied[headIndex] = 0;
-            
+            */
             // send wakeup message
-            MboxSend(waker, NULL, 0);
+            //MboxSend(waker, NULL, 0);
         }
     }
     return 0; // should never reach this
