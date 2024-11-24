@@ -161,9 +161,16 @@ void sleep(USLOSS_Sysargs *args) {
     int toWake = MboxCreate(1, 0);
     SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, .wakeTime = wakeInterval, .next = NULL};
     if (prev == NULL) {
+        printf("DEBUG: Adding first element to the queue\n");
 	    sleepQueue = &sleeping;
     }
+    else if(prev == curr) {
+        printf("DEBUG: Adding element to the front of the queue\n");
+        sleeping.next = sleepQueue;
+        sleepQueue = &sleeping;
+    }
     else {
+        printf("DEBUG: Adding element to the middle of the queue\n");
 	    prev->next = &sleeping;
     }
 
