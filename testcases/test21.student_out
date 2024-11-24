@@ -1,4 +1,5 @@
-DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): Spawn one child.
 Child0(): start
+Child0(): buffer read from term0   'zero: first line   (second longest first line in the inputs)
+'
