@@ -1,7 +1,8 @@
-DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): Spawn four children.
 Child0(): start
 Child1(): start
 Child2(): start
 Child3(): start
+buffer written 'one: first line   (shortest first line)
+'

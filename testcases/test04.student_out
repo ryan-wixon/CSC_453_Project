@@ -1,5 +1,6 @@
-DEBUG: sleepDaemon starting
 phase5_start_service_processes() called -- currently a NOP
 start4(): 3 tests of invalid requests from terminals
 start4(): Read negative number of chars from term 1
 start4(): Read from invalid term 5
+TESTCASE TIMED OUT!!!
+finish(): The simulation is now terminating.

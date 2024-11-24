@@ -11,3 +11,17 @@ start4(): Spawning Child(8)
 start4(): Spawning Child(9)
 start4(): Waiting on Child
 Child0(): Sleeping for 30 seconds
+Child1(): Sleeping for 27 seconds
+Child2(): Sleeping for 24 seconds
+Child3(): Sleeping for 21 seconds
+Child4(): Sleeping for 18 seconds
+Child5(): Sleeping for 15 seconds
+Child6(): Sleeping for 12 seconds
+Child7(): Sleeping for 9 seconds
+Child8(): Sleeping for 6 seconds
+Child9(): Sleeping for 3 seconds
+Child9(): After sleeping 3 seconds, difference in system clock is 3049661
+start4(): Wait returned 0, pid:19, status 19
+start4(): Waiting on Child
+TESTCASE TIMED OUT!!!
+finish(): The simulation is now terminating.

@@ -118,9 +118,6 @@ void phase4_start_service_processes() {
 /* Phase 4a system call handlers */
 
 void sleep(USLOSS_Sysargs *args) {
-   
-	printf("DEBUG: Starting Sleep (%d seconds)\n", (int)(long)args->arg1);
-    printf("DEBUG: Process being called is %d\n", getpid());
  
     getLock(sleepLock);
     int waitTime = (int)(long)args->arg1;
@@ -134,8 +131,6 @@ void sleep(USLOSS_Sysargs *args) {
 
     // valid wait time (includes 0 -- it will just be put at front of queue)
     numSleeping++;
-	
-	printf("DEBUG: Sleep Checkpoint 1\n");
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
@@ -154,45 +149,31 @@ void sleep(USLOSS_Sysargs *args) {
             prev = prev->next;
         }
     }
-
-	printf("DEBUG: Sleep Checkpoint 2\n");	
 	
     // add new process to the queue
     int toWake = MboxCreate(1, 0);
     SleepProc sleeping = {.pid = getpid(), .wakeBox = toWake, .wakeTime = wakeInterval, .next = NULL};
     if (prev == NULL) {
-        printf("DEBUG: Adding first element to the queue\n");
 	    sleepQueue = &sleeping;
     }
     else if(prev == curr) {
-        printf("DEBUG: Adding element to the front of the queue\n");
         sleeping.next = sleepQueue;
         sleepQueue = &sleeping;
     }
     else {
-        printf("DEBUG: Adding element to the middle of the queue\n");
 	    prev->next = &sleeping;
     }
-
-	printf("DEBUG: Sleep Checkpoint 3\n");
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
 
     int resultSize = 0;
-
-    printf("DEBUG: the wakeup mailbox is %d\n", toWake);
-    dumpProcesses();
     
     // put the process to sleep
     releaseLock(sleepLock);
     resultSize = MboxRecv(toWake, NULL, 0);
 
     // control returns to the current process -- it can now continue.
-
-    getLock(sleepLock);
-    printf("DEBUG: Ending Sleep\n");
-    sleepQueue = sleepQueue->next;
 }
 
 void termRead(USLOSS_Sysargs *args) {
@@ -341,8 +322,6 @@ void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
  * should never actually return, so this value can be any integer.
 */
 int sleepDaemon(void *arg) {
-
-	printf("DEBUG: sleepDaemon starting\n");
     
     int currTime = 0;
     while(1) {
@@ -351,14 +330,14 @@ int sleepDaemon(void *arg) {
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
 
-	printf("DEBUG: sleepDaemon recieved interrupt\n");	
+	//printf("DEBUG: sleepDaemon recieved interrupt\n");	
 
         if(numSleeping > 0 && currTime >= sleepQueue->wakeTime) {
         
             // need to wake up next process in the queue
             numSleeping--;
             int waker = sleepQueue->wakeBox;
-            //sleepQueue = sleepQueue->next;
+            sleepQueue = sleepQueue->next;
         
             // send wakeup message
             MboxSend(waker, NULL, 0);
@@ -428,7 +407,7 @@ int terminalDaemon(void *arg) {
 		memset(readBuffer, 0, MAXLINE);
 	    }		
 	}
-	if (xmitStatus == USLOSS_DEV_READY) {
+	if (writeQueue != NULL && xmitStatus == USLOSS_DEV_READY) {
 
 	    // create the integer value that will be sent to to the terminal
 	    int sendValue = 0x1;
