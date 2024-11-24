@@ -66,7 +66,6 @@ static int testcase_timeout_proc(void *ignored)
      * But if we're going to do that, why not just make this a child of start4()?
      * Simply because then Terminate() would wait to join() on this process.
      */
-    USLOSS_Console("DEBUG: Process ID is %d\n", getpid());
     if (USLOSS_PsrSet(USLOSS_PSR_CURRENT_INT) != USLOSS_DEV_OK)
     {
         USLOSS_Console("ERROR: Could not disable kernel mode.\n");
