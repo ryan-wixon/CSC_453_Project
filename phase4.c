@@ -223,6 +223,9 @@ void sleep(USLOSS_Sysargs *args) {
 }
 
 void termRead(USLOSS_Sysargs *args) {
+    
+	printf("DEBUG: termRead starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+
     getLock(readLock);
     
     char* buffer = (char*)args->arg1;   // possibly need to fix syntax here
@@ -238,6 +241,8 @@ void termRead(USLOSS_Sysargs *args) {
     else {
 	    args->arg4 = (void*)(long)0;
     }
+	
+	printf("DEBUG: termRead checkpoint 1\n");
 
     // figure out which terminal to read to
     int readQueue =  -1;
@@ -267,34 +272,17 @@ void termRead(USLOSS_Sysargs *args) {
     }
     memcpy(buffer, tempBuf, bufSize * sizeof(char));
 
+	printf("DEBUG: termRead checkpoint 2\n");
+
     //getLock(readLock); // pretty sure this shouldn't be here, but not 100% sure
     args->arg2 = (void*)(long)bufSize;
     return;
 }
 
-/*
-void termRead(char* buffer, int bufSize, int unit, int *lenOut) {
-	
-	// check for invalid input and return if needed
-	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-		//args->arg4 = (void*)(long)-1;
-		return;
-	}
-	else {
-		//args->arg4 = (void*)(long)0;
-	}
-
-	// do we need to grab a lock for this?
-	getLock(readLock);
-
-	int charactersRead = 0;
-	//args->arg2 = (void*)(long)charactersRead;
-
-	releaseLock(readLock);	
-}
-*/
-
 void termWrite(USLOSS_Sysargs *args) {
+    	
+	printf("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+
     getLock(writeLock);
     char *buffer = (char*)args->arg1;
     int bufSize = (int)(long)args->arg2;
@@ -308,6 +296,8 @@ void termWrite(USLOSS_Sysargs *args) {
     else {
 	args->arg4 = (void*)(long)0;
     }
+
+	printf("DEBUG: termWrite checkpoint 1\n");
 
     // figure out which write queue to enter
     WriteProc* queue = NULL;
@@ -333,39 +323,25 @@ void termWrite(USLOSS_Sysargs *args) {
     };
 
     WriteProc* prev = queue;
-    while (prev->next != NULL) {
-        prev = prev->next;
+    if (prev == NULL) {
+	prev = &currentProc;
     }
-    prev->next = &currentProc; //TODO Will currentProc ever need to be accessed after this function returns? I don't think so, but it will cause a segfualt if so, so I'm leaving this note
+    else {
+    	while (prev->next != NULL) {
+            prev = prev->next;
+    	}
+    	prev->next = &currentProc;
+    }
+
+	printf("DEBUG: termWrite checkpoint 2\n");
 
     // note: number of characters written to terminal is the same as
     // the buffer size. So args->arg2 doesn't change.
+
     // now put the process to sleep.
     releaseLock(writeLock);
     MboxRecv(toWake, NULL, 0);
 }
-
-/*
-void termWrite(char* buffer, int bufSize, int unit, int *lenOut) {
-	
-	// check for invalid input and return if needed
-	if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-		//args->arg4 = (void*)(long)-1;
-		return;
-	}
-	else {
-		//args->arg4 = (void*)(long)0;
-	}
-
-	// writing must be done atomically, so we need to grab a lock first
-	getLock(writeLock);
-
-	int charactersWritten = 0;
-	//args->arg2 = (void*)(long)charactersWritten;
-
-	releaseLock(writeLock);	
-}
-*/
 
 /* 
  * main function for a daemon that handles putting other processes to sleep
@@ -427,15 +403,15 @@ int terminalDaemon(void *arg) {
     WriteProc *writeQueue = NULL;
 
     // figure out which terminal to set up for reading/writing
-    if(unit == 0) {
+    if (unit == 0) {
         readQueue = readQueue0;
         writeQueue = writeQueue0;
     }
-    else if(unit == 1) {
+    else if (unit == 1) {
         readQueue = readQueue1;
         writeQueue = writeQueue1;
     }
-    else if(unit == 2) {
+    else if (unit == 2) {
         readQueue = readQueue2;
         writeQueue = writeQueue2;
     }
@@ -452,7 +428,7 @@ int terminalDaemon(void *arg) {
 
     while(1) {
         			
-	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);
+	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
         int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
@@ -480,6 +456,8 @@ int terminalDaemon(void *arg) {
 	    }		
 	}
 	if (writeQueue != NULL && xmitStatus == USLOSS_DEV_READY) {
+
+		printf("got here\n");
 
 	    // create the integer value that will be sent to to the terminal
 	    int sendValue = 0x1;
