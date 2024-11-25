@@ -5,3 +5,10 @@ start4(): Spawn four children.  Each child reads fm a different
 start4(): Spawn four children.  Each child writes to a different
           terminal.
 Child0(): start
+Child1(): start
+Child2(): start
+Child3(): start
+Child1(): read 'one: first line   (shortest first line)
+'
+Child2(): read 'two: first line   (third longest line of the set)
+'

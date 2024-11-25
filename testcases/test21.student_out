@@ -3,3 +3,7 @@ start4(): Spawn one child.
 Child0(): start
 Child0(): buffer read from term0   'zero: first line   (second longest first line in the inputs)
 '
+Child0(): buffer read from term0   'zero: second line
+'
+Child0(): buffer read from term0   'zero: third line, longer than previous ones
+'

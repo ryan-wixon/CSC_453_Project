@@ -6,3 +6,11 @@ Child2(): start
 Child3(): start
 buffer written 'one: first line   (shortest first line)
 '
+buffer written 'two: first line   (third longest line of the set)
+'
+buffer written 'zero: first line   (second longest first line in the inputs)
+'
+buffer written 'three: first line   (definitely the longest first line of all the files)
+'
+buffer written 'one: second line
+'

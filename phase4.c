@@ -68,6 +68,8 @@ WriteProc* writeQueue1 = NULL;
 WriteProc* writeQueue2 = NULL;
 WriteProc* writeQueue3 = NULL;
 
+WriteProc* writeQueues[4];
+
 void phase4_init(void) {
     
     // create locks
@@ -80,6 +82,10 @@ void phase4_init(void) {
     readQueue1 = MboxCreate(10, MAXLINE + 1);
     readQueue2 = MboxCreate(10, MAXLINE + 1);
     readQueue3 = MboxCreate(10, MAXLINE + 1);
+
+    for(int i = 0; i < 4; i++) {
+        writeQueues[i] = NULL;
+    }
 
     // unmask terminal interrupts
     int control = 0x0;  // don't send a character
@@ -201,12 +207,6 @@ void sleep(USLOSS_Sysargs *args) {
         sleepQueue[index].next = prev->next;
         prev->next = &sleepQueue[index];
     }*/
-        //sleeping.next = sleepQueue;
-        //sleepQueue = &sleeping;
-    //else {
-        //printf("DEBUG: add element to middle or end of queue\n");
-	    //prev->next = &sleeping;
-    //}
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
@@ -224,7 +224,7 @@ void sleep(USLOSS_Sysargs *args) {
 
 void termRead(USLOSS_Sysargs *args) {
     
-	printf("DEBUG: termRead starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+	//printf("DEBUG: termRead starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
 
     getLock(readLock);
     
@@ -242,7 +242,7 @@ void termRead(USLOSS_Sysargs *args) {
 	    args->arg4 = (void*)(long)0;
     }
 	
-	printf("DEBUG: termRead checkpoint 1\n");
+	//printf("DEBUG: termRead checkpoint 1\n");
 
     // figure out which terminal to read to
     int readQueue =  -1;
@@ -272,7 +272,7 @@ void termRead(USLOSS_Sysargs *args) {
     }
     memcpy(buffer, tempBuf, bufSize * sizeof(char));
 
-	printf("DEBUG: termRead checkpoint 2\n");
+	//printf("DEBUG: termRead checkpoint 2\n");
 
     //getLock(readLock); // pretty sure this shouldn't be here, but not 100% sure
     args->arg2 = (void*)(long)bufSize;
@@ -281,7 +281,7 @@ void termRead(USLOSS_Sysargs *args) {
 
 void termWrite(USLOSS_Sysargs *args) {
     	
-	printf("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+	//printf("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
 
     getLock(writeLock);
     char *buffer = (char*)args->arg1;
@@ -297,10 +297,10 @@ void termWrite(USLOSS_Sysargs *args) {
 	args->arg4 = (void*)(long)0;
     }
 
-	printf("DEBUG: termWrite checkpoint 1\n");
+	//printf("DEBUG: termWrite checkpoint 1 -- valid arguments.\n");
 
     // figure out which write queue to enter
-    WriteProc* queue = NULL;
+    /*
     if (unit == 0) {
         queue = writeQueue0;
     }
@@ -313,6 +313,7 @@ void termWrite(USLOSS_Sysargs *args) {
     else {
         queue = writeQueue3;
     }
+    */
 
     int toWake = MboxCreate(1, 0);
 
@@ -322,18 +323,18 @@ void termWrite(USLOSS_Sysargs *args) {
         .curr = 0, .wakeBox = toWake, .next = NULL
     };
 
-    WriteProc* prev = queue;
-    if (prev == NULL) {
-	prev = &currentProc;
+    if (writeQueues[unit] == NULL) {
+	writeQueues[unit] = &currentProc;
     }
     else {
+        WriteProc* prev = writeQueues[unit];
     	while (prev->next != NULL) {
             prev = prev->next;
     	}
     	prev->next = &currentProc;
     }
 
-	printf("DEBUG: termWrite checkpoint 2\n");
+	//printf("DEBUG: termWrite checkpoint 2 -- made it past adding to queue\n");
 
     // note: number of characters written to terminal is the same as
     // the buffer size. So args->arg2 doesn't change.
@@ -400,25 +401,24 @@ int terminalDaemon(void *arg) {
     int termStatus = 0;
 
     int readQueue = -1;
-    WriteProc *writeQueue = NULL;
 
     // figure out which terminal to set up for reading/writing
     if (unit == 0) {
         readQueue = readQueue0;
-        writeQueue = writeQueue0;
+        //writeQueue = writeQueue0;
     }
     else if (unit == 1) {
         readQueue = readQueue1;
-        writeQueue = writeQueue1;
+        //writeQueue = writeQueue1;
     }
     else if (unit == 2) {
         readQueue = readQueue2;
-        writeQueue = writeQueue2;
+        //writeQueue = writeQueue2;
     }
     else {
         // this is guaranteed to be 3
         readQueue = readQueue3;
-        writeQueue = writeQueue3;
+        //writeQueue = writeQueue3;
     }
 
     // create a buffer to hold characters being read from the terminal
@@ -427,8 +427,9 @@ int terminalDaemon(void *arg) {
     memset(readBuffer, 0, MAXLINE);
 
     while(1) {
+        WriteProc* writeQueue = writeQueues[unit];
         			
-	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
+	    waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
         int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
@@ -440,7 +441,7 @@ int terminalDaemon(void *arg) {
         }
 
         if (recvStatus == USLOSS_DEV_BUSY) {
-            // TODO -- add received character to a buffer.
+            // add received character to a buffer
             // if the buffer is full, send message to associated mailbox
             // if there is a waiting process, this will wake up that process without us having to do anything
 
@@ -457,13 +458,13 @@ int terminalDaemon(void *arg) {
 	}
 	if (writeQueue != NULL && xmitStatus == USLOSS_DEV_READY) {
 
-		printf("got here\n");
+		//printf("got here\n");
 
 	    // create the integer value that will be sent to to the terminal
-	    int sendValue = 0x1;
+	    int sendValue = 0x7;
 	    sendValue |= (writeQueue->buf[writeQueue->curr] << 8);
 	    
-            printf("DEBUG: Writing char %c to terminal %d\n", writeQueue->buf[writeQueue->curr] , unit);
+            //printf("DEBUG: Writing char %c to terminal %d\n", writeQueue->buf[writeQueue->curr] , unit);
 
 	    // send the value
 	    if (USLOSS_DeviceOutput(USLOSS_TERM_DEV, unit, (void*)(long)sendValue) == USLOSS_DEV_INVALID) {
@@ -473,6 +474,7 @@ int terminalDaemon(void *arg) {
 
 	    // if the end of the string has been reached, wake up the waiting process and remove it from the queue
 	    if (writeQueue->curr == writeQueue->bufLength) {
+            //printf("DEBUG: Waiting process pid is %d\n", writeQueue->pid);
 		WriteProc* finishedProcess = writeQueue;
 		writeQueue = writeQueue->next;
 		MboxSend(finishedProcess->wakeBox, NULL, 0);
