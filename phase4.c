@@ -2,18 +2,23 @@
  * Ryan Wixon and Adrianna Koppes
  * Phase 4a
  * CSC 452-001
-*/
+ *
+ * Incorperates connectivity for device handlers; this currently defines functions which
+ * will allow processes to sleep or to read/write with a terminal. It will include disk
+ * communication functionality at a later point, but that is unimplemented for now.
+ *
+ * See the included README file for additional documentation
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <usyscall.h> /* for system call constants, etc. */
-#include <phase1.h>   /* to access phase 1 functions, if necessary */
-#include <phase2.h>   /* to access phase2 functions, for mailboxes */
+#include <usyscall.h>                /* for system call constants, etc. */
+#include <phase1.h>                  /* to access phase 1 functions, if necessary */
+#include <phase2.h>                  /* to access phase2 functions, for mailboxes */
 #include <phase3.h>
 #include <phase3_kernelInterfaces.h> /* for semaphore functionality */
-//#include <phase3_usermode.h>
 #include <phase4.h>
 
 // function prototypes
@@ -32,7 +37,6 @@ typedef struct SleepProc {
     int pid;          /* ID of the process that is sleeping */
     long wakeTime;    /* time at which the process should wake up (in microseconds) */
     int wakeBox;      /* ID of the mailbox used to wake the process */
-    //struct SleepProc *next;  /* next process in the queue */
 } SleepProc;
 
 /* for queuing processes for writing to the terminal */
@@ -47,14 +51,14 @@ typedef struct WriteProc {
 
 int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
 int readLock = -1;    /* lock for reading from terminal */
-int writeLock[4]; /* locks for writing from terminal */
+int writeLock[4];     /* locks for writing from terminal */
 
 // Phase 4b -- add locks for the other interrupts
 
 SleepProc sleepQueue[MAXPROC];  /* process table for sleep queue */
-int sleepOccupied[MAXPROC];  /* contains whether slots are occupied */
-SleepProc *sleepHead;    /* head of the sleep queue */
-int numSleeping = 0;  /* number of processes waiting to sleep */
+int sleepOccupied[MAXPROC];     /* contains whether slots are occupied */
+SleepProc *sleepHead;           /* head of the sleep queue */
+int numSleeping = 0;            /* number of processes waiting to sleep */
 
 // mailbox IDs for mailboxes used as read queues
 int readQueue0;
@@ -70,6 +74,13 @@ WriteProc* writeQueue3 = NULL;
 
 WriteProc* writeQueues[4];
 
+/* 
+ * Startup code for phase 4; initializes required mailboxes, the shadow process table,
+ * and configures interrupts for the terminals.
+ * 
+ * Arguments: Void
+ *   Returns: Void
+ */
 void phase4_init(void) {
     
     // create locks
@@ -93,6 +104,7 @@ void phase4_init(void) {
     int control = 0x0;  // don't send a character
     control |= 0x2;     // enable read interrupts
     control |= 0x4;     // enable write interrupts
+
     // now unmask interrupts for each terminal
     int result0 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 0, (void*)(long)control);
     int result1 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 1, (void*)(long)control);
@@ -117,7 +129,15 @@ void phase4_init(void) {
     systemCallVec[SYS_TERMWRITE] = termWrite;
 }
 
+/* 
+ * Creates helper processes which manage the requests of user code. This includes a
+ * daemon process sleeping as well as 4 daemon processes managing each terminal.
+ * 
+ * Arguments: None
+ *   Returns: Void
+ */
 void phase4_start_service_processes() {
+
     // start daemons -- will all have max priority.
     int (*sleepFunc)(void*) = sleepDaemon;
     int (*termFunc0)(void*) = terminalDaemon;
@@ -133,6 +153,15 @@ void phase4_start_service_processes() {
 
 /* Phase 4a system call handlers */
 
+/* 
+ * Attempts to put a process to sleep based on a provide time in seconds. The process
+ * will be awakened prompty after it's alloted time has passed, although matching it
+ * exactly is not guaranteed. In other words, it will never sleep for less than the given
+ * time, but it could sleep for more.
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void sleep(USLOSS_Sysargs *args) {
  
     getLock(sleepLock);
@@ -150,29 +179,8 @@ void sleep(USLOSS_Sysargs *args) {
 
     // recall: USLOSS clock gives microseconds!!
     long wakeInterval = currentTime() + (waitTime * 1000000);
-    /*
-    SleepProc* curr = sleepHead;
-    SleepProc* prev = sleepHead;
-    while (curr != NULL && prev != NULL) {
-        if (curr->wakeTime > wakeInterval) {
-            // found our curr and prev values
-            printf("DEBUG: Found place in the queue\n");
-            break;
-        }
-        if (prev == sleepHead) {
-            printf("DEBUG: We are at the element in queue, keep moving\n");
-            curr = curr->next;
-        }
-        else {
-            printf("DEBUG: Keep going.\n");
-            curr = curr->next;
-            prev = prev->next;
-        }
-    }*/
 	
     // add new process to the queue
-    //int toWake = MboxCreate(1, 0);
-    //SleepProc sleeping = {.pid = getpid(), .wakeBox = MboxCreate(1,0), .wakeTime = wakeInterval, .next = NULL};
     int index = 0;
     for(int i = 0; i < MAXPROC; i++) {
         if(sleepOccupied[i] == 0) {
@@ -184,31 +192,6 @@ void sleep(USLOSS_Sysargs *args) {
             break;
         }
     }
-    /*
-    while(sleepOccupied[index] != 0) {
-        index++;
-    }
-    sleepQueue[index] = sleeping;
-    sleepOccupied[index] = 1;
-    */
-    /*
-    if(prev == NULL) {
-        // first element to be added to the queue
-        printf("DEBUG: first element being added to empty queue\n");
-        sleepHead = &sleepQueue[index];
-    }
-    else if(prev == curr) {
-        // add to front of the queue
-        printf("DEBUG: add element to the front of the queue\n");
-        sleepQueue[index].next = sleepHead;
-        sleepHead = &sleepQueue[index];
-    }
-    else {
-        // add to middle of queue
-        printf("DEBUG: add element to middle or end of queue\n");
-        sleepQueue[index].next = prev->next;
-        prev->next = &sleepQueue[index];
-    }*/
 
     // prepare args for return.
     args->arg4 = (void*)(long)0;
@@ -221,13 +204,18 @@ void sleep(USLOSS_Sysargs *args) {
     resultSize = MboxRecv(wakeBoxTemp, NULL, 0);
 
     // control returns to the current process -- it can now continue.
-
 }
 
+/* 
+ * Attempts to read from a terminal by adding the current process to a read queue.
+ * The actual read will not take place until the terminal daemon receives an
+ * interrupt.
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void termRead(USLOSS_Sysargs *args) {
     
-	//printf("DEBUG: termRead starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
-
     getLock(readLock);
     
     char* buffer = (char*)args->arg1;   // possibly need to fix syntax here
@@ -244,8 +232,6 @@ void termRead(USLOSS_Sysargs *args) {
 	    args->arg4 = (void*)(long)0;
     }
 	
-	//printf("DEBUG: termRead checkpoint 1\n");
-
     // figure out which terminal to read to
     int readQueue =  -1;
     if (unit == 0) {
@@ -274,16 +260,20 @@ void termRead(USLOSS_Sysargs *args) {
     }
     memcpy(buffer, tempBuf, bufSize * sizeof(char));
 
-	//printf("DEBUG: termRead checkpoint 2\n");
-
-    //getLock(readLock); // pretty sure this shouldn't be here, but not 100% sure
     args->arg2 = (void*)(long)bufSize;
     return;
 }
 
+/* 
+ * Attempts to write to a terminal by adding the current process to a write queue.
+ * The actual write will not take place until the terminal daemon receives an
+ * interrupt.
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void termWrite(USLOSS_Sysargs *args) {
     	
-	//USLOSS_Console("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
     int unit = (int)(long)args->arg3;
 
     getLock(writeLock[unit]);
@@ -300,26 +290,7 @@ void termWrite(USLOSS_Sysargs *args) {
 	args->arg4 = (void*)(long)0;
     }
 
-	//printf("DEBUG: termWrite checkpoint 1 -- valid arguments.\n");
-
-    // figure out which write queue to enter
-    /*
-    if (unit == 0) {
-        queue = writeQueue0;
-    }
-    else if (unit == 1) {
-        queue = writeQueue1;
-    }
-    else if (unit == 2) {
-        queue = writeQueue2;
-    }
-    else {
-        queue = writeQueue3;
-    }
-    */
-
     int toWake = MboxCreate(1, 0);
-    //USLOSS_Console("toWake mbox id is: %d\n", toWake);
 
     // put the process in the appropriate queue
     WriteProc currentProc = {
@@ -328,19 +299,15 @@ void termWrite(USLOSS_Sysargs *args) {
     };
 
     if (writeQueues[unit] == NULL) {
-        //printf("add process to empty queue\n");
 	writeQueues[unit] = &currentProc;
     }
     else {
-        //printf("add process to queue with elements in it\n");
         WriteProc* prev = writeQueues[unit];
     	while (prev->next != NULL) {
             prev = prev->next;
     	}
     	prev->next = &currentProc;
     }
-
-	//printf("DEBUG: termWrite checkpoint 2 -- made it past adding to queue\n");
 
     // note: number of characters written to terminal is the same as
     // the buffer size. So args->arg2 doesn't change.
@@ -351,13 +318,12 @@ void termWrite(USLOSS_Sysargs *args) {
 }
 
 /* 
- * main function for a daemon that handles putting other processes to sleep
+ * Main function for a daemon that handles putting other processes to sleep
  * and waking them up when their sleep time is up.
  * 
  * Arguments: void pointer arg; unused.
- * Returns: integer representing the status of the daemon, but daemon 
- * should never actually return, so this value can be any integer.
-*/
+ *   Returns: 0, but daemon should never actually return, so this value can be any integer.
+ */
 int sleepDaemon(void *arg) {
     
     int currTime = 0;
@@ -367,7 +333,6 @@ int sleepDaemon(void *arg) {
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
 
-        //if(numSleeping > 0 && currTime >= sleepHead->wakeTime) {
         if(numSleeping > 0) {
         
             // need to wake up next process in the queue
@@ -379,28 +344,19 @@ int sleepDaemon(void *arg) {
                     MboxSend(waker, NULL, 0);
                 }
             }
-            /*
-            int waker = sleepHead->wakeBox;
-            // take head of queue off
-            // find head of queue
-            int headIndex = 0;
-            for(int i = 0; i < MAXPROC; i++) {
-                if(sleepOccupied[i] == 1 && sleepQueue[i].wakeBox == sleepHead->wakeBox) {
-                    // found the correct head in the queue
-                    headIndex = i;
-                    break;
-                }
-            }
-            sleepHead = sleepHead->next;
-            sleepOccupied[headIndex] = 0;
-            */
-            // send wakeup message
-            //MboxSend(waker, NULL, 0);
         }
     }
     return 0; // should never reach this
 }
 
+/* 
+ * Main function for a daemon that handles communications with a terminal. This daemon will
+ * only manage 1 specific terminal; when it receives an interrupt it will perform a read, write
+ * both, or do nothing.
+ * 
+ * Arguments: void pointer arg containing an int from 0-3 representing the unit number
+ *   Returns: 0, but daemon should never actually return, so this value can be any integer.
+ */
 int terminalDaemon(void *arg) {
     	
     int unit = (int)(long)arg;
@@ -408,23 +364,19 @@ int terminalDaemon(void *arg) {
 
     int readQueue = -1;
 
-    // figure out which terminal to set up for reading/writing
+    // figure out which terminal to set up for reading
     if (unit == 0) {
         readQueue = readQueue0;
-        //writeQueue = writeQueue0;
     }
     else if (unit == 1) {
         readQueue = readQueue1;
-        //writeQueue = writeQueue1;
     }
     else if (unit == 2) {
         readQueue = readQueue2;
-        //writeQueue = writeQueue2;
     }
     else {
         // this is guaranteed to be 3
         readQueue = readQueue3;
-        //writeQueue = writeQueue3;
     }
 
     // create a buffer to hold characters being read from the terminal
@@ -434,7 +386,7 @@ int terminalDaemon(void *arg) {
 
     while(1) {
         			
-	    waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
+	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
         WriteProc* writeQueue = writeQueues[unit];
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
@@ -465,38 +417,26 @@ int terminalDaemon(void *arg) {
 	if (writeQueue != NULL && xmitStatus == USLOSS_DEV_READY) {
         getLock(writeLock[unit]);
 
-		//printf("got here\n");
-
 	    // create the integer value that will be sent to to the terminal
 	    int sendValue = 0x7;
 	    sendValue |= (writeQueue->buf[writeQueue->curr] << 8);
 	    
-            //printf("DEBUG: Writing char %c to terminal %d\n", writeQueue->buf[writeQueue->curr] , unit);
-
 	    // send the value
 	    if (USLOSS_DeviceOutput(USLOSS_TERM_DEV, unit, (void*)(long)sendValue) == USLOSS_DEV_INVALID) {
 		fprintf(stderr, "ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
-        releaseLock(writeLock[unit]);
-        USLOSS_Halt(1);
+        	releaseLock(writeLock[unit]);
+        	USLOSS_Halt(1);
 	    }
 	    writeQueue->curr++;
 
 
 	    // if the end of the string has been reached, wake up the waiting process and remove it from the queue
 	    if (writeQueue->curr == writeQueue->bufLength) {
-            //printf("DEBUG: Waiting process pid is %d\n", writeQueue->pid);
 		WriteProc* finishedProcess = writeQueue;
 		writeQueues[unit] = writeQueues[unit]->next;
-        /*
-        if(writeQueues[unit] != NULL) {
-            printf("the next process in the queue is %d\n", writeQueues[unit]->pid);
-        }
-        else {
-            printf("write queue is null!!\n");
-        }*/
 		MboxSend(finishedProcess->wakeBox, NULL, 0);
 	    }  
-        releaseLock(writeLock[unit]);  
+            releaseLock(writeLock[unit]);  
 	}
     }
     return 0; // should never reach this 
@@ -507,7 +447,7 @@ int terminalDaemon(void *arg) {
  * Utility function to grab a specified lock
  * Arguments: integer representing ID of the mailbox serving as our lock
  *   Returns: Void
-*/
+ */
 void getLock(int lock) {
     
     // will block if mailbox is full - prevent concurrency
@@ -519,7 +459,7 @@ void getLock(int lock) {
  * Utility function to release a specified lock.
  * Arguments: integer representing ID of the mailbox serving as a lock.
  *   Returns: Void
-*/
+ */
 void releaseLock(int lock) {
     
     // will block if mailbox is empty, so be careful about when you call this!

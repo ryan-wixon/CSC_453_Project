@@ -44,9 +44,9 @@ start4(): Waiting on Child
 Child2(): After sleeping 24 seconds, difference in system clock is 24089795
 start4(): Wait returned 0, pid:12, status 12
 start4(): Waiting on Child
-Child1(): After sleeping 27 seconds, difference in system clock is 27069822
+Child1(): After sleeping 27 seconds, difference in system clock is 27089825
 start4(): Wait returned 0, pid:11, status 11
 start4(): Waiting on Child
-Child0(): After sleeping 30 seconds, difference in system clock is 30009855
+Child0(): After sleeping 30 seconds, difference in system clock is 30049853
 start4(): Wait returned 0, pid:10, status 10
 finish(): The simulation is now terminating.
