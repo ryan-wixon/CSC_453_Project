@@ -47,7 +47,7 @@ typedef struct WriteProc {
 
 int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
 int readLock = -1;    /* lock for reading from terminal */
-int writeLock = -1;   /* lock for writing to terminal */
+int writeLock[4]; /* locks for writing from terminal */
 
 // Phase 4b -- add locks for the other interrupts
 
@@ -75,7 +75,9 @@ void phase4_init(void) {
     // create locks
     sleepLock = MboxCreate(1, 0);
     readLock = MboxCreate(1, 0);
-    writeLock = MboxCreate(1, 0);
+    for(int i = 0; i < 4; i++) {
+        writeLock[i] = MboxCreate(1, 0);
+    }
 
     // create read mailboxes (one for each terminal)
     readQueue0 = MboxCreate(10, MAXLINE + 1);
@@ -281,16 +283,17 @@ void termRead(USLOSS_Sysargs *args) {
 
 void termWrite(USLOSS_Sysargs *args) {
     	
-	//printf("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+	//USLOSS_Console("DEBUG: termWrite starting for unit %d with buffer size %d\n", (int)(long)args->arg3, (int)(long)args->arg2);
+    int unit = (int)(long)args->arg3;
 
-    getLock(writeLock);
+    getLock(writeLock[unit]);
     char *buffer = (char*)args->arg1;
     int bufSize = (int)(long)args->arg2;
-    int unit = (int)(long)args->arg3;
     
     // check for invalid input and return if needed
     if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
 	args->arg4 = (void*)(long)-1;
+    releaseLock(writeLock[unit]);
 	return;
     }
     else {
@@ -316,6 +319,7 @@ void termWrite(USLOSS_Sysargs *args) {
     */
 
     int toWake = MboxCreate(1, 0);
+    //USLOSS_Console("toWake mbox id is: %d\n", toWake);
 
     // put the process in the appropriate queue
     WriteProc currentProc = {
@@ -324,9 +328,11 @@ void termWrite(USLOSS_Sysargs *args) {
     };
 
     if (writeQueues[unit] == NULL) {
+        //printf("add process to empty queue\n");
 	writeQueues[unit] = &currentProc;
     }
     else {
+        //printf("add process to queue with elements in it\n");
         WriteProc* prev = writeQueues[unit];
     	while (prev->next != NULL) {
             prev = prev->next;
@@ -340,7 +346,7 @@ void termWrite(USLOSS_Sysargs *args) {
     // the buffer size. So args->arg2 doesn't change.
 
     // now put the process to sleep.
-    releaseLock(writeLock);
+    releaseLock(writeLock[unit]);
     MboxRecv(toWake, NULL, 0);
 }
 
@@ -427,9 +433,9 @@ int terminalDaemon(void *arg) {
     memset(readBuffer, 0, MAXLINE);
 
     while(1) {
-        WriteProc* writeQueue = writeQueues[unit];
         			
 	    waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
+        WriteProc* writeQueue = writeQueues[unit];
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
         int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
@@ -457,6 +463,7 @@ int terminalDaemon(void *arg) {
 	    }		
 	}
 	if (writeQueue != NULL && xmitStatus == USLOSS_DEV_READY) {
+        getLock(writeLock[unit]);
 
 		//printf("got here\n");
 
@@ -469,16 +476,27 @@ int terminalDaemon(void *arg) {
 	    // send the value
 	    if (USLOSS_DeviceOutput(USLOSS_TERM_DEV, unit, (void*)(long)sendValue) == USLOSS_DEV_INVALID) {
 		fprintf(stderr, "ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+        releaseLock(writeLock[unit]);
+        USLOSS_Halt(1);
 	    }
 	    writeQueue->curr++;
+
 
 	    // if the end of the string has been reached, wake up the waiting process and remove it from the queue
 	    if (writeQueue->curr == writeQueue->bufLength) {
             //printf("DEBUG: Waiting process pid is %d\n", writeQueue->pid);
 		WriteProc* finishedProcess = writeQueue;
-		writeQueue = writeQueue->next;
+		writeQueues[unit] = writeQueues[unit]->next;
+        /*
+        if(writeQueues[unit] != NULL) {
+            printf("the next process in the queue is %d\n", writeQueues[unit]->pid);
+        }
+        else {
+            printf("write queue is null!!\n");
+        }*/
 		MboxSend(finishedProcess->wakeBox, NULL, 0);
-	    }    
+	    }  
+        releaseLock(writeLock[unit]);  
 	}
     }
     return 0; // should never reach this 

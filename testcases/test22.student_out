@@ -14,3 +14,39 @@ buffer written 'three: first line   (definitely the longest first line of all th
 '
 buffer written 'one: second line
 '
+buffer written 'one: third line, longer than previous ones
+'
+buffer written 'two: second line
+'
+buffer written 'two: third line, longer than previous ones
+'
+buffer written 'zero: second line
+'
+buffer written 'zero: third line, longer than previous ones
+'
+buffer written 'three: second line
+'
+buffer written 'three: third line, longer than previous ones
+'
+buffer written 'one: fourth line, will be 80 characters long when I get through typing it in..
+'
+buffer written 'two: fourth line, will be 80 characters long when I get through typing it in..
+'
+buffer written 'zero: fourth line, will be 80 characters long when I get through typing it in.
+'
+buffer written 'three: fourth line, will be 80 characters long when I get through typing it in
+'
+buffer written 'one: fifth line
+'
+buffer written 'two: fifth line
+'
+Child1(): done
+buffer written 'zero: fifth line
+'
+Child2(): done
+buffer written 'three: fifth line
+'
+Child0(): done
+Child3(): done
+start4(): done.
+finish(): The simulation is now terminating.

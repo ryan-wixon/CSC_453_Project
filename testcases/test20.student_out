@@ -28,8 +28,8 @@ Child0(): read zero: second line
 Child3(): read three: second line
 Child1(): read one: third line, longer than previous ones
 Child2(): read two: third line, longer than previous ones
-Child0(): read zero: third line, longer than previous ones
 Child_21(): writing to term1
+Child0(): read zero: third line, longer than previous ones
 Child_20(): writing to term0
 Child_23(): writing to term3
 Child_22(): writing to term2
@@ -54,3 +54,5 @@ Child_21(): writing to term1
 Child_20(): writing to term0
 Child_23(): writing to term3
 Child_22(): writing to term2
+start4(): done.
+finish(): The simulation is now terminating.
