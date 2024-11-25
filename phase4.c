@@ -257,11 +257,18 @@ void termRead(USLOSS_Sysargs *args) {
 
     // receive from the read mailbox.
     int size = 0;
+    char tempBuf[MAXLINE];
+    memset(tempBuf, 0, sizeof(tempBuf));
     releaseLock(readLock);
-    size = MboxRecv(readQueue, buffer, bufSize);
+    size = MboxRecv(readQueue, tempBuf, MAXLINE);
+    if(size < bufSize) {
+        // couldn't read in as many characters as we wanted
+        bufSize = size;
+    }
+    memcpy(buffer, tempBuf, bufSize * sizeof(char));
 
     //getLock(readLock); // pretty sure this shouldn't be here, but not 100% sure
-    args->arg2 = (void*)(long)size;
+    args->arg2 = (void*)(long)bufSize;
     return;
 }
 
