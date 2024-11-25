@@ -230,12 +230,13 @@ void termRead(USLOSS_Sysargs *args) {
     int unit = (int)(long)args->arg3;
     
     // check for invalid input and return if needed
-    if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
-	args->arg4 = (void*)(long)-1;
-	return;
+    if (bufSize <= 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
+	    args->arg4 = (void*)(long)-1;
+        releaseLock(readLock);
+	    return;
     }
     else {
-	args->arg4 = (void*)(long)0;
+	    args->arg4 = (void*)(long)0;
     }
 
     // figure out which terminal to read to
