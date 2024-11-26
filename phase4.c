@@ -176,9 +176,6 @@ void sleep(USLOSS_Sysargs *args) {
 
     // valid wait time (includes 0 -- it will just be put at front of queue)
     numSleeping++;
-
-    // recall: USLOSS clock gives microseconds!!
-    long wakeInterval = currentTime() + (waitTime * 1000000);
 	
     // add new process to the queue
     int index = 0;
@@ -187,6 +184,7 @@ void sleep(USLOSS_Sysargs *args) {
             sleepOccupied[i] = 1;
             sleepQueue[i].pid = getpid();
             sleepQueue[i].wakeBox = MboxCreate(1,0);
+            // recall: USLOSS clock gives microseconds!!
             sleepQueue[i].wakeTime = currentTime() + (waitTime * 1000000);
             index = i;
             break;
@@ -196,12 +194,11 @@ void sleep(USLOSS_Sysargs *args) {
     // prepare args for return.
     args->arg4 = (void*)(long)0;
 
-    int resultSize = 0;
     int wakeBoxTemp = sleepQueue[index].wakeBox;
     
     // put the process to sleep
     releaseLock(sleepLock);
-    resultSize = MboxRecv(wakeBoxTemp, NULL, 0);
+    MboxRecv(wakeBoxTemp, NULL, 0);
 
     // control returns to the current process -- it can now continue.
 }
