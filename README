@@ -25,7 +25,7 @@ test20
 ------------------------------------------------------------------------------
 Similarly to test07, the testcase creates 8 children with the same priority
 that read or write to a terminal. Race conditions will again exist for the
-same reasons as described proviously; our output is again slightly out of
+same reasons as described previously; our output is again slightly out of
 order, but every operation completes successfuly and correctly. Thus, our
 output is still correct.
 ------------------------------------------------------------------------------
