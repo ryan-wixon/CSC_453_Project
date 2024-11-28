@@ -27,9 +27,13 @@ void getLock(int lock);
 void releaseLock(int lock);
 int sleepDaemon(void* arg);
 int terminalDaemon(void* arg);
+int diskDaemon(void* arg);
 void sleep(USLOSS_Sysargs *args);
 void termRead(USLOSS_Sysargs *args);
 void termWrite(USLOSS_Sysargs *args);
+void diskSize(USLOSS_Sysargs *args);
+void diskRead(USLOSS_Sysargs *args);
+void diskWrite(USLOSS_Sysargs *args);
 
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
@@ -127,6 +131,9 @@ void phase4_init(void) {
     systemCallVec[SYS_SLEEP] = sleep;
     systemCallVec[SYS_TERMREAD] = termRead;
     systemCallVec[SYS_TERMWRITE] = termWrite;
+    systemCallVec[SYS_DISKSIZE] = diskSize;
+    systemCallVec[SYS_DISKREAD] = diskRead;
+    systemCallVec[SYS_DISKWRITE] = diskWrite;
 }
 
 /* 
@@ -144,11 +151,15 @@ void phase4_start_service_processes() {
     int (*termFunc1)(void*) = terminalDaemon;
     int (*termFunc2)(void*) = terminalDaemon;
     int (*termFunc3)(void*) = terminalDaemon;
+    int (*diskFunc0)(void*) = diskDaemon;
+    int (*diskFunc1)(void*) = diskDaemon;
     spork("sleepDaemon", sleepFunc, (void*)(long)0, USLOSS_MIN_STACK, 1);
     spork("termDaemon0", termFunc0, (void*)(long)0, USLOSS_MIN_STACK, 1);
     spork("termDaemon1", termFunc1, (void*)(long)1, USLOSS_MIN_STACK, 1);
     spork("termDaemon2", termFunc2, (void*)(long)2, USLOSS_MIN_STACK, 1);
     spork("termDaemon3", termFunc3, (void*)(long)3, USLOSS_MIN_STACK, 1);
+    spork("diskDaemon0", diskFunc0, (void*)(long)0, USLOSS_MIN_STACK, 1);
+    spork("diskDaemon1", diskFunc1, (void*)(long)1, USLOSS_MIN_STACK, 1);
 }
 
 /* Phase 4a system call handlers */
@@ -314,6 +325,18 @@ void termWrite(USLOSS_Sysargs *args) {
     MboxRecv(toWake, NULL, 0);
 }
 
+void diskSize(USLOSS_Sysargs* args) {
+
+}
+
+void diskRead(USLOSS_Sysargs* args) {
+
+}
+
+void diskWrite(USLOSS_Sysargs* args) {
+
+}
+
 /* 
  * Main function for a daemon that handles putting other processes to sleep
  * and waking them up when their sleep time is up.
@@ -437,6 +460,20 @@ int terminalDaemon(void *arg) {
 	}
     }
     return 0; // should never reach this 
+}
+
+int diskDaemon(void* arg) {
+
+	int unit = (int)(long)arg;
+	int diskStatus = 0;
+
+	while (1) {
+	
+		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
+		//TODO do something
+	}
+
+	return 0; // should never reach this
 }
 
 /*
