@@ -35,29 +35,41 @@ void diskSize(USLOSS_Sysargs *args);
 void diskRead(USLOSS_Sysargs *args);
 void diskWrite(USLOSS_Sysargs *args);
 
+/* for sending request infomation to a disk; 1 for each disk */
+struct DiskState {
+    USLOSS_DeviceRequest req;
+} diskRequest[2];
+
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
-
     int pid;          /* ID of the process that is sleeping */
     long wakeTime;    /* time at which the process should wake up (in microseconds) */
-    int wakeBox;      /* ID of the mailbox used to wake the process */
+    int wakeBox;      /* mailbox to wake the process up */
 } SleepProc;
 
 /* for queuing processes for writing to the terminal */
 typedef struct WriteProc {
-    int pid;         /* ID of the process writing to the terminal */
-    char *buf;       /* buffer to write */
-    int bufLength;   /* buffer length */
-    int curr;        /* index of next char to write */
-    int wakeBox;     /* mailbox to wake the process up */
+    int pid;                /* ID of the process writing to the terminal */
+    char *buf;              /* buffer to write */
+    int bufLength;          /* buffer length */
+    int curr;               /* index of next char to write */
+    int wakeBox;            /* mailbox to wake the process up */
     struct WriteProc *next; /* next process in the queue */
 } WriteProc;
 
-int sleepLock = -1;   /* lock for Sleep handler - can no longer use global lock */
+/* for queueing components of processes for acessing the disk */
+typedef struct DiskProc {
+    int pid;                /* ID of the process making requests to the disk */
+    int requestType;        /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
+    int lastRequest;        /* boolean indicating if this is the current process's last step */
+    int wakeBox;            /* mailbox to wake the process up */
+    struct DiskProc *next;  /* next step or process in the queue */
+} DiskProc;
+
+int sleepLock = -1;   /* lock for sleep handler - can no longer use global lock */
 int readLock = -1;    /* lock for reading from terminal */
 int writeLock[4];     /* locks for writing from terminal */
-
-// Phase 4b -- add locks for the other interrupts
+int diskLock[2];      /* locks for accessing disks */
 
 SleepProc sleepQueue[MAXPROC];  /* process table for sleep queue */
 int sleepOccupied[MAXPROC];     /* contains whether slots are occupied */
@@ -70,13 +82,12 @@ int readQueue1;
 int readQueue2;
 int readQueue3;
 
-/* head of each write queue */
-WriteProc* writeQueue0 = NULL;
-WriteProc* writeQueue1 = NULL;
-WriteProc* writeQueue2 = NULL;
-WriteProc* writeQueue3 = NULL;
-
+/* queues for writing to terminals and accessing disks */
 WriteProc* writeQueues[4];
+DiskProc* diskQueues[2];
+
+/* stores PID of the disk lock owner so that it may safely call several functions */
+int diskOwner;
 
 /* 
  * Startup code for phase 4; initializes required mailboxes, the shadow process table,
@@ -90,8 +101,11 @@ void phase4_init(void) {
     // create locks
     sleepLock = MboxCreate(1, 0);
     readLock = MboxCreate(1, 0);
-    for(int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         writeLock[i] = MboxCreate(1, 0);
+    }
+    for (int i = 0; i < 2; i++) {
+	diskLock[i] = MboxCreate(1, 0);
     }
 
     // create read mailboxes (one for each terminal)
@@ -100,8 +114,11 @@ void phase4_init(void) {
     readQueue2 = MboxCreate(10, MAXLINE + 1);
     readQueue3 = MboxCreate(10, MAXLINE + 1);
 
-    for(int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         writeQueues[i] = NULL;
+    }
+    for (int i = 0; i < 2; i++) {
+	diskQueues[i] = NULL;
     }
 
     // unmask terminal interrupts
@@ -115,7 +132,7 @@ void phase4_init(void) {
     int result2 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 2, (void*)(long)control);
     int result3 = USLOSS_DeviceOutput(USLOSS_TERM_DEV, 3, (void*)(long)control);
     
-    if(result0 == USLOSS_DEV_INVALID || result1 == USLOSS_DEV_INVALID || 
+    if (result0 == USLOSS_DEV_INVALID || result1 == USLOSS_DEV_INVALID || 
             result2 == USLOSS_DEV_INVALID || result3 == USLOSS_DEV_INVALID) {
         fprintf(stderr, "ERROR: Failed to unmask interrupts in the terminals.\n");
         USLOSS_Halt(1);
@@ -326,15 +343,63 @@ void termWrite(USLOSS_Sysargs *args) {
 }
 
 void diskSize(USLOSS_Sysargs* args) {
+	// TODO Must figure out a way to enqueue the request steps in the disk queues. We can't
+	// easily use a lock at the start and end of the function as the process must continue
+	// to hold it even after one of these functions returns, and release it at the end of
+	// the last time it calls one of them.
 
+	// One idea: Use getLock at the top of each of these functions, and save the current PID
+	// as the owner of the disk. If the PID already matches, getLock can be safely skipped.
+
+	// Still not sure how to release the lock, I don't know how to detect whether or not 
+	// a function call will be the last that the lock owner calls.
+
+	int unit = (int)(long)args->arg1;
+
+	// if the current process already owns the lock, don't require it to get it again
+	if (getPID() != diskOwner) {
+		getLock(diskLock[unit]);
+	}
+
+	// TODO do something
+
+	// TODO releasing this lock should only happen if this is the last part of the process's
+	// disk operations, but I don't know how to do that yet
+	releaseLock(diskLock[unit]);
 }
 
 void diskRead(USLOSS_Sysargs* args) {
+	// TODO See above comment
 
+	int unit = (int)(long)args->arg1;
+
+	// if the current process already owns the lock, don't require it to get it again
+	if (getPID() != diskOwner) {
+		getLock(diskLock[unit]);
+	}
+
+	// TODO do something
+
+	// TODO releasing this lock should only happen if this is the last part of the process's
+	// disk operations, but I don't know how to do that yet
+	releaseLock(diskLock[unit]);
 }
 
 void diskWrite(USLOSS_Sysargs* args) {
+	// TODO See above comment
 
+	int unit = (int)(long)args->arg1;
+
+	// if the current process already owns the lock, don't require it to get it again
+	if (getPID() != diskOwner) {
+		getLock(diskLock[unit]);
+	}
+
+	// TODO do something
+
+	// TODO releasing this lock should only happen if this is the last part of the process's
+	// disk operations, but I don't know how to do that yet
+	releaseLock(diskLock[unit]);
 }
 
 /* 
