@@ -59,9 +59,10 @@ typedef struct WriteProc {
 
 /* for queueing components of processes for acessing the disk */
 typedef struct DiskProc {
+    USLOSS_Sysargs* args;   /* arguments passed in by the current process */
     int pid;                /* ID of the process making requests to the disk */
     int requestType;        /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
-    int lastRequest;        /* boolean indicating if this is the current process's last step */
+    int lastStep;           /* boolean indicating if this is the current process's last step */
     int wakeBox;            /* mailbox to wake the process up */
     struct DiskProc *next;  /* next step or process in the queue */
 } DiskProc;
@@ -85,9 +86,6 @@ int readQueue3;
 /* queues for writing to terminals and accessing disks */
 WriteProc* writeQueues[4];
 DiskProc* diskQueues[2];
-
-/* stores PID of the disk lock owner so that it may safely call several functions */
-int diskOwner;
 
 /* 
  * Startup code for phase 4; initializes required mailboxes, the shadow process table,
@@ -308,7 +306,7 @@ void termWrite(USLOSS_Sysargs *args) {
     // check for invalid input and return if needed
     if (bufSize < 0 || bufSize > MAXLINE || unit < 0 || unit > 3) {
 	args->arg4 = (void*)(long)-1;
-    releaseLock(writeLock[unit]);
+    	releaseLock(writeLock[unit]);
 	return;
     }
     else {
@@ -343,45 +341,57 @@ void termWrite(USLOSS_Sysargs *args) {
 }
 
 void diskSize(USLOSS_Sysargs* args) {
-	// TODO Must figure out a way to enqueue the request steps in the disk queues. We can't
-	// easily use a lock at the start and end of the function as the process must continue
-	// to hold it even after one of these functions returns, and release it at the end of
-	// the last time it calls one of them.
-
-	// One idea: Use getLock at the top of each of these functions, and save the current PID
-	// as the owner of the disk. If the PID already matches, getLock can be safely skipped.
-
-	// Still not sure how to release the lock, I don't know how to detect whether or not 
-	// a function call will be the last that the lock owner calls.
 
 	int unit = (int)(long)args->arg1;
+	if (unit < 0 || unit > 1) {
+		printf("ERROR: Invalid disk number given to diskSize.\n");
+		args->arg4 = (void*)(long)-1;
+	}
+	args->arg4 = (void*)(long)0;
 
-	// if the current process already owns the lock, don't require it to get it again
-	if (getPID() != diskOwner) {
-		getLock(diskLock[unit]);
+	// grab the lock for this disk
+	getLock(diskLock[unit]);
+
+	DiskProc currentProc = {
+		.args = args, .pid = getPID(), .requestType = 0, 
+		.lastStep = 1; .wakeBox = toWake .next = NULL
+	};
+
+	// add in a new TRACK step to the disk's queue
+	DiskProc* curr = diskQueue[unit];
+	if (curr == NULL) {
+		curr = &currentProc;
+	}
+	else {
+		while (curr->next != NULL) {
+			curr = curr->next;
+		}
+		curr->next = &currentProc;
 	}
 
-	// TODO do something
-
-	// TODO releasing this lock should only happen if this is the last part of the process's
-	// disk operations, but I don't know how to do that yet
+	// now put the process to sleep
 	releaseLock(diskLock[unit]);
+	MboxRecv(toWake, NULL, 0);
 }
 
 void diskRead(USLOSS_Sysargs* args) {
-	// TODO See above comment
 
 	int unit = (int)(long)args->arg1;
-
-	// if the current process already owns the lock, don't require it to get it again
-	if (getPID() != diskOwner) {
-		getLock(diskLock[unit]);
+	if (unit < 0 || unit > 1) {
+		printf("ERROR: Invalid disk number given to diskRead.\n");
+		args->arg4 = (void*)(long)-1;
 	}
+	args->arg4 = (void*)(long)0;
 
-	// TODO do something
+	getLock(diskLock[unit]);
 
-	// TODO releasing this lock should only happen if this is the last part of the process's
-	// disk operations, but I don't know how to do that yet
+	// TODO add the required SEEK and READ operations into the queue. The blocks
+	// don't need to be read in order; the head must seek forward to the nearest
+	// one and wrap to the front of the disk once it reaches the end. Using the
+	// starting point we can figure out what order the blocks should be read, and
+	// add them into the queue in the correct order, this will make that daemon's
+	// job very easy.
+
 	releaseLock(diskLock[unit]);
 }
 
@@ -389,16 +399,17 @@ void diskWrite(USLOSS_Sysargs* args) {
 	// TODO See above comment
 
 	int unit = (int)(long)args->arg1;
-
-	// if the current process already owns the lock, don't require it to get it again
-	if (getPID() != diskOwner) {
-		getLock(diskLock[unit]);
+	if (unit < 0 || unit > 1) {
+		printf("ERROR: Invalid disk number given to diskWrite.\n");
+		args->arg4 = (void*)(long)-1;
 	}
+	args->arg4 = (void*)(long)0;
 
-	// TODO do something
+	getLock(diskLock[unit]);
+	
+	// TODO add the required SEEK and WRITE operations into the queue. This will 
+	// work the same way as the read syscall, just with writing operations instead.
 
-	// TODO releasing this lock should only happen if this is the last part of the process's
-	// disk operations, but I don't know how to do that yet
 	releaseLock(diskLock[unit]);
 }
 
@@ -412,7 +423,7 @@ void diskWrite(USLOSS_Sysargs* args) {
 int sleepDaemon(void *arg) {
     
     int currTime = 0;
-    while(1) {
+    while (1) {
         
         // it is a daemon, so it runs an infinite loop
         // wait on clock device -- sleeps until 100 ms later
@@ -533,9 +544,32 @@ int diskDaemon(void* arg) {
 	int diskStatus = 0;
 
 	while (1) {
-	
 		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
-		//TODO do something
+		while (1) {
+
+			DiskQueue* nextStep = diskQueue;
+			if (nextStep->requestType == 0) {
+				nextStep->args->arg1 = 512;
+				nextStep->args->arg2 = 16;
+				diskRequest[unit].req.op = USLOSS_DISK_TRACKS;
+				diskRequest[unit].req.reg1 = nextStep->args->arg3;
+				USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit]);
+			}
+			else if (nextStep->requestType == 1) {
+				// code for seeking a block
+			}
+			else if (nextStep->requestType == 2) {
+				// code for reading a block
+			}
+			else {
+				// code for writing a block
+			}
+	
+			// is this the last step of the operation?
+			if (nextStep->lastStep == 1) {
+				break;
+			}
+		}
 	}
 
 	return 0; // should never reach this
