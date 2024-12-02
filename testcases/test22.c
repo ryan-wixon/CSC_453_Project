@@ -15,7 +15,7 @@
 
 
 
-int Child1(char *arg)
+int Child1(void *arg)
 {
     int term = atoi(arg);
     char buf[MAXLINE] = "";

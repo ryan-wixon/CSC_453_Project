@@ -22,7 +22,7 @@
 
 
 
-int Child(char *arg) 
+int Child(void *arg) 
 {
     int term = atoi(arg);
     char buf[80] = "";

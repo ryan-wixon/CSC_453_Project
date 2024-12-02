@@ -17,7 +17,7 @@
 
 
 
-int Child(char *arg) 
+int Child(void *arg) 
 {
     int begin, end, time;
     int me = atoi(arg);

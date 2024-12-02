@@ -16,7 +16,7 @@
 #include <phase4.h>
 #include <phase4_usermode.h>
 
-int XXterm2(char *arg);
+int XXterm2(void *arg);
 
 
 
@@ -37,7 +37,7 @@ int start4(void *arg)
 
 
 
-int XXterm2(char *arg)
+int XXterm2(void *arg)
 {
     int j, len;
     char data[256];

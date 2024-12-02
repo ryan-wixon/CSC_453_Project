@@ -12,7 +12,7 @@
 #include <phase4.h>
 #include <phase4_usermode.h>
 
-int Child(char *arg);
+int Child(void *arg);
 
 
 
@@ -45,7 +45,7 @@ int start4(void *arg)
 
 
 
-int Child(char *arg)
+int Child(void *arg)
 {
     char buffer[MAXLINE];
     int  result, size;

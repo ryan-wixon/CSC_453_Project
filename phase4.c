@@ -35,6 +35,12 @@ void diskSize(USLOSS_Sysargs *args);
 void diskRead(USLOSS_Sysargs *args);
 void diskWrite(USLOSS_Sysargs *args);
 
+/* constants for disk processing */
+#define TRACKS    0
+#define SEEK    1
+#define READ    2
+#define WRITE    3
+
 /* for sending request infomation to a disk; 1 for each disk */
 struct DiskState {
     USLOSS_DeviceRequest req;

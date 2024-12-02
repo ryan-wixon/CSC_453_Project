@@ -11,8 +11,8 @@
 #include <phase4.h>
 #include <phase4_usermode.h>
 
-int Child1(char *arg);
-int Child2(char *arg);
+int Child1(void *arg);
+int Child2(void *arg);
 
 
 
@@ -37,7 +37,7 @@ int start4(void *arg)
 
 
 
-int Child1(char *arg)
+int Child1(void *arg)
 {
     char buffer[MAXLINE];
     int  result, size;
@@ -58,7 +58,7 @@ int Child1(char *arg)
     return 0;    // so that gcc won't complain
 }
 
-int Child2(char *arg)
+int Child2(void *arg)
 {
     int  i, size;
     char buffer[MAXLINE];

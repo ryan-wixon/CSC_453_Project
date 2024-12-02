@@ -20,7 +20,7 @@
 
 
 
-int Child1(char *arg)
+int Child1(void *arg)
 {
     int term = atoi(arg);
     char buf[MAXLINE] = "";
@@ -49,7 +49,7 @@ int Child1(char *arg)
 
 
 
-int Child2(char *arg)
+int Child2(void *arg)
 {
     char buffer[MAXLINE];
     int  result, size;

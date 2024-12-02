@@ -7,10 +7,10 @@ Child2(): Going to sleep for 10 seconds
 Child3(): Going to sleep for 10 seconds
 Child4(): Going to sleep for 10 seconds
 Child5(): Going to sleep for 10 seconds
-Child5(): Sleep done at time 10990098
-Child4(): Sleep done at time 10990140
-Child3(): Sleep done at time 10990180
-Child2(): Sleep done at time 10990215
-Child1(): Sleep done at time 10990259
+Child5(): Sleep done at time 11050103
+Child4(): Sleep done at time 11050146
+Child3(): Sleep done at time 11050193
+Child2(): Sleep done at time 11050236
+Child1(): Sleep done at time 11050282
 start4(): Test sleep done.
 finish(): The simulation is now terminating.
