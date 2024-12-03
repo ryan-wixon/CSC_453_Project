@@ -34,7 +34,6 @@ void termWrite(USLOSS_Sysargs *args);
 void diskSize(USLOSS_Sysargs *args);
 void diskRead(USLOSS_Sysargs *args);
 void diskWrite(USLOSS_Sysargs *args);
-void addToDiskQueue(USLOSS_Sysargs *args, int isRead);
 
 /* constants for disk processing */
 #define TRACKS    0
@@ -384,7 +383,17 @@ void diskSize(USLOSS_Sysargs* args) {
 	MboxRecv(toWake, NULL, 0);
 }
 
-void addToDiskQueue(USLOSS_Sysargs *args, int isRead) {
+void diskRead(USLOSS_Sysargs* args) {
+
+	int unit = (int)(long)args->arg1;
+	if (unit < 0 || unit > 1) {
+		printf("ERROR: Invalid disk number given to diskRead.\n");
+		args->arg4 = (void*)(long)-1;
+	}
+	args->arg4 = (void*)(long)0;
+
+	getLock(diskLock[unit]);
+
     // unpack the sysargs struct
     int unit = (int)(long)args->arg5;
     int track = (int)(long)args->arg3;
@@ -454,22 +463,10 @@ void addToDiskQueue(USLOSS_Sysargs *args, int isRead) {
             // TODO add a seek operation to the next track up
             blockToAdd = -1; // reset block to add so incrementing will give 0
         }
-        // TODO add read/write operation
+        // TODO add read operation
         blocksLeft--;
         blockToAdd++;
     }
-}
-
-void diskRead(USLOSS_Sysargs* args) {
-
-	int unit = (int)(long)args->arg1;
-	if (unit < 0 || unit > 1) {
-		printf("ERROR: Invalid disk number given to diskRead.\n");
-		args->arg4 = (void*)(long)-1;
-	}
-	args->arg4 = (void*)(long)0;
-
-	getLock(diskLock[unit]);
 
 	// TODO add the required SEEK and READ operations into the queue. The blocks
 	// don't need to be read in order; the head must seek forward to the nearest
@@ -492,6 +489,80 @@ void diskWrite(USLOSS_Sysargs* args) {
 	args->arg4 = (void*)(long)0;
 
 	getLock(diskLock[unit]);
+
+    // unpack the sysargs struct
+    int unit = (int)(long)args->arg5;
+    int track = (int)(long)args->arg3;
+    int startBlock = (int)(long)args->arg4;
+    int sectors = (int)(long)args->arg2;
+
+    DiskProc* curr = diskQueues[unit];
+    if(curr != NULL) {
+        while(curr->next != NULL && !(curr->next.lastStep == 1 && (int)(long)curr->next.track >= track)) {
+            // find the next place where the process can go
+            curr = curr->next;
+        }
+    }
+
+    // now add the processes to the disk queue
+    int toWake = MboxCreate(1, 0);
+
+    // first find next place to go
+    if(curr == NULL) {
+        // first add seek operation to get to the right track
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+        diskQueues[unit] = &seekCurr;
+    }
+    else if((int)(long)curr->args->args3 < track) {
+        // first add a seek operation to get to the right track
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+        seekCurr->next = curr->next;
+        curr->next = seekCurr;
+    }
+    else if(curr->next == NULL) {
+        // start elevator back at the bottom
+        DiskProc seekZero = {
+		    .args = args, .pid = getpid(), .track = 0, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+
+        seekZero->next = seekCurr;
+        seekCurr->next = curr->next;
+        curr->next = seekZero;
+    }
+    // if we are already at the correct track, do nothing
+
+    // save next pointer of curr for later
+    DiskProc *temp = curr->next;
+
+    // add new queue operation for every block to operate on
+    int blocksLeft = sectors;
+    int blockToAdd = startBlock;
+    
+    while(blocksLeft > 0) {
+        if(blockToAdd > 15) {
+            // TODO add a seek operation to the next track up
+            blockToAdd = -1; // reset block to add so incrementing will give 0
+        }
+        // TODO add write operation
+        blocksLeft--;
+        blockToAdd++;
+    }
 	
 	// TODO add the required SEEK and WRITE operations into the queue. This will 
 	// work the same way as the read syscall, just with writing operations instead.
