@@ -474,19 +474,23 @@ void diskRead(USLOSS_Sysargs* args) {
             curr = curr->next;
             blockToAdd = -1; // reset block to add so incrementing will give 0
         }
-        // TODO add read operation
+        // add read operation
+        DiskProc readBlock = {
+		    .args = args, .pid = getpid(), .track = trackToRead, 
+            .block = blockToAdd, .requestType = READ, .lastStep = 0, 
+            .wakeBox = toWake, .next = NULL
+	    };
+        if(blocksLeft == 1) {
+            // this is the last block to read
+            readBlock.lastStep = 1;
+        }
+        curr->next = readBlock;
         blocksLeft--;
         blockToAdd++;
         curr = curr->next;
     }
 
-	// TODO add the required SEEK and READ operations into the queue. The blocks
-	// don't need to be read in order; the head must seek forward to the nearest
-	// one and wrap to the front of the disk once it reaches the end. Using the
-	// starting point we can figure out what order the blocks should be read, and
-	// add them into the queue in the correct order, this will make that daemon's
-	// job very easy.
-
+    // put the process to sleep until the operation is done
 	releaseLock(diskLock[unit]);
     MboxRecv(toWake, NULL, 0);
 }
@@ -566,15 +570,15 @@ void diskWrite(USLOSS_Sysargs* args) {
     // add new queue operation for every block to operate on
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
-    int trackToRead = track;
+    int trackToWrite = track;
     
     while(blocksLeft > 0) {
         if(blockToAdd > 15) {
             // increase the track
-            trackToRead++;
+            trackToWrite++;
             // add a seek operation to the next track up
             DiskProc seekNextUp = {
-		        .args = args, .pid = getpid(), .track = trackToRead, .block = -1,
+		        .args = args, .pid = getpid(), .track = trackToWrite, .block = -1,
                 .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
                 .next = NULL
 	        };
@@ -582,15 +586,23 @@ void diskWrite(USLOSS_Sysargs* args) {
             curr = curr->next;
             blockToAdd = -1; // reset block to add so incrementing will give 0
         }
-        // TODO add write operation
+        // add write operation
+        DiskProc writeBlock = {
+		    .args = args, .pid = getpid(), .track = trackToWrite, 
+            .block = blockToAdd, .requestType = WRITE, .lastStep = 0, 
+            .wakeBox = toWake, .next = NULL
+	    };
+        if(blocksLeft == 1) {
+            // this is the last block to write
+            writeBlock.lastStep = 1;
+        }
+        curr->next = writeBlock;
         blocksLeft--;
         blockToAdd++;
         curr = curr->next;
     }
-	
-	// TODO add the required SEEK and WRITE operations into the queue. This will 
-	// work the same way as the read syscall, just with writing operations instead.
 
+    // put the process to sleep until the operation is complete
 	releaseLock(diskLock[unit]);
     MboxRecv(toWake, NULL, 0);
 }
