@@ -44,6 +44,10 @@ void diskWrite(USLOSS_Sysargs *args);
 /* for sending request infomation to a disk; 1 for each disk */
 struct DiskState {
     USLOSS_DeviceRequest req;
+    int wakeBox;        /* mailbox to send to in order to wake up the process */
+    int isLast;       /* 0 if this is not the last request in sequence, 1 otherwise */
+    int successVal;   /* value returned in args->arg1 if operation successful */
+    USLOSS_Sysargs *args;   /* access current request's args */
 } diskRequest[2];
 
 /* for queueing processes for sleeping/waking */
@@ -736,15 +740,20 @@ int diskDaemon(void* arg) {
 
 	int unit = (int)(long)arg;
 	int diskStatus = 0;
+    DiskProc* prevStep = NULL;
 
 	while (1) {
 		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
 
         if(diskStatus == USLOSS_DEV_ERROR) {
             // encountered an error -- deliver the status to the waiting process
-            DiskQueue* nextStep = diskQueues[unit];
-            nextStep->args->arg1 = (void*)(long)diskStatus;
-            int waker = diskQueues[unit]->wakeBox;
+            DiskProc* nextStep = diskQueues[unit];
+            if(nextStep == NULL) {
+                // nothing in the queue; keep going
+                continue;
+            }
+            diskRequest[unit]->args->arg1 = (void*)(long)diskStatus;
+            int waker = diskRequest[unit].wakeBox;
             // advance the queue to get rid of everything related to the current
             // attempt to read
             while(diskQueues[unit] != NULL && diskQueues[unit]->lastStep != 1) {
@@ -757,10 +766,16 @@ int diskDaemon(void* arg) {
             // wake up the waiting process
             MboxSend(waker, NULL, 0);
         }
-		if(diskStatus == USLOSS_DEV_READY) {
+		else if(diskStatus == USLOSS_DEV_READY) {
             // we are ready to work with the disk
+            if(diskRequest[unit].isLast == 1) {
+                // if we finished an operation successfully, notify the waiting process
+                diskRequest[unit]->args->arg1 = diskRequest[unit].successVal;
+                int waker = diskRequest[unit].wakeBox;
+                MboxSend(waker, NULL, 0);
+            }
 
-			DiskQueue* nextStep = diskQueues[unit];
+			DiskProc* nextStep = diskQueues[unit];
             if(nextStep == NULL) {
                 // nothing in the queue
                 continue;
@@ -770,27 +785,45 @@ int diskDaemon(void* arg) {
 				nextStep->args->arg2 = 16;
 				diskRequest[unit].req.op = USLOSS_DISK_TRACKS;
 				diskRequest[unit].req.reg1 = nextStep->args->arg3;
-				USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit]);
+                diskRequest[unit].successVal = 512;
+                diskRequest[unit].isLast = 1;
+                diskRequest[unit].wakeBox = nextStep.wakeBox;
+                diskRequest[unit]->args = nextStep->args;
+				USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
 			}
 			else if (nextStep->requestType == 1) {
-				// code for seeking a block
+				// seeking a block
+                diskRequest[unit].req.op = USLOSS_DISK_SEEK;
+                diskRequest[unit].req.reg1 = nextStep.block;
+                diskRequest[unit].successVal = 0;
+                diskRqeuest[unit].isLast = nextStep.isLast;
+                diskRequest[unit].wakeBox = nextStep.wakeBox;
+                diskRequest[unit]->args = nextStep->args;
+                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
 			}
 			else if (nextStep->requestType == 2) {
-				// code for reading a block
+				// reading a block
+                diskRequest[unit].req.op = USLOSS_DISK_READ;
+                diskRequest[unit].req.reg1 = nextStep.block;
+                diskRequest[unit].successVal = 0;
+                diskRqeuest[unit].isLast = nextStep.isLast;
+                diskRequest[unit].wakeBox = nextStep.wakeBox;
+                diskRequest[unit]->args = nextStep->args;
+                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
 			}
 			else {
                 // no possibility other than writing a block.
-				// code for writing a block
-			}
-	
-			// is this the last step of the operation?
-			if (nextStep->lastStep == 1) {
-                // wake up the waiting process
-                int waker = nextStep.wakeBox;
-                MboxSend(waker, NULL, 0);
+				diskRequest[unit].req.op = USLOSS_DISK_WRITE;
+                diskRequest[unit].req.reg1 = nextStep.block;
+                diskRequest[unit].successVal = 0;
+                diskRqeuest[unit].isLast = nextStep.isLast;
+                diskRequest[unit].wakeBox = nextStep.wakeBox;
+                diskRequest[unit]->args = nextStep->args;
+                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
 			}
             
-            // advance the queue
+            // advance the queue but save the memory
+            prevStep = nextStep;
             diskQueues[unit] = diskQueues[unit]->next;
 		}
 	}
