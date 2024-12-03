@@ -740,7 +740,6 @@ int diskDaemon(void* arg) {
 
 	int unit = (int)(long)arg;
 	int diskStatus = 0;
-    DiskProc* prevStep = NULL;
 
 	while (1) {
 		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
@@ -774,6 +773,8 @@ int diskDaemon(void* arg) {
                 int waker = diskRequest[unit].wakeBox;
                 MboxSend(waker, NULL, 0);
             }
+            // advance the queue as we are now ready to move to the next step
+            diskQueues[unit] = diskQueues[unit]->next;
 
 			DiskProc* nextStep = diskQueues[unit];
             if(nextStep == NULL) {
@@ -821,10 +822,6 @@ int diskDaemon(void* arg) {
                 diskRequest[unit]->args = nextStep->args;
                 USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
 			}
-            
-            // advance the queue but save the memory
-            prevStep = nextStep;
-            diskQueues[unit] = diskQueues[unit]->next;
 		}
 	}
 
