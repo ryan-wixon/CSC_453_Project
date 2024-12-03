@@ -476,6 +476,7 @@ void diskRead(USLOSS_Sysargs* args) {
 	// job very easy.
 
 	releaseLock(diskLock[unit]);
+    MboxRecv(toWake, NULL, 0);
 }
 
 void diskWrite(USLOSS_Sysargs* args) {
@@ -568,6 +569,7 @@ void diskWrite(USLOSS_Sysargs* args) {
 	// work the same way as the read syscall, just with writing operations instead.
 
 	releaseLock(diskLock[unit]);
+    MboxRecv(toWake, NULL, 0);
 }
 
 /* 
@@ -704,7 +706,11 @@ int diskDaemon(void* arg) {
 		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
 		while (1) {
 
-			DiskQueue* nextStep = diskQueue;
+			DiskQueue* nextStep = diskQueues[unit];
+            if(nextStep == NULL) {
+                // nothing in the queue
+                break;
+            }
 			if (nextStep->requestType == 0) {
 				nextStep->args->arg1 = 512;
 				nextStep->args->arg2 = 16;
@@ -724,6 +730,9 @@ int diskDaemon(void* arg) {
 	
 			// is this the last step of the operation?
 			if (nextStep->lastStep == 1) {
+                // wake up the waiting process
+                int waker = nextStep.wakeBox;
+                MboxSend(waker, NULL, 0);
 				break;
 			}
 		}
