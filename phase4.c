@@ -34,6 +34,7 @@ void termWrite(USLOSS_Sysargs *args);
 void diskSize(USLOSS_Sysargs *args);
 void diskRead(USLOSS_Sysargs *args);
 void diskWrite(USLOSS_Sysargs *args);
+void addToDiskQueue(USLOSS_Sysargs *args, int isRead);
 
 /* constants for disk processing */
 #define TRACKS    0
@@ -67,6 +68,7 @@ typedef struct WriteProc {
 typedef struct DiskProc {
     USLOSS_Sysargs* args;   /* arguments passed in by the current process */
     int pid;                /* ID of the process making requests to the disk */
+    int track;              /* track number to request */
     int requestType;        /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
     int lastStep;           /* boolean indicating if this is the current process's last step */
     int wakeBox;            /* mailbox to wake the process up */
@@ -358,9 +360,11 @@ void diskSize(USLOSS_Sysargs* args) {
 	// grab the lock for this disk
 	getLock(diskLock[unit]);
 
+    int toWake = MboxCreate(1, 0);
+
 	DiskProc currentProc = {
-		.args = args, .pid = getPID(), .requestType = 0, 
-		.lastStep = 1; .wakeBox = toWake .next = NULL
+		.args = args, .pid = getpid(), .requestType = 0, 
+		.lastStep = 1, .wakeBox = toWake, .next = NULL
 	};
 
 	// add in a new TRACK step to the disk's queue
@@ -378,6 +382,82 @@ void diskSize(USLOSS_Sysargs* args) {
 	// now put the process to sleep
 	releaseLock(diskLock[unit]);
 	MboxRecv(toWake, NULL, 0);
+}
+
+void addToDiskQueue(USLOSS_Sysargs *args, int isRead) {
+    // unpack the sysargs struct
+    int unit = (int)(long)args->arg5;
+    int track = (int)(long)args->arg3;
+    int startBlock = (int)(long)args->arg4;
+    int sectors = (int)(long)args->arg2;
+
+    DiskProc* curr = diskQueues[unit];
+    if(curr != NULL) {
+        while(curr->next != NULL && !(curr->next.lastStep == 1 && (int)(long)curr->next.track >= track)) {
+            // find the next place where the process can go
+            curr = curr->next;
+        }
+    }
+
+    // now add the processes to the disk queue
+    int toWake = MboxCreate(1, 0);
+
+    // first find next place to go
+    if(curr == NULL) {
+        // first add seek operation to get to the right track
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+        diskQueues[unit] = &seekCurr;
+    }
+    else if((int)(long)curr->args->args3 < track) {
+        // first add a seek operation to get to the right track
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+        seekCurr->next = curr->next;
+        curr->next = seekCurr;
+    }
+    else if(curr->next == NULL) {
+        // start elevator back at the bottom
+        DiskProc seekZero = {
+		    .args = args, .pid = getpid(), .track = 0, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+
+        DiskProc seekCurr = {
+		    .args = args, .pid = getpid(), .track = track, 
+            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .next = NULL
+	    };
+
+        seekZero->next = seekCurr;
+        seekCurr->next = curr->next;
+        curr->next = seekZero;
+    }
+    // if we are already at the correct track, do nothing
+
+    // save next pointer of curr for later
+    DiskProc *temp = curr->next;
+
+    // add new queue operation for every block to operate on
+    int blocksLeft = sectors;
+    int blockToAdd = startBlock;
+    
+    while(blocksLeft > 0) {
+        if(blockToAdd > 15) {
+            // TODO add a seek operation to the next track up
+            blockToAdd = -1; // reset block to add so incrementing will give 0
+        }
+        // TODO add read/write operation
+        blocksLeft--;
+        blockToAdd++;
+    }
 }
 
 void diskRead(USLOSS_Sysargs* args) {
