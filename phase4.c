@@ -416,7 +416,7 @@ void diskRead(USLOSS_Sysargs* args) {
         // first add seek operation to get to the right track
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
         diskQueues[unit] = &seekCurr;
@@ -425,7 +425,7 @@ void diskRead(USLOSS_Sysargs* args) {
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
         seekCurr->next = curr->next;
@@ -435,13 +435,13 @@ void diskRead(USLOSS_Sysargs* args) {
         // start elevator back at the bottom
         DiskProc seekZero = {
 		    .args = args, .pid = getpid(), .track = 0, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
 
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
 
@@ -513,7 +513,7 @@ void diskWrite(USLOSS_Sysargs* args) {
         // first add seek operation to get to the right track
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
         diskQueues[unit] = &seekCurr;
@@ -522,7 +522,7 @@ void diskWrite(USLOSS_Sysargs* args) {
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
         seekCurr->next = curr->next;
@@ -532,13 +532,13 @@ void diskWrite(USLOSS_Sysargs* args) {
         // start elevator back at the bottom
         DiskProc seekZero = {
 		    .args = args, .pid = getpid(), .track = 0, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
 
         DiskProc seekCurr = {
 		    .args = args, .pid = getpid(), .track = track, 
-            .requestType = 1, .lastStep = 0, .wakeBox = NULL, 
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
             .next = NULL
 	    };
 
@@ -704,12 +704,31 @@ int diskDaemon(void* arg) {
 
 	while (1) {
 		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
-		while (1) {
+
+        if(diskStatus == USLOSS_DEV_ERROR) {
+            // encountered an error -- deliver the status to the waiting process
+            DiskQueue* nextStep = diskQueues[unit];
+            nextStep->args->arg1 = (void*)(long)diskStatus;
+            int waker = diskQueues[unit]->wakeBox;
+            // advance the queue to get rid of everything related to the current
+            // attempt to read
+            while(diskQueues[unit] != NULL && diskQueues[unit]->lastStep != 1) {
+                diskQueues[unit] = diskQueues[unit]->next;
+            }
+            if(diskQueues[unit] != NULL) {
+                // advance the pointer by one more to get past the last step
+                diskQueues[unit] = diskQueues[unit]->next;
+            }
+            // wake up the waiting process
+            MboxSend(waker, NULL, 0);
+        }
+		if(diskStatus == USLOSS_DEV_READY) {
+            // we are ready to work with the disk
 
 			DiskQueue* nextStep = diskQueues[unit];
             if(nextStep == NULL) {
                 // nothing in the queue
-                break;
+                continue;
             }
 			if (nextStep->requestType == 0) {
 				nextStep->args->arg1 = 512;
@@ -733,7 +752,7 @@ int diskDaemon(void* arg) {
                 // wake up the waiting process
                 int waker = nextStep.wakeBox;
                 MboxSend(waker, NULL, 0);
-				break;
+				continue;
 			}
 		}
 	}
