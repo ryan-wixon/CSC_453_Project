@@ -586,9 +586,8 @@ void diskWrite(USLOSS_Sysargs* args) {
 
         // add write operation
         DiskProc writeBlock = {
-            .args = args, .pid = getpid(), .track = trackToWrite, 
-            .block = blockToAdd, .requestType = WRITE, .lastStep = 0, 
-            .wakeBox = toWake, .next = NULL
+            .args = args, .pid = getpid(), .track = trackToWrite, .block = blockToAdd, 
+            .requestType = WRITE, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         if (blocksLeft == 1) {
             writeBlock.lastStep = 1; // this is the last last block to read
@@ -781,6 +780,8 @@ int diskDaemon(void* arg) {
             }
 		
 	    if (nextStep->requestType == 0) {
+
+		// polling for tracks
 		nextStep->args->arg1 = (void*)(long)512;
 		nextStep->args->arg2 = (void*)(long)16;
 		diskRequest[unit].req.opr = USLOSS_DISK_TRACKS;
@@ -811,6 +812,7 @@ int diskDaemon(void* arg) {
 		// reading a block
                 diskRequest[unit].req.opr = USLOSS_DISK_READ;
                 diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+		diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
                 diskRequest[unit].successVal = 0;
                 diskRequest[unit].isLast = nextStep->lastStep;
                 diskRequest[unit].wakeBox = nextStep->wakeBox;
@@ -821,9 +823,10 @@ int diskDaemon(void* arg) {
 	    }
 	    else {
                 
-		// no possibility other than writing a block.
+		// writing a block
 		diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
                 diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+		diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
                 diskRequest[unit].successVal = 0;
                 diskRequest[unit].isLast = nextStep->lastStep;
                 diskRequest[unit].wakeBox = nextStep->wakeBox;
