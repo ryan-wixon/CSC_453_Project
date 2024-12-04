@@ -1,0 +1,6 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): disk scheduling test, 8 children
+          algorithm test           
+          different tracks
+going to write track 5
+./run_testcases.student: line 37:  3998 Segmentation fault      (core dumped) ./$line -R

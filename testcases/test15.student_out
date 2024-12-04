@@ -1,0 +1,3 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Attempting some invalid writes.  If they are all rejected (as expected), then you will not see anything more before 'done'
+./run_testcases.student: line 37:  3929 Segmentation fault      (core dumped) ./$line -R

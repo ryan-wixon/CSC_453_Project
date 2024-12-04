@@ -1,0 +1,6 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): disk scheduling test, create 6 processes that write
+          3 to disk0         
+          3 to disk1         
+ubiq: going to write to unit 0 track 5
+./run_testcases.student: line 37:  4067 Segmentation fault      (core dumped) ./$line -R

@@ -1,0 +1,5 @@
+phase5_start_service_processes() called -- currently a NOP
+start4(): Writing data to 3 disk sectors, wrapping to next track
+
+start4(): Disk 0:
+./run_testcases.student: line 37:  3791 Segmentation fault      (core dumped) ./$line -R

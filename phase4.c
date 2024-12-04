@@ -36,53 +36,53 @@ void diskRead(USLOSS_Sysargs *args);
 void diskWrite(USLOSS_Sysargs *args);
 
 /* constants for disk processing */
-#define TRACKS    0
+#define TRACKS  0
 #define SEEK    1
 #define READ    2
-#define WRITE    3
+#define WRITE   3
 
 /* for sending request infomation to a disk; 1 for each disk */
 struct DiskState {
     USLOSS_DeviceRequest req;
-    int wakeBox;        /* mailbox to send to in order to wake up the process */
-    int isLast;       /* 0 if this is not the last request in sequence, 1 otherwise */
-    int successVal;   /* value returned in args->arg1 if operation successful */
-    USLOSS_Sysargs *args;   /* access current request's args */
+    int wakeBox;                /* mailbox to send to in order to wake up the process */
+    int isLast;                 /* 0 if this is not the last request in sequence, 1 otherwise */
+    int successVal;             /* value returned in args->arg1 if operation successful */
+    USLOSS_Sysargs *args;       /* access current request's args */
 } diskRequest[2];
 
 /* for queueing processes for sleeping/waking */
 typedef struct SleepProc {
-    int pid;          /* ID of the process that is sleeping */
-    long wakeTime;    /* time at which the process should wake up (in microseconds) */
-    int wakeBox;      /* mailbox to wake the process up */
+    int pid;                    /* ID of the process that is sleeping */
+    long wakeTime;              /* time at which the process should wake up (in microseconds) */
+    int wakeBox;                /* mailbox to wake the process up */
 } SleepProc;
 
 /* for queuing processes for writing to the terminal */
 typedef struct WriteProc {
-    int pid;                /* ID of the process writing to the terminal */
-    char *buf;              /* buffer to write */
-    int bufLength;          /* buffer length */
-    int curr;               /* index of next char to write */
-    int wakeBox;            /* mailbox to wake the process up */
-    struct WriteProc *next; /* next process in the queue */
+    int pid;                    /* ID of the process writing to the terminal */
+    char *buf;                  /* buffer to write */
+    int bufLength;              /* buffer length */
+    int curr;                   /* index of next char to write */
+    int wakeBox;                /* mailbox to wake the process up */
+    struct WriteProc *next;     /* next process in the queue */
 } WriteProc;
 
 /* for queueing components of processes for acessing the disk */
 typedef struct DiskProc {
-    USLOSS_Sysargs* args;   /* arguments passed in by the current process */
-    int pid;                /* ID of the process making requests to the disk */
-    int track;              /* track number to request */
-    int block;              /* block number to request */
-    int requestType;        /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
-    int lastStep;           /* boolean indicating if this is the current process's last step */
-    int wakeBox;            /* mailbox to wake the process up */
-    struct DiskProc *next;  /* next step or process in the queue */
+    USLOSS_Sysargs* args;       /* arguments passed in by the current process */
+    int pid;                    /* ID of the process making requests to the disk */
+    int track;                  /* track number to request */
+    int block;                  /* block number to request */
+    int requestType;            /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
+    int lastStep;               /* boolean indicating if this is the current process's last step */
+    int wakeBox;                /* mailbox to wake the process up */
+    struct DiskProc *next;      /* next step or process in the queue */
 } DiskProc;
 
-int sleepLock = -1;   /* lock for sleep handler - can no longer use global lock */
-int readLock = -1;    /* lock for reading from terminal */
-int writeLock[4];     /* locks for writing from terminal */
-int diskLock[2];      /* locks for accessing disks */
+int sleepLock = -1;             /* lock for sleep handler - can no longer use global lock */
+int readLock = -1;              /* lock for reading from terminal */
+int writeLock[4];               /* locks for writing from terminal */
+int diskLock[2];                /* locks for accessing disks */
 
 SleepProc sleepQueue[MAXPROC];  /* process table for sleep queue */
 int sleepOccupied[MAXPROC];     /* contains whether slots are occupied */
@@ -354,50 +354,41 @@ void termWrite(USLOSS_Sysargs *args) {
 
 void diskSize(USLOSS_Sysargs* args) {
 
-	int unit = (int)(long)args->arg1;
-	if (unit < 0 || unit > 1) {
-		printf("ERROR: Invalid disk number given to diskSize.\n");
-		args->arg4 = (void*)(long)-1;
-	}
-	args->arg4 = (void*)(long)0;
+    int unit = (int)(long)args->arg1;
+    if (unit < 0 || unit > 1) {
+	printf("ERROR: Invalid disk number given to diskSize.\n");
+	args->arg4 = (void*)(long)-1;
+    }
+    args->arg4 = (void*)(long)0;
 
-	// grab the lock for this disk
-	getLock(diskLock[unit]);
+    // grab the lock for this disk
+    getLock(diskLock[unit]);
 
     int toWake = MboxCreate(1, 0);
 
-	DiskProc currentProc = {
-		.args = args, .pid = getpid(), .requestType = 0, 
-		.lastStep = 1, .wakeBox = toWake, .next = NULL
-	};
+    DiskProc currentProc = {
+	.args = args, .pid = getpid(), .requestType = 0, 
+	.lastStep = 1, .wakeBox = toWake, .next = NULL
+    };
 
-	// add in a new TRACK step to the disk's queue
-	DiskProc* curr = diskQueue[unit];
-	if (curr == NULL) {
-		curr = &currentProc;
+    // add in a new TRACK step to the disk's queue
+    DiskProc* curr = diskQueues[unit];
+    if (curr == NULL) {
+	curr = &currentProc;
+    }
+    else {
+	while (curr->next != NULL) {
+		curr = curr->next;
 	}
-	else {
-		while (curr->next != NULL) {
-			curr = curr->next;
-		}
-		curr->next = &currentProc;
-	}
+	curr->next = &currentProc;
+    }
 
-	// now put the process to sleep
-	releaseLock(diskLock[unit]);
-	MboxRecv(toWake, NULL, 0);
+    // now put the process to sleep
+    releaseLock(diskLock[unit]);
+    MboxRecv(toWake, NULL, 0);
 }
 
 void diskRead(USLOSS_Sysargs* args) {
-
-	int unit = (int)(long)args->arg1;
-	if (unit < 0 || unit > 1) {
-		printf("ERROR: Invalid disk number given to diskRead.\n");
-		args->arg4 = (void*)(long)-1;
-	}
-	args->arg4 = (void*)(long)0;
-
-	getLock(diskLock[unit]);
 
     // unpack the sysargs struct
     int unit = (int)(long)args->arg5;
@@ -405,9 +396,18 @@ void diskRead(USLOSS_Sysargs* args) {
     int startBlock = (int)(long)args->arg4;
     int sectors = (int)(long)args->arg2;
 
+    // input validation
+    if (unit < 0 || unit > 1) {
+	printf("ERROR: Invalid disk number given to diskRead.\n");
+	args->arg4 = (void*)(long)-1;
+    }
+    args->arg4 = (void*)(long)0;
+
+    getLock(diskLock[unit]);
+
     DiskProc* curr = diskQueues[unit];
-    if(curr != NULL) {
-        while(curr->next != NULL && !(curr->next.lastStep == 1 && (int)(long)curr->next.track >= track)) {
+    if (curr != NULL) {
+        while (curr->next != NULL && !(curr->next->lastStep == 1 && (int)(long)curr->next->track >= track)) {
             // find the next place where the process can go
             curr = curr->next;
         }
@@ -417,99 +417,87 @@ void diskRead(USLOSS_Sysargs* args) {
     int toWake = MboxCreate(1, 0);
 
     // first find next place to go
-    if(curr == NULL) {
+    if (curr == NULL) {
+        
         // first add seek operation to get to the right track
+	// TODO potential bug here; what if the head is at the right track when disk queue is empty? We don't need a seek operation there
+	// TODO another portential bug is if we only need 1 add operation, would need to be set as the last step then
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+	    .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
         diskQueues[unit] = &seekCurr;
     }
-    else if((int)(long)curr->args->args3 < track) {
+    else if ((int)(long)curr->args->arg3 < track) {
+        
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
-        seekCurr->next = curr->next;
-        curr->next = seekCurr;
+	    .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
+        seekCurr.next = curr->next;
+        curr->next = &seekCurr;
     }
-    else if(curr->next == NULL) {
+    else if (curr->next == NULL) {
         // start elevator back at the bottom
         DiskProc seekZero = {
-		    .args = args, .pid = getpid(), .track = 0, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+	    .args = args, .pid = getpid(), .track = 0, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
 
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+	    .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
 
-        seekZero->next = seekCurr;
-        seekCurr->next = curr->next;
-        curr->next = seekZero;
+        seekZero.next = &seekCurr;
+        seekCurr.next = curr->next;
+        curr->next = &seekZero;
     }
     // if we are already at the correct track, do nothing
-
-    // save next pointer of curr for later
-    DiskProc *temp = curr->next;
 
     // add new queue operation for every block to operate on
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
     int trackToRead = track;
     
-    while(blocksLeft > 0) {
-        if(blockToAdd > 15) {
+    while (blocksLeft > 0) {
+        if (blockToAdd > 15) {
+            
             // increase the track
             trackToRead++;
+            
             // add a seek operation to the next track up
             DiskProc seekNextUp = {
-		        .args = args, .pid = getpid(), .track = trackToRead, .block = -1,
-                .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-                .next = NULL
-	        };
-            curr->next = seekNextUp;
+		.args = args, .pid = getpid(), .track = trackToRead, .block = -1,
+                .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	    };
+            curr->next = &seekNextUp;
             curr = curr->next;
             blockToAdd = -1; // reset block to add so incrementing will give 0
         }
+
         // add read operation
         DiskProc readBlock = {
-		    .args = args, .pid = getpid(), .track = trackToRead, 
-            .block = blockToAdd, .requestType = READ, .lastStep = 0, 
-            .wakeBox = toWake, .next = NULL
-	    };
-        if(blocksLeft == 1) {
-            // this is the last block to read
-            readBlock.lastStep = 1;
+            .args = args, .pid = getpid(), .track = trackToRead, .block = blockToAdd, 
+            .requestType = READ, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
+        
+        if (blocksLeft == 1) {    
+            readBlock.lastStep = 1; // this is the last block to read
         }
-        curr->next = readBlock;
+        curr->next = &readBlock;
         blocksLeft--;
         blockToAdd++;
         curr = curr->next;
     }
 
     // put the process to sleep until the operation is done
-	releaseLock(diskLock[unit]);
+    releaseLock(diskLock[unit]);
     MboxRecv(toWake, NULL, 0);
 }
 
 void diskWrite(USLOSS_Sysargs* args) {
-	// TODO See above comment
-
-	int unit = (int)(long)args->arg1;
-	if (unit < 0 || unit > 1) {
-		printf("ERROR: Invalid disk number given to diskWrite.\n");
-		args->arg4 = (void*)(long)-1;
-	}
-	args->arg4 = (void*)(long)0;
-
-	getLock(diskLock[unit]);
 
     // unpack the sysargs struct
     int unit = (int)(long)args->arg5;
@@ -517,9 +505,17 @@ void diskWrite(USLOSS_Sysargs* args) {
     int startBlock = (int)(long)args->arg4;
     int sectors = (int)(long)args->arg2;
 
+    if (unit < 0 || unit > 1) {
+	printf("ERROR: Invalid disk number given to diskWrite.\n");
+	args->arg4 = (void*)(long)-1;
+    }
+    args->arg4 = (void*)(long)0;
+
+    getLock(diskLock[unit]);
+
     DiskProc* curr = diskQueues[unit];
-    if(curr != NULL) {
-        while(curr->next != NULL && !(curr->next.lastStep == 1 && (int)(long)curr->next.track >= track)) {
+    if (curr != NULL) {
+        while (curr->next != NULL && !(curr->next->lastStep == 1 && (int)(long)curr->next->track >= track)) {
             // find the next place where the process can go
             curr = curr->next;
         }
@@ -529,85 +525,82 @@ void diskWrite(USLOSS_Sysargs* args) {
     int toWake = MboxCreate(1, 0);
 
     // first find next place to go
-    if(curr == NULL) {
+    if (curr == NULL) {
+        
         // first add seek operation to get to the right track
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+	    .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
         diskQueues[unit] = &seekCurr;
     }
-    else if((int)(long)curr->args->args3 < track) {
+    else if ((int)(long)curr->args->arg3 < track) {
+        
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
-        seekCurr->next = curr->next;
-        curr->next = seekCurr;
+	    .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
+        seekCurr.next = curr->next;
+        curr->next = &seekCurr;
     }
-    else if(curr->next == NULL) {
+    else if (curr->next == NULL) {
+        
         // start elevator back at the bottom
         DiskProc seekZero = {
-		    .args = args, .pid = getpid(), .track = 0, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+	    .args = args, .pid = getpid(), .track = 0, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
 
         DiskProc seekCurr = {
-		    .args = args, .pid = getpid(), .track = track, .block = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-            .next = NULL
-	    };
+            .args = args, .pid = getpid(), .track = track, .block = -1,
+            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	};
 
-        seekZero->next = seekCurr;
-        seekCurr->next = curr->next;
-        curr->next = seekZero;
+        seekZero.next = &seekCurr;
+        seekCurr.next = curr->next;
+        curr->next = &seekZero;
     }
     // if we are already at the correct track, do nothing
-
-    // save next pointer of curr for later
-    DiskProc *temp = curr->next;
 
     // add new queue operation for every block to operate on
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
     int trackToWrite = track;
     
-    while(blocksLeft > 0) {
-        if(blockToAdd > 15) {
+    while (blocksLeft > 0) {
+        if (blockToAdd > 15) {
+            
             // increase the track
             trackToWrite++;
+            
             // add a seek operation to the next track up
             DiskProc seekNextUp = {
-		        .args = args, .pid = getpid(), .track = trackToWrite, .block = -1,
-                .requestType = 1, .lastStep = 0, .wakeBox = toWake, 
-                .next = NULL
-	        };
-            curr->next = seekNextUp;
+		.args = args, .pid = getpid(), .track = trackToWrite, .block = -1,
+                .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+	    };
+            curr->next = &seekNextUp;
             curr = curr->next;
             blockToAdd = -1; // reset block to add so incrementing will give 0
         }
+
         // add write operation
         DiskProc writeBlock = {
-		    .args = args, .pid = getpid(), .track = trackToWrite, 
+            .args = args, .pid = getpid(), .track = trackToWrite, 
             .block = blockToAdd, .requestType = WRITE, .lastStep = 0, 
             .wakeBox = toWake, .next = NULL
-	    };
-        if(blocksLeft == 1) {
-            // this is the last block to write
-            writeBlock.lastStep = 1;
+	};
+        if (blocksLeft == 1) {
+            writeBlock.lastStep = 1; // this is the last last block to read
         }
-        curr->next = writeBlock;
+        curr->next = &writeBlock;
         blocksLeft--;
         blockToAdd++;
         curr = curr->next;
     }
 
     // put the process to sleep until the operation is complete
-	releaseLock(diskLock[unit]);
+    releaseLock(diskLock[unit]);
     MboxRecv(toWake, NULL, 0);
 }
 
@@ -627,11 +620,11 @@ int sleepDaemon(void *arg) {
         // wait on clock device -- sleeps until 100 ms later
         waitDevice(USLOSS_CLOCK_DEV, 0, &currTime);
 
-        if(numSleeping > 0) {
+        if (numSleeping > 0) {
         
             // need to wake up next process in the queue
-            for(int i = 0; i < MAXPROC; i++) {
-                if(sleepOccupied[i] == 1 && currTime > sleepQueue[i].wakeTime) {
+            for (int i = 0; i < MAXPROC; i++) {
+                if (sleepOccupied[i] == 1 && currTime > sleepQueue[i].wakeTime) {
                     numSleeping--;
                     int waker = sleepQueue[i].wakeBox;
                     sleepOccupied[i] = 0;
@@ -678,14 +671,14 @@ int terminalDaemon(void *arg) {
     int curr = 0;
     memset(readBuffer, 0, MAXLINE);
 
-    while(1) {
+    while (1) {
         			
 	waitDevice(USLOSS_TERM_DEV, unit, &termStatus);	
         WriteProc* writeQueue = writeQueues[unit];
 
         int recvStatus = USLOSS_TERM_STAT_RECV(termStatus);
         int xmitStatus = USLOSS_TERM_STAT_XMIT(termStatus);
-        if(recvStatus == USLOSS_DEV_ERROR || xmitStatus == USLOSS_DEV_ERROR) {
+        if (recvStatus == USLOSS_DEV_ERROR || xmitStatus == USLOSS_DEV_ERROR) {
             
 	    // fatal error; exit as mentioned in the terminal supplement
             fprintf(stderr, "ERROR: Cannot get data from the terminal.\n");
@@ -738,94 +731,111 @@ int terminalDaemon(void *arg) {
 
 int diskDaemon(void* arg) {
 
-	int unit = (int)(long)arg;
-	int diskStatus = 0;
+    int unit = (int)(long)arg;
+    int diskStatus = 0;
 
-	while (1) {
-		waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
+    while (1) {
+	    
+	waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
 
-        if(diskStatus == USLOSS_DEV_ERROR) {
+        if (diskStatus == USLOSS_DEV_ERROR) {
+
             // encountered an error -- deliver the status to the waiting process
             DiskProc* nextStep = diskQueues[unit];
-            if(nextStep == NULL) {
-                // nothing in the queue; keep going
-                continue;
+            if (nextStep == NULL) {
+                continue; // nothing in the queue, keep going
             }
-            diskRequest[unit]->args->arg1 = (void*)(long)diskStatus;
+
+            diskRequest[unit].args->arg1 = (void*)(long)diskStatus;
             int waker = diskRequest[unit].wakeBox;
-            // advance the queue to get rid of everything related to the current
-            // attempt to read
-            while(diskQueues[unit] != NULL && diskQueues[unit]->lastStep != 1) {
+
+            // advance the queue to get rid of everything related to the current attempt to read
+            while (diskQueues[unit] != NULL && diskQueues[unit]->lastStep != 1) {
                 diskQueues[unit] = diskQueues[unit]->next;
             }
-            if(diskQueues[unit] != NULL) {
+            if (diskQueues[unit] != NULL) {
                 // advance the pointer by one more to get past the last step
                 diskQueues[unit] = diskQueues[unit]->next;
             }
-            // wake up the waiting process
+            	
+	    // wake up the waiting process
             MboxSend(waker, NULL, 0);
         }
-		else if(diskStatus == USLOSS_DEV_READY) {
-            // we are ready to work with the disk
-            if(diskRequest[unit].isLast == 1) {
+	else if (diskStatus == USLOSS_DEV_READY) {
+            
+	    // we are ready to work with the disk
+            if (diskRequest[unit].isLast == 1) {
+                    
                 // if we finished an operation successfully, notify the waiting process
-                diskRequest[unit]->args->arg1 = diskRequest[unit].successVal;
+                diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
                 int waker = diskRequest[unit].wakeBox;
                 MboxSend(waker, NULL, 0);
             }
-            // advance the queue as we are now ready to move to the next step
+            
+	    // advance the queue as we are now ready to move to the next step
             diskQueues[unit] = diskQueues[unit]->next;
 
-			DiskProc* nextStep = diskQueues[unit];
-            if(nextStep == NULL) {
-                // nothing in the queue
-                continue;
+	    DiskProc* nextStep = diskQueues[unit];
+            if (nextStep == NULL) {
+            	continue;  // nothing in the queue
             }
-			if (nextStep->requestType == 0) {
-				nextStep->args->arg1 = 512;
-				nextStep->args->arg2 = 16;
-				diskRequest[unit].req.op = USLOSS_DISK_TRACKS;
-				diskRequest[unit].req.reg1 = nextStep->args->arg3;
+		
+	    if (nextStep->requestType == 0) {
+		nextStep->args->arg1 = (void*)(long)512;
+		nextStep->args->arg2 = (void*)(long)16;
+		diskRequest[unit].req.opr = USLOSS_DISK_TRACKS;
+		diskRequest[unit].req.reg1 = nextStep->args->arg3;
                 diskRequest[unit].successVal = 512;
                 diskRequest[unit].isLast = 1;
-                diskRequest[unit].wakeBox = nextStep.wakeBox;
-                diskRequest[unit]->args = nextStep->args;
-				USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
-			}
-			else if (nextStep->requestType == 1) {
-				// seeking a block
-                diskRequest[unit].req.op = USLOSS_DISK_SEEK;
-                diskRequest[unit].req.reg1 = nextStep.block;
-                diskRequest[unit].successVal = 0;
-                diskRqeuest[unit].isLast = nextStep.isLast;
-                diskRequest[unit].wakeBox = nextStep.wakeBox;
-                diskRequest[unit]->args = nextStep->args;
-                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
-			}
-			else if (nextStep->requestType == 2) {
-				// reading a block
-                diskRequest[unit].req.op = USLOSS_DISK_READ;
-                diskRequest[unit].req.reg1 = nextStep.block;
-                diskRequest[unit].successVal = 0;
-                diskRqeuest[unit].isLast = nextStep.isLast;
-                diskRequest[unit].wakeBox = nextStep.wakeBox;
-                diskRequest[unit]->args = nextStep->args;
-                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
-			}
-			else {
-                // no possibility other than writing a block.
-				diskRequest[unit].req.op = USLOSS_DISK_WRITE;
-                diskRequest[unit].req.reg1 = nextStep.block;
-                diskRequest[unit].successVal = 0;
-                diskRqeuest[unit].isLast = nextStep.isLast;
-                diskRequest[unit].wakeBox = nextStep.wakeBox;
-                diskRequest[unit]->args = nextStep->args;
-                USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, diskRequest[unit].req);
-			}
+                diskRequest[unit].wakeBox = nextStep->wakeBox;
+                diskRequest[unit].args = nextStep->args;
+		if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+	            printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
 		}
+	    }
+	    else if (nextStep->requestType == 1) {
+		    
+		// seeking a block
+                diskRequest[unit].req.opr = USLOSS_DISK_SEEK;
+                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+                diskRequest[unit].successVal = 0;
+                diskRequest[unit].isLast = nextStep->lastStep;
+                diskRequest[unit].wakeBox = nextStep->wakeBox;
+                diskRequest[unit].args = nextStep->args;
+		if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+		}
+	    }
+	    else if (nextStep->requestType == 2) {
+		    
+		// reading a block
+                diskRequest[unit].req.opr = USLOSS_DISK_READ;
+                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+                diskRequest[unit].successVal = 0;
+                diskRequest[unit].isLast = nextStep->lastStep;
+                diskRequest[unit].wakeBox = nextStep->wakeBox;
+                diskRequest[unit].args = nextStep->args;
+                if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+		}
+	    }
+	    else {
+                
+		// no possibility other than writing a block.
+		diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
+                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+                diskRequest[unit].successVal = 0;
+                diskRequest[unit].isLast = nextStep->lastStep;
+                diskRequest[unit].wakeBox = nextStep->wakeBox;
+                diskRequest[unit].args = nextStep->args;
+                if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+		}
+	    }
 	}
+    }
 
-	return 0; // should never reach this
+    return 0; // should never reach this
 }
 
 /*
