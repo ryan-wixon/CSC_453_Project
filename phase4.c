@@ -89,11 +89,14 @@ int sleepOccupied[MAXPROC];     /* contains whether slots are occupied */
 SleepProc *sleepHead;           /* head of the sleep queue */
 int numSleeping = 0;            /* number of processes waiting to sleep */
 
-// mailbox IDs for mailboxes used as read queues
+/* mailbox IDs for mailboxes used to control when the daemons read from terminals */
 int readQueue0;
 int readQueue1;
 int readQueue2;
 int readQueue3;
+
+/* mailbox IDs for mailboxes used to control when the disk daemons reads their queues */
+int diskDaemonMailbox[2];
 
 /* queues for writing to terminals and accessing disks */
 WriteProc* writeQueues[4];
@@ -734,9 +737,87 @@ int diskDaemon(void* arg) {
     int diskStatus = 0;
 
     while (1) {
-	    
+
+	// TODO daemon needs to go to sleep if there are no requests ready
+
+	// we are ready to work with the disk
+        if (diskRequest[unit].isLast == 1) {
+                    
+            // if we finished an operation successfully, notify the waiting process
+            diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
+            int waker = diskRequest[unit].wakeBox;
+            MboxSend(waker, NULL, 0);
+        }
+            
+	// advance the queue as we are now ready to move to the next step
+        diskQueues[unit] = diskQueues[unit]->next;
+
+	DiskProc* nextStep = diskQueues[unit];
+        if (nextStep == NULL) {
+            continue;  // nothing in the queue
+        }	
+	
+	if (nextStep->requestType == 0) {
+
+	    // polling for tracks
+	    nextStep->args->arg1 = (void*)(long)512;
+	    nextStep->args->arg2 = (void*)(long)16;
+	    diskRequest[unit].req.opr = USLOSS_DISK_TRACKS;
+	    diskRequest[unit].req.reg1 = nextStep->args->arg3;
+            diskRequest[unit].successVal = 512;
+            diskRequest[unit].isLast = 1;
+            diskRequest[unit].wakeBox = nextStep->wakeBox;
+            diskRequest[unit].args = nextStep->args;
+	    if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+	        printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+	    }
+	}
+	else if (nextStep->requestType == 1) {
+		    
+	    // seeking a block
+            diskRequest[unit].req.opr = USLOSS_DISK_SEEK;
+            diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+            diskRequest[unit].successVal = 0;
+            diskRequest[unit].isLast = nextStep->lastStep;
+            diskRequest[unit].wakeBox = nextStep->wakeBox;
+            diskRequest[unit].args = nextStep->args;
+	    if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+	    }
+	}
+	else if (nextStep->requestType == 2) {
+		    
+	    // reading a block
+            diskRequest[unit].req.opr = USLOSS_DISK_READ;
+            diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
+            diskRequest[unit].successVal = 0;
+            diskRequest[unit].isLast = nextStep->lastStep;
+            diskRequest[unit].wakeBox = nextStep->wakeBox;
+            diskRequest[unit].args = nextStep->args;
+            if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+	    }
+	}
+	else {
+                
+	    // writing a block
+	    diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
+            diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
+	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
+            diskRequest[unit].successVal = 0;
+            diskRequest[unit].isLast = nextStep->lastStep;
+            diskRequest[unit].wakeBox = nextStep->wakeBox;
+            diskRequest[unit].args = nextStep->args;
+            if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
+		printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
+	    }
+	}
+   
+	// now that the disk operation has been started, wait for an interrupt indicating that it has finished
 	waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
 
+	// make sure that an error did not occur when operating on the disk
         if (diskStatus == USLOSS_DEV_ERROR) {
 
             // encountered an error -- deliver the status to the waiting process
@@ -760,82 +841,13 @@ int diskDaemon(void* arg) {
 	    // wake up the waiting process
             MboxSend(waker, NULL, 0);
         }
-	else if (diskStatus == USLOSS_DEV_READY) {
-            
-	    // we are ready to work with the disk
-            if (diskRequest[unit].isLast == 1) {
-                    
-                // if we finished an operation successfully, notify the waiting process
-                diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
-                int waker = diskRequest[unit].wakeBox;
-                MboxSend(waker, NULL, 0);
-            }
-            
-	    // advance the queue as we are now ready to move to the next step
-            diskQueues[unit] = diskQueues[unit]->next;
 
-	    DiskProc* nextStep = diskQueues[unit];
-            if (nextStep == NULL) {
-            	continue;  // nothing in the queue
-            }
-		
-	    if (nextStep->requestType == 0) {
-
-		// polling for tracks
-		nextStep->args->arg1 = (void*)(long)512;
-		nextStep->args->arg2 = (void*)(long)16;
-		diskRequest[unit].req.opr = USLOSS_DISK_TRACKS;
-		diskRequest[unit].req.reg1 = nextStep->args->arg3;
-                diskRequest[unit].successVal = 512;
-                diskRequest[unit].isLast = 1;
-                diskRequest[unit].wakeBox = nextStep->wakeBox;
-                diskRequest[unit].args = nextStep->args;
-		if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
-	            printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
-		}
-	    }
-	    else if (nextStep->requestType == 1) {
-		    
-		// seeking a block
-                diskRequest[unit].req.opr = USLOSS_DISK_SEEK;
-                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-                diskRequest[unit].successVal = 0;
-                diskRequest[unit].isLast = nextStep->lastStep;
-                diskRequest[unit].wakeBox = nextStep->wakeBox;
-                diskRequest[unit].args = nextStep->args;
-		if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
-		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
-		}
-	    }
-	    else if (nextStep->requestType == 2) {
-		    
-		// reading a block
-                diskRequest[unit].req.opr = USLOSS_DISK_READ;
-                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-		diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
-                diskRequest[unit].successVal = 0;
-                diskRequest[unit].isLast = nextStep->lastStep;
-                diskRequest[unit].wakeBox = nextStep->wakeBox;
-                diskRequest[unit].args = nextStep->args;
-                if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
-		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
-		}
-	    }
-	    else {
-                
-		// writing a block
-		diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
-                diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-		diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
-                diskRequest[unit].successVal = 0;
-                diskRequest[unit].isLast = nextStep->lastStep;
-                diskRequest[unit].wakeBox = nextStep->wakeBox;
-                diskRequest[unit].args = nextStep->args;
-                if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
-		    printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
-		}
-	    }
+	// the disk should never be busy here, but let's sanity check it anyway
+        if (diskStatus == USLOSS_DEV_BUSY) {
+	    printf("ERROR: Device reported itself as busy after interrupt; this should not appear\n");
 	}
+
+	// if there was no issue with the disk operation the loop may return to the top to run again
     }
 
     return 0; // should never reach this
