@@ -95,7 +95,7 @@ int readQueue1;
 int readQueue2;
 int readQueue3;
 
-/* mailbox IDs for mailboxes used to control when the disk daemons reads their queues */
+/* mailbox IDs for mailboxes used to control when the disk daemons read their queues */
 int diskDaemonMailbox[2];
 
 /* queues for writing to terminals and accessing disks */
@@ -126,6 +126,10 @@ void phase4_init(void) {
     readQueue1 = MboxCreate(10, MAXLINE + 1);
     readQueue2 = MboxCreate(10, MAXLINE + 1);
     readQueue3 = MboxCreate(10, MAXLINE + 1);
+
+    // create disk mailboxes (one for each disk)
+    diskDaemonMailbox[0] = MboxCreate(1, 0);
+    diskDaemonMailbox[1] = MboxCreate(1, 0);
 
     for (int i = 0; i < 4; i++) {
         writeQueues[i] = NULL;
@@ -386,8 +390,9 @@ void diskSize(USLOSS_Sysargs* args) {
 	curr->next = &currentProc;
     }
 
-    // now put the process to sleep
+    // now put the process to sleep and wake up the daemon if necessary
     releaseLock(diskLock[unit]);
+    MboxCondSend(diskDaemonMailbox[unit], NULL, 0);
     MboxRecv(toWake, NULL, 0);
 }
 
@@ -457,6 +462,7 @@ void diskRead(USLOSS_Sysargs* args) {
         seekCurr.next = curr->next;
         curr->next = &seekZero;
     }
+    
     // if we are already at the correct track, do nothing
 
     // add new queue operation for every block to operate on
@@ -738,24 +744,16 @@ int diskDaemon(void* arg) {
 
     while (1) {
 
-	// TODO daemon needs to go to sleep if there are no requests ready
+	// daemon needs to go to sleep if there are no requests ready
+	if (diskQueues[unit] == NULL) {
+	   MboxRecv(diskDaemonMailbox[unit], NULL, 0);
+	}
 
 	// we are ready to work with the disk
-        if (diskRequest[unit].isLast == 1) {
-                    
-            // if we finished an operation successfully, notify the waiting process
-            diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
-            int waker = diskRequest[unit].wakeBox;
-            MboxSend(waker, NULL, 0);
-        }
-            
-	// advance the queue as we are now ready to move to the next step
-        diskQueues[unit] = diskQueues[unit]->next;
-
-	DiskProc* nextStep = diskQueues[unit];
-        if (nextStep == NULL) {
-            continue;  // nothing in the queue
-        }	
+       	DiskProc* nextStep = diskQueues[unit];	
+	if (nextStep == NULL) {
+		printf("Uh oh...\n");
+	}
 	
 	if (nextStep->requestType == 0) {
 
@@ -847,7 +845,16 @@ int diskDaemon(void* arg) {
 	    printf("ERROR: Device reported itself as busy after interrupt; this should not appear\n");
 	}
 
-	// if there was no issue with the disk operation the loop may return to the top to run again
+        // if we finished an operation successfully, notify the waiting process
+	if (diskRequest[unit].isLast == 1) {
+                    
+            diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
+            int waker = diskRequest[unit].wakeBox;
+            MboxSend(waker, NULL, 0);
+        }
+            
+	// advance the queue as we are now ready to move to the next step
+        diskQueues[unit] = diskQueues[unit]->next;
     }
 
     return 0; // should never reach this
