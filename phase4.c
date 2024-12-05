@@ -371,6 +371,11 @@ void diskSize(USLOSS_Sysargs* args) {
     // grab the lock for this disk
     getLock(diskLock[unit]);
 
+    // set up return buffer for sysargs struct
+    int numTracks = -1;
+    int *tracksPtr = &numTracks;
+    args->arg3 = (void*)tracksPtr;
+
     int toWake = MboxCreate(1, 0);
 
     DiskProc currentProc = {
@@ -859,6 +864,12 @@ int diskDaemon(void* arg) {
 	if (diskRequest[unit].isLast == 1) {
                     
             diskRequest[unit].args->arg1 = (void*)(long)diskRequest[unit].successVal;
+            if(diskRequest[unit].req.opr == USLOSS_DISK_TRACKS) {
+                // change the int pointer back to a regular int for track size
+                int *tempPtr = (int*)diskRequest[unit].args->arg3;
+                int actualVal = *tempPtr;
+                diskRequest[unit].args->arg3 = (void*)(long)actualVal;
+            }
             int waker = diskRequest[unit].wakeBox;
             MboxSend(waker, NULL, 0);
         }

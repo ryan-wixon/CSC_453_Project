@@ -3,4 +3,4 @@ start4(): disk scheduling test, create 6 processes that write
           3 to disk0         
           3 to disk1         
 ubiq: going to write to unit 0 track 5
-./run_testcases.student: line 37:  1453 Segmentation fault      ./$line -R
+./run_testcases.student: line 37:  4618 Segmentation fault      ./$line -R
