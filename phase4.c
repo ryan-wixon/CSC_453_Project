@@ -381,7 +381,7 @@ void diskSize(USLOSS_Sysargs* args) {
     // add in a new TRACK step to the disk's queue
     DiskProc* curr = diskQueues[unit];
     if (curr == NULL) {
-	curr = &currentProc;
+	diskQueues[unit] = &currentProc;
     }
     else {
 	while (curr->next != NULL) {
@@ -752,7 +752,6 @@ int terminalDaemon(void *arg) {
 int diskDaemon(void* arg) {
 
     int unit = (int)(long)arg;
-    int diskStatus = 0;
 
     while (1) {
 
@@ -762,10 +761,7 @@ int diskDaemon(void* arg) {
 	}
 
 	// we are ready to work with the disk
-       	DiskProc* nextStep = diskQueues[unit];	
-	if (nextStep == NULL) {
-		printf("Uh oh...\n");
-	}
+       	DiskProc* nextStep = diskQueues[unit];
 	
 	if (nextStep->requestType == 0) {
 
@@ -778,6 +774,7 @@ int diskDaemon(void* arg) {
             diskRequest[unit].isLast = 1;
             diskRequest[unit].wakeBox = nextStep->wakeBox;
             diskRequest[unit].args = nextStep->args;
+
 	    if (USLOSS_DeviceOutput(USLOSS_DISK_DEV, unit, (void*)&diskRequest[unit].req) == USLOSS_DEV_INVALID) {
 	        printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
 	    }
@@ -823,8 +820,9 @@ int diskDaemon(void* arg) {
 		printf("ERROR: Invalid parameters passed to USLOSS_DeviceOutput\n");
 	    }
 	}
-   
+  
 	// now that the disk operation has been started, wait for an interrupt indicating that it has finished
+	int diskStatus = 0;
 	waitDevice(USLOSS_DISK_DEV, unit, &diskStatus);
 
 	// make sure that an error did not occur when operating on the disk
