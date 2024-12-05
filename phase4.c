@@ -73,6 +73,7 @@ typedef struct DiskProc {
     int pid;                    /* ID of the process making requests to the disk */
     int track;                  /* track number to request */
     int block;                  /* block number to request */
+    int bufInd;                 /* index in buffer to read/write to */
     int requestType;            /* int indicating the type of request; 0 = TRACKS, 1 = SEEK, 2 = READ, 3 = WRITE */ 
     int lastStep;               /* boolean indicating if this is the current process's last step */
     int wakeBox;                /* mailbox to wake the process up */
@@ -436,7 +437,7 @@ void diskRead(USLOSS_Sysargs* args) {
 	// TODO potential bug here; what if the head is at the right track when disk queue is empty? We don't need a seek operation there
 	// TODO another portential bug is if we only need 1 add operation, would need to be set as the last step then
         DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1,
+	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         diskQueues[unit] = &seekCurr;
@@ -446,27 +447,29 @@ void diskRead(USLOSS_Sysargs* args) {
         
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1,
+	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         seekCurr.next = curr->next;
         curr->next = &seekCurr;
+        curr = curr->next;
     }
     else if (curr->next == NULL) {
         // start elevator back at the bottom
         DiskProc seekZero = {
-	    .args = args, .pid = getpid(), .track = 0, .block = -1,
+	    .args = args, .pid = getpid(), .track = 0, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
 
         DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1,
+	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
 
         seekZero.next = &seekCurr;
         seekCurr.next = curr->next;
         curr->next = &seekZero;
+        curr = curr->next;
     }
     
     // if we are already at the correct track, do nothing
@@ -478,6 +481,7 @@ void diskRead(USLOSS_Sysargs* args) {
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
     int trackToRead = track;
+    int bufferIndex = 0;
     
     while (blocksLeft > 0) {
         if (blockToAdd > 15) {
@@ -487,18 +491,19 @@ void diskRead(USLOSS_Sysargs* args) {
             
             // add a seek operation to the next track up
             DiskProc seekNextUp = {
-		.args = args, .pid = getpid(), .track = trackToRead, .block = -1,
+		.args = args, .pid = getpid(), .track = trackToRead, .block = -1, .bufInd = -1,
                 .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	    };
             curr->next = &seekNextUp;
             curr = curr->next;
-            blockToAdd = -1; // reset block to add so incrementing will give 0
+            blockToAdd = 0; // reset block to add so incrementing will give 0
         }
 
         // add read operation
         DiskProc readBlock = {
             .args = args, .pid = getpid(), .track = trackToRead, .block = blockToAdd, 
-            .requestType = READ, .lastStep = 0, .wakeBox = toWake, .next = NULL
+            .bufInd = bufferIndex, .requestType = READ, .lastStep = 0, 
+            .wakeBox = toWake, .next = NULL
 	};
         
         if (blocksLeft == 1) {    
@@ -507,6 +512,7 @@ void diskRead(USLOSS_Sysargs* args) {
         curr->next = &readBlock;
         blocksLeft--;
         blockToAdd++;
+        bufferIndex += 512;     // go to the next block in the buffer
         curr = curr->next;
     }
 
@@ -535,9 +541,9 @@ void diskWrite(USLOSS_Sysargs* args) {
 
     getLock(diskLock[unit]);
 
-    DiskProc* curr = diskQueues[unit];
+    DiskProc *curr = diskQueues[unit];
     if (curr != NULL) {
-        while (curr->next != NULL && !(curr->next->lastStep == 1 && (int)(long)curr->next->track >= track)) {
+        while (curr->next != NULL && !(curr->next->lastStep == 1 && curr->next->track >= track)) {
             // find the next place where the process can go
             curr = curr->next;
         }
@@ -551,7 +557,7 @@ void diskWrite(USLOSS_Sysargs* args) {
         
         // first add seek operation to get to the right track
         DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1,
+	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         diskQueues[unit] = &seekCurr;
@@ -561,28 +567,30 @@ void diskWrite(USLOSS_Sysargs* args) {
         
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1,
+	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         seekCurr.next = curr->next;
         curr->next = &seekCurr;
+        curr = curr->next;
     }
     else if (curr->next == NULL) {
         
         // start elevator back at the bottom
         DiskProc seekZero = {
-	    .args = args, .pid = getpid(), .track = 0, .block = -1,
+	    .args = args, .pid = getpid(), .track = 0, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
 
         DiskProc seekCurr = {
-            .args = args, .pid = getpid(), .track = track, .block = -1,
+            .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
 
         seekZero.next = &seekCurr;
         seekCurr.next = curr->next;
         curr->next = &seekZero;
+        curr = curr->next;
     }
     // if we are already at the correct track, do nothing
 
@@ -593,8 +601,11 @@ void diskWrite(USLOSS_Sysargs* args) {
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
     int trackToWrite = track;
+    int bufferIndex = 0;    // start from beginning of buffer
     
     while (blocksLeft > 0) {
+        printf("blocks left is %d, buffer index is %d\n", blocksLeft, bufferIndex);
+        printf("index at beginning of queue is %d\n", diskQueues[unit]->bufInd);
         if (blockToAdd > 15) {
             
             // increase the track
@@ -602,18 +613,19 @@ void diskWrite(USLOSS_Sysargs* args) {
             
             // add a seek operation to the next track up
             DiskProc seekNextUp = {
-		.args = args, .pid = getpid(), .track = trackToWrite, .block = -1,
+		.args = args, .pid = getpid(), .track = trackToWrite, .block = -1, .bufInd = -1,
                 .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	    };
             curr->next = &seekNextUp;
             curr = curr->next;
-            blockToAdd = -1; // reset block to add so incrementing will give 0
+            blockToAdd = 0;
         }
 
         // add write operation
         DiskProc writeBlock = {
             .args = args, .pid = getpid(), .track = trackToWrite, .block = blockToAdd, 
-            .requestType = WRITE, .lastStep = 0, .wakeBox = toWake, .next = NULL
+            .bufInd = bufferIndex, .requestType = WRITE, .lastStep = 0, 
+            .wakeBox = toWake, .next = NULL
 	};
         if (blocksLeft == 1) {
             writeBlock.lastStep = 1; // this is the last last block to read
@@ -621,6 +633,7 @@ void diskWrite(USLOSS_Sysargs* args) {
         curr->next = &writeBlock;
         blocksLeft--;
         blockToAdd++;
+        bufferIndex += 512;     // advance to next block in buffer
         curr = curr->next;
     }
 
@@ -806,7 +819,9 @@ int diskDaemon(void* arg) {
 	    // reading a block
             diskRequest[unit].req.opr = USLOSS_DISK_READ;
             diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
+            printf("READ:buffer index is %d\n", nextStep->bufInd);
+            printf("READ:buffer is currently %s\n", (char*)nextStep->args->arg1);
+	        diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1 + nextStep->bufInd;
             diskRequest[unit].successVal = 0;
             diskRequest[unit].isLast = nextStep->lastStep;
             diskRequest[unit].wakeBox = nextStep->wakeBox;
@@ -820,7 +835,9 @@ int diskDaemon(void* arg) {
 	    // writing a block
 	    diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
             diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1;
+	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1 + nextStep->bufInd;
+        printf("WRITE:buffer index is currently %d\n", nextStep->bufInd);
+        printf("WRITE:buffer is currently %s\n", (char*)nextStep->args->arg1);
             diskRequest[unit].successVal = 0;
             diskRequest[unit].isLast = nextStep->lastStep;
             diskRequest[unit].wakeBox = nextStep->wakeBox;
