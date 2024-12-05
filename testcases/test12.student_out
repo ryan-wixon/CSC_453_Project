@@ -2,4 +2,8 @@ phase5_start_service_processes() called -- currently a NOP
 start4(): Writing data to 3 disk sectors, then reading them back
           Confirm that data read back matches data read in
 start4(): Testing Disk 0
-./run_testcases.student: line 37:  4273 Segmentation fault      ./$line -R
+start4(): Buffer read back fm disk 0 invalid at byte 512
+start4(): Testing Disk 1
+start4(): Buffer read back fm disk 1 invalid at byte 512
+start4(): Done.
+finish(): The simulation is now terminating.

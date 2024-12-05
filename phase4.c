@@ -440,6 +440,7 @@ void diskRead(USLOSS_Sysargs* args) {
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         diskQueues[unit] = &seekCurr;
+        curr = diskQueues[unit];
     }
     else if ((int)(long)curr->args->arg3 < track) {
         
@@ -514,6 +515,7 @@ void diskRead(USLOSS_Sysargs* args) {
 
     // put the process to sleep until the operation is done
     releaseLock(diskLock[unit]);
+    MboxCondSend(diskDaemonMailbox[unit], NULL, 0);
     MboxRecv(toWake, NULL, 0);
 }
 
@@ -553,6 +555,7 @@ void diskWrite(USLOSS_Sysargs* args) {
             .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
 	};
         diskQueues[unit] = &seekCurr;
+        curr = diskQueues[unit];
     }
     else if ((int)(long)curr->args->arg3 < track) {
         
@@ -626,6 +629,7 @@ void diskWrite(USLOSS_Sysargs* args) {
 
     // put the process to sleep until the operation is complete
     releaseLock(diskLock[unit]);
+    MboxCondSend(diskDaemonMailbox[unit], NULL, 0);
     MboxRecv(toWake, NULL, 0);
 }
 

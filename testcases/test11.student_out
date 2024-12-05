@@ -1,3 +1,11 @@
 phase5_start_service_processes() called -- currently a NOP
 start4(): Testing disk 0
-./run_testcases.student: line 37:  4204 Segmentation fault      ./$line -R
+start4(): Read from disk: 'This is a test'
+start4(): Read from disk: ''
+start4(): Read from disk: ''
+start4(): Testing disk 1
+start4(): Read from disk: 'This is a test'
+start4(): Read from disk: ''
+start4(): Read from disk: ''
+start4(): Terminating
+finish(): The simulation is now terminating.

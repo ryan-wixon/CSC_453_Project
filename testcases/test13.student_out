@@ -2,4 +2,13 @@ phase5_start_service_processes() called -- currently a NOP
 start4(): Writing data to 3 disk sectors, wrapping to next track
 
 start4(): Disk 0:
-./run_testcases.student: line 37:  4342 Segmentation fault      ./$line -R
+start4(): Read from disk: This is a test
+start4(): Read from disk: 
+start4(): Read from disk: 
+
+start4(): Disk 1:
+start4(): Read from disk: This is a test -- something different for this disk
+start4(): Read from disk: 
+start4(): Read from disk: 
+
+finish(): The simulation is now terminating.
