@@ -3,4 +3,12 @@ start4(): disk scheduling test, 8 children
           algorithm test           
           different tracks
 going to write track 5
-./run_testcases.student: line 37:  1261 Segmentation fault      ./$line -R
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+WRITE:buffer index is currently 0
+WRITE:buffer is currently One flew West
+
+going to write track 3
+blocks left is 1, buffer index is 0
+index at beginning of queue is 0
+going to write track 9

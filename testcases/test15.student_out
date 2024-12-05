@@ -1,3 +1,7 @@
 phase5_start_service_processes() called -- currently a NOP
 start4(): Attempting some invalid writes.  If they are all rejected (as expected), then you will not see anything more before 'done'
-./run_testcases.student: line 37:  1192 Segmentation fault      ./$line -R
+ERROR: Invalid disk number given to diskWrite.
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+TESTCASE TIMED OUT!!!
+finish(): The simulation is now terminating.

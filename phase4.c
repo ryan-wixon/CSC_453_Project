@@ -541,29 +541,43 @@ void diskWrite(USLOSS_Sysargs* args) {
 
     getLock(diskLock[unit]);
 
-    DiskProc *curr = diskQueues[unit];
-    if (curr != NULL) {
-        while (curr->next != NULL && !(curr->next->lastStep == 1 && curr->next->track >= track)) {
-            // find the next place where the process can go
-            curr = curr->next;
-        }
-    }
-
-    // now add the processes to the disk queue
     int toWake = MboxCreate(1, 0);
 
-    // first find next place to go
+    // first, find the place in the queue to insert a seek request into
+    DiskProc *curr = diskQueues[unit];
+    DiskProc seekCurr = {
+	.args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
+        .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
+    };
     if (curr == NULL) {
         
-        // first add seek operation to get to the right track
-        DiskProc seekCurr = {
-	    .args = args, .pid = getpid(), .track = track, .block = -1, .bufInd = -1,
-            .requestType = 1, .lastStep = 0, .wakeBox = toWake, .next = NULL
-	};
-        diskQueues[unit] = &seekCurr;
+        // trivial case for if the queue is empty
+        iskQueues[unit] = &seekCurr;
         curr = diskQueues[unit];
     }
-    else if ((int)(long)curr->args->arg3 < track) {
+    else {
+	
+	// if the head is already passed the track we want to go to, we will need to put
+	// the request near the end of the queue, so iterate to the point where the queue
+	// requests "wrap around" back to track 0
+	while (curr->next != NULL && track > curr->track) {
+	    curr = curr->next;
+	}
+
+	// now that the next queued request is for a track lower than the new one, iterate
+	// to the point just before a request asks for a track higher than the new one
+	while (curr->next != NULL && track <= curr->track) {
+	    curr = curr->next;
+	}
+
+	// after the previous two loops terminate, curr should now be pointing to the request
+	// that we should add our seek immediately after
+	DiskProc* temp = curr->next;
+	curr->next = seekCurr;
+    }
+
+
+    else if (curr->track < track) {
         
         // first add a seek operation to get to the right track
         DiskProc seekCurr = {

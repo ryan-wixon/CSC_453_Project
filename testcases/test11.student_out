@@ -1,11 +1,31 @@
 phase5_start_service_processes() called -- currently a NOP
 start4(): Testing disk 0
-start4(): Read from disk: 'This is a test'
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is 0
+blocks left is 1, buffer index is 1024
+index at beginning of queue is 512
+WRITE:buffer index is currently 1024
+WRITE:buffer is currently This is a test
+READ:buffer index is 1024
+READ:buffer is currently 
 start4(): Read from disk: ''
 start4(): Read from disk: ''
+start4(): Read from disk: 'One last chance'
 start4(): Testing disk 1
-start4(): Read from disk: 'This is a test'
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is 0
+blocks left is 1, buffer index is 1024
+index at beginning of queue is 512
+WRITE:buffer index is currently 1024
+WRITE:buffer is currently This is a test
+READ:buffer index is 1024
+READ:buffer is currently 
 start4(): Read from disk: ''
 start4(): Read from disk: ''
+start4(): Read from disk: 'One last chance'
 start4(): Terminating
 finish(): The simulation is now terminating.
