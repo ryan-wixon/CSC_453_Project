@@ -1,4 +1,3 @@
 phase5_start_service_processes() called -- currently a NOP
 start4(): started
-TESTCASE TIMED OUT!!!
-finish(): The simulation is now terminating.
+./run_testcases.student: line 37:   970 Segmentation fault      ./$line -R

@@ -9,4 +9,4 @@ start4(): Spawning 2 children to termfuncs
 ChildTR(): start
 start4(): Spawning 4 children to diskfuncs
 ChildDW0(): writing to disk 0, track 5, sector 0
-./run_testcases.student: line 37:  7074 Segmentation fault      (core dumped) ./$line -R
+./run_testcases.student: line 37:  1811 Segmentation fault      ./$line -R

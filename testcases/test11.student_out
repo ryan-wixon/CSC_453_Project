@@ -1,3 +1,3 @@
 phase5_start_service_processes() called -- currently a NOP
 start4(): Testing disk 0
-./run_testcases.student: line 37:  6302 Segmentation fault      (core dumped) ./$line -R
+./run_testcases.student: line 37:  1039 Segmentation fault      ./$line -R

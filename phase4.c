@@ -465,6 +465,9 @@ void diskRead(USLOSS_Sysargs* args) {
     
     // if we are already at the correct track, do nothing
 
+    // store curr's current next value for later
+    DiskProc *temp = curr->next;
+
     // add new queue operation for every block to operate on
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
@@ -500,6 +503,9 @@ void diskRead(USLOSS_Sysargs* args) {
         blockToAdd++;
         curr = curr->next;
     }
+
+    // re-add the next process
+    curr->next = temp;
 
     // put the process to sleep until the operation is done
     releaseLock(diskLock[unit]);
@@ -572,6 +578,9 @@ void diskWrite(USLOSS_Sysargs* args) {
     }
     // if we are already at the correct track, do nothing
 
+    // store curr's current next value for later
+    DiskProc *temp = curr->next;
+
     // add new queue operation for every block to operate on
     int blocksLeft = sectors;
     int blockToAdd = startBlock;
@@ -606,6 +615,9 @@ void diskWrite(USLOSS_Sysargs* args) {
         blockToAdd++;
         curr = curr->next;
     }
+
+    // re-add the next process
+    curr->next = temp;
 
     // put the process to sleep until the operation is complete
     releaseLock(diskLock[unit]);
