@@ -22,14 +22,14 @@ ChildS(4): After sleeping 1 seconds, diff in sys_clock is 1009713
 ChildS(3): After sleeping 2 seconds, diff in sys_clock is 2049757
 ChildS(2): After sleeping 3 seconds, diff in sys_clock is 3069796
 ChildS(1): After sleeping 4 seconds, diff in sys_clock is 4089841
-ChildS(0): After sleeping 5 seconds, diff in sys_clock is 5009877
-ChildTR(): terminal 0, read_length = 62
+ChildTR(): terminal 0, read_length = 61
 ChildTR(): read from term0: read 'zero: first line   (second longest first line in the inputs)
-'ChildTR(): terminal 1, read_length = 41
+'ChildTR(): terminal 1, read_length = 40
 ChildTR(): read from term1: read 'one: first line   (shortest first line)
-'ChildTR(): terminal 2, read_length = 51
+'ChildTR(): terminal 2, read_length = 50
 ChildTR(): read from term2: read 'two: first line   (third longest line of the set)
-'ChildTR(): terminal 3, read_length = 74
+'ChildS(0): After sleeping 5 seconds, diff in sys_clock is 5009877
+ChildTR(): terminal 3, read_length = 73
 ChildTR(): read from term3: read 'three: first line   (definitely the longest first line of all the files)
 'ChildTR(): done
 start4(): done.

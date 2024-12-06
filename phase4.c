@@ -1,13 +1,14 @@
 /*
  * Ryan Wixon and Adrianna Koppes
- * Phase 4a
+ * Phase 4 (4a and 4b)
  * CSC 452-001
  *
  * Incorperates connectivity for device handlers; this currently defines functions which
- * will allow processes to sleep or to read/write with a terminal. It will include disk
- * communication functionality at a later point, but that is unimplemented for now.
+ * will allow processes to sleep, to read/write with a terminal, and to interact with a
+ * disk by allowing processes to query the size of a disk, read from a disk, and write
+ * to a disk.
  *
- * See the included README file for additional documentation
+ * Please consult the included README file for additional documentation.
  */
 
 #include <stdio.h>
@@ -43,7 +44,7 @@ void diskWrite(USLOSS_Sysargs *args);
 
 /* for sending request infomation to a disk; 1 for each disk */
 struct DiskState {
-    USLOSS_DeviceRequest req;
+    USLOSS_DeviceRequest req;   /* access current device request parameters */
     int wakeBox;                /* mailbox to send to in order to wake up the process */
     int isLast;                 /* 0 if this is not the last request in sequence, 1 otherwise */
     int successVal;             /* value returned in args->arg1 if operation successful */
@@ -103,7 +104,6 @@ int diskDaemonMailbox[2];
 WriteProc* writeQueues[4];
 DiskProc* diskQueues[2];
 
-int diskSleeping = 0;
 
 /* 
  * Startup code for phase 4; initializes required mailboxes, the shadow process table,
@@ -473,6 +473,7 @@ void diskRead(USLOSS_Sysargs* args) {
 	DiskProc* temp = curr->next;
 	curr->next = &readSteps[0];
 	readSteps[0].next = temp;
+    curr = curr->next;
     }
 
     // store curr's current next value for later
@@ -783,6 +784,7 @@ int diskDaemon(void* arg) {
 	// we are ready to work with the disk
        	DiskProc* nextStep = diskQueues[unit];
         if(nextStep == NULL) {
+            // queue is still null, so we need to sleep again
             continue;
         }
 	

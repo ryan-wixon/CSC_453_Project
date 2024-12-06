@@ -61,4 +61,16 @@ order, but each one is completed correctly; thus, it is still correct.
 
 test23
 ------------------------------------------------------------------------------
+This testcase tests all of the system calls implemented in Phase 4. While all
+of the output for the terminal and disk-related system calls matches exactly,
+it is only the Sleep syscall that shows a difference in output. This output
+uses the current system time and attempts to compare the system time at the 
+end of sleeping between the sample output and the GradeScope autograder. Due 
+to the nature of sleeping, it is extremely difficult or impossible to match 
+the system times exactly. However, our five sleeping processes execute and
+terminate in the same order as in the sample output, with only the system 
+times not matching. Even then, all of the times are similar despite not 
+matching exactly, which indicates that the functionality of our sleep system
+call still matches the required functionality. Thus, our output is still 
+correct.
 ------------------------------------------------------------------------------

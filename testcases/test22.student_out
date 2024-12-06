@@ -14,9 +14,9 @@ buffer written 'three: first line   (definitely the longest first line of all th
 '
 buffer written 'one: second line
 '
-buffer written 'two: second line
-'
 buffer written 'one: third line, longer than previous ones
+'
+buffer written 'two: second line
 '
 buffer written 'two: third line, longer than previous ones
 '
