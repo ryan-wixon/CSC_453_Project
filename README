@@ -1,6 +1,10 @@
 Ryan Wixon and Adrianna Koppes
 Phase 4 diff Explanations
 
+------------------------------------------------------------------------------
+Phase 4a Explanations ########################################################
+------------------------------------------------------------------------------
+
 test00, test01, test02
 ------------------------------------------------------------------------------
 All 3 of these tests deal with the sleep syscall, and use the current system
@@ -37,4 +41,24 @@ tasks them with reading a line from a terminal, and then writing it to a
 terminal. Once again, race conditions are possible. All lines are written
 correctly and in the right order, although some terminals may have lines
 written to them faster than others. Thus, our output is still correct.
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+Phase 4b Explanations ########################################################
+------------------------------------------------------------------------------
+
+test16, test18
+------------------------------------------------------------------------------
+Both of these testcases create a number of child processes with identical
+priorities (in this case, 1). Though these child processes each have their own
+starting functions, said functions are all identical in that they immediately
+attempt to write to the disk. Thus, they race to enter the diskWrite()
+function. While the C-SCAN ordering of the disks is able to implement some 
+level of uniformity to the output, it does not guarantee an identical output 
+each time it is run. Our output performs the writes in a slightly different
+order, but each one is completed correctly; thus, it is still correct.
+------------------------------------------------------------------------------
+
+test23
+------------------------------------------------------------------------------
 ------------------------------------------------------------------------------

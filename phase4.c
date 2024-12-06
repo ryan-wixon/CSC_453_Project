@@ -362,6 +362,13 @@ void termWrite(USLOSS_Sysargs *args) {
     MboxRecv(toWake, NULL, 0);
 }
 
+/* 
+ * Requests the number of tracks on a given disk; as USLOSS disks have static
+ * sizes, the return value of this syscall on a given disk will always be the same
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void diskSize(USLOSS_Sysargs* args) {
 
     int unit = (int)(long)args->arg1;
@@ -404,6 +411,14 @@ void diskSize(USLOSS_Sysargs* args) {
     MboxRecv(toWake, NULL, 0);
 }
 
+/* 
+ * Attempts to read from a disk by adding the current process to a disk operation 
+ * queue. The actual write will not take place until the disk daemon processes it's
+ * requests prior to reaching this new one.
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void diskRead(USLOSS_Sysargs* args) {
     
     // unpack the sysargs struct
@@ -471,9 +486,6 @@ void diskRead(USLOSS_Sysargs* args) {
     
     while (blocksLeft > 0) {
         
-	//printf("blocks left is %d, buffer index is %d\n", blocksLeft, bufferIndex);
-        //printf("index at beginning of queue is %d\n", diskQueues[unit]->bufInd);
-        
 	// if the next block is on the next track, we need to add a seek operation to move there
 	if (blockToAdd > 15) { 
             readSteps[stepIndex] = (DiskProc) {
@@ -505,12 +517,19 @@ void diskRead(USLOSS_Sysargs* args) {
     curr->next = temp;
 
     // put the process to sleep until the operation is complete
-    //printf("process with pid %d: sleeping\n", getpid());
     releaseLock(diskLock[unit]);
     MboxCondSend(diskDaemonMailbox[unit], NULL, 0);
     MboxRecv(toWake, NULL, 0);
 }
 
+/* 
+ * Attempts to write to a disk by adding the current process to a disk operation 
+ * queue. The actual write will not take place until the disk daemon processes it's
+ * requests prior to reaching this new one.
+ * 
+ * Arguments: USLOSS_Sysargs struct containing the arguments to this syscall
+ *   Returns: Void
+ */
 void diskWrite(USLOSS_Sysargs* args) {
 
     // unpack the sysargs struct
@@ -522,7 +541,7 @@ void diskWrite(USLOSS_Sysargs* args) {
     // input validation
     if (unit < 0 || unit > 1 || startBlock < 0 || startBlock > 15) {
         // need to return as soon as we see invalid input
-	    args->arg4 = (void*)(long)-1;
+	args->arg4 = (void*)(long)-1;
         return;
     }
     args->arg4 = (void*)(long)0;
@@ -543,7 +562,6 @@ void diskWrite(USLOSS_Sysargs* args) {
     if (curr == NULL) {
         
         // trivial case for if the queue is empty
-        //printf("queue empty\n");
         diskQueues[unit] = &writeSteps[0];
         curr = diskQueues[unit];
     }
@@ -553,14 +571,12 @@ void diskWrite(USLOSS_Sysargs* args) {
 	// the request near the end of the queue, so iterate to the point where the queue
 	// requests "wrap around" back to track 0
 	while (curr->next != NULL && track < curr->next->track) {
-        //printf("wraparound; track = %d, need = %d\n", curr->next->track, track);
 	    curr = curr->next;
 	}
 
 	// now that the next queued request is for a track lower than the new one, iterate
 	// to the point just before a request asks for a track higher than the new one
 	while (curr->next != NULL && track >= curr->next->track) {
-        //printf("look for next slot; track = %d, need = %d\n", curr->next->track, track);
 	    curr = curr->next;
 	}
 
@@ -569,7 +585,7 @@ void diskWrite(USLOSS_Sysargs* args) {
 	DiskProc* temp = curr->next;
 	curr->next = &writeSteps[0];
 	writeSteps[0].next = temp;
-    curr = curr->next;
+        curr = curr->next;
     }
 
     // store curr's current next value for later
@@ -582,9 +598,6 @@ void diskWrite(USLOSS_Sysargs* args) {
     int bufferIndex = 0;
     
     while (blocksLeft > 0) {
-        
-	//printf("blocks left is %d, buffer index is %d\n", blocksLeft, bufferIndex);
-        //printf("index at beginning of queue is %d\n", diskQueues[unit]->bufInd);
         
 	// if the next block is on the next track, we need to add a seek operation to move there
 	if (blockToAdd > 15) { 
@@ -747,6 +760,15 @@ int terminalDaemon(void *arg) {
     return 0; // should never reach this 
 }
 
+/* 
+ * Main function for a daemon that handles communications with a disk. This daemon will
+ * only manage 1 specific disk; it will perform disk operations continuously as it receives
+ * them. Note that the operations may not be performed in the same order they are received;
+ * in order to increase efficiency it implements a C-SCAN ordering algorithm.
+ * 
+ * Arguments: void pointer arg containing an int from 0-3 representing the unit number
+ *   Returns: 0, but daemon should never actually return, so this value can be any integer.
+ */
 int diskDaemon(void* arg) {
 
     int unit = (int)(long)arg;
@@ -755,7 +777,6 @@ int diskDaemon(void* arg) {
 
 	// daemon needs to go to sleep if there are no requests ready
 	if (diskQueues[unit] == NULL) {
-        //dumpProcesses();
 	   MboxRecv(diskDaemonMailbox[unit], NULL, 0);
 	}
 
@@ -764,7 +785,6 @@ int diskDaemon(void* arg) {
         if(nextStep == NULL) {
             continue;
         }
-        //printf("request of type %d on track %d\n", nextStep->requestType, nextStep->track);
 	
 	if (nextStep->requestType == 0) {
 
@@ -784,8 +804,6 @@ int diskDaemon(void* arg) {
 	}
 	else if (nextStep->requestType == 1) {
 		    
-	    //printf("DEBUG: Daemon is trying to seek a track\n");
-	    
 	    // seeking a block
             diskRequest[unit].req.opr = USLOSS_DISK_SEEK;
             diskRequest[unit].req.reg1 = (void*)(long)nextStep->track;
@@ -799,13 +817,9 @@ int diskDaemon(void* arg) {
 	}
 	else if (nextStep->requestType == 2) {
 	
-	    //printf("DEBUG: Daemon is trying to read a block\n");
-	    
 	    // reading a block
             diskRequest[unit].req.opr = USLOSS_DISK_READ;
             diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
-            //printf("READ:buffer index is %d\n", nextStep->bufInd);
-            //printf("READ:buffer is currently %s\n", (char*)nextStep->args->arg1);
 	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1 + nextStep->bufInd;
             diskRequest[unit].successVal = 0;
             diskRequest[unit].isLast = nextStep->lastStep;
@@ -817,14 +831,10 @@ int diskDaemon(void* arg) {
 	}
 	else {
                 
-	    //printf("DEBUG: Daemon is trying to write a block\n");
-	    
 	    // writing a block
 	    diskRequest[unit].req.opr = USLOSS_DISK_WRITE;
             diskRequest[unit].req.reg1 = (void*)(long)nextStep->block;
 	    diskRequest[unit].req.reg2 = (char*)nextStep->args->arg1 + nextStep->bufInd;
-            //printf("WRITE: buffer index is currently %d\n", nextStep->bufInd);
-            //printf("WRITE: buffer is currently %s\n", (char*)nextStep->args->arg1);
             diskRequest[unit].successVal = 0;
             diskRequest[unit].isLast = nextStep->lastStep;
             diskRequest[unit].wakeBox = nextStep->wakeBox;
