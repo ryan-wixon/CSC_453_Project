@@ -9,43 +9,36 @@ start4(): Spawning 2 children to termfuncs
 ChildTR(): start
 start4(): Spawning 4 children to diskfuncs
 ChildDW0(): writing to disk 0, track 5, sector 0
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 5
 ChildDW1(): writing to disk 1, track 5, sector 0
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 5
 ChildR0(): reading from disk 0, track 5, sector 0
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 ChildR1(): reading from disk 1, track 5, sector 0
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently ChildDW0(): A wonderful message to put on the disk...
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently ChildDW1(): A wonderful message to put on the disk...
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 0
-READ:buffer is currently 
 ChildDW0(): DiskWrite0 returned status = 0
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 0
-READ:buffer is currently 
 ChildDW1(): DiskWrite1 returned status = 0
-DEBUG: Daemon is trying to seek a track
-target track: 5
 ChildR0(): DiskRead returned status = 0
 ChildR0(): disk_buf_B contains: 'ChildDW0(): A wonderful message to put on the disk...'
-DEBUG: Daemon is trying to seek a track
-target track: 5
 ChildR1(): DiskRead returned status = 0
 ChildR1(): disk_buf_B contains: 'ChildDW1(): A wonderful message to put on the disk...'
-./run_testcases.student: line 37: 18253 Segmentation fault      (core dumped) ./$line -R
+ChildS(4): After sleeping 1 seconds, diff in sys_clock is 1009713
+ChildS(3): After sleeping 2 seconds, diff in sys_clock is 2049757
+ChildS(2): After sleeping 3 seconds, diff in sys_clock is 3069796
+ChildS(1): After sleeping 4 seconds, diff in sys_clock is 4089841
+ChildTR(): terminal 0, read_length = 61
+ChildTR(): read from term0: read 'zero: first line   (second longest first line in the inputs)
+'ChildTR(): terminal 1, read_length = 40
+ChildTR(): read from term1: read 'one: first line   (shortest first line)
+'ChildTR(): terminal 2, read_length = 50
+ChildTR(): read from term2: read 'two: first line   (third longest line of the set)
+'ChildS(0): After sleeping 5 seconds, diff in sys_clock is 5009877
+ChildTR(): terminal 3, read_length = 73
+ChildTR(): read from term3: read 'three: first line   (definitely the longest first line of all the files)
+'ChildTR(): done
+start4(): done.
+finish(): The simulation is now terminating.
 ----- term0.out -----
-C
+ChildTW(): A Something interesting to print to term 0 ...
+----- term1.out -----
+ChildTW(): A Something interesting to print to term 1 ...
+----- term2.out -----
+ChildTW(): A Something interesting to print to term 2 ...
+----- term3.out -----
+ChildTW(): A Something interesting to print to term 3 ...

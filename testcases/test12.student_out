@@ -2,76 +2,8 @@ phase5_start_service_processes() called -- currently a NOP
 start4(): Writing data to 3 disk sectors, then reading them back
           Confirm that data read back matches data read in
 start4(): Testing Disk 0
-blocks left is 3, buffer index is 0
-index at beginning of queue is -1
-blocks left is 2, buffer index is 512
-index at beginning of queue is -1
-blocks left is 1, buffer index is 1024
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 4
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently 
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 512
-WRITE: buffer is currently 
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 1024
-WRITE: buffer is currently 
-blocks left is 3, buffer index is 0
-index at beginning of queue is -1
-blocks left is 2, buffer index is 512
-index at beginning of queue is -1
-blocks left is 1, buffer index is 1024
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 4
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 0
-READ:buffer is currently 
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 512
-READ:buffer is currently 
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 1024
-READ:buffer is currently 
 start4(): Test of disk 0 succeeded.
 start4(): Testing Disk 1
-blocks left is 3, buffer index is 0
-index at beginning of queue is -1
-blocks left is 2, buffer index is 512
-index at beginning of queue is -1
-blocks left is 1, buffer index is 1024
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 4
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently 
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 512
-WRITE: buffer is currently 
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 1024
-WRITE: buffer is currently 
-blocks left is 3, buffer index is 0
-index at beginning of queue is -1
-blocks left is 2, buffer index is 512
-index at beginning of queue is -1
-blocks left is 1, buffer index is 1024
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 4
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 0
-READ:buffer is currently 
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 512
-READ:buffer is currently 
-DEBUG: Daemon is trying to read a block
-READ:buffer index is 1024
-READ:buffer is currently 
 start4(): Test of disk 1 succeeded.
 start4(): Done.
 finish(): The simulation is now terminating.

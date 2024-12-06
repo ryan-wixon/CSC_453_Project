@@ -103,6 +103,8 @@ int diskDaemonMailbox[2];
 WriteProc* writeQueues[4];
 DiskProc* diskQueues[2];
 
+int diskSleeping = 0;
+
 /* 
  * Startup code for phase 4; initializes required mailboxes, the shadow process table,
  * and configures interrupts for the terminals.
@@ -503,6 +505,7 @@ void diskRead(USLOSS_Sysargs* args) {
     curr->next = temp;
 
     // put the process to sleep until the operation is complete
+    //printf("process with pid %d: sleeping\n", getpid());
     releaseLock(diskLock[unit]);
     MboxCondSend(diskDaemonMailbox[unit], NULL, 0);
     MboxRecv(toWake, NULL, 0);
@@ -539,6 +542,7 @@ void diskWrite(USLOSS_Sysargs* args) {
     if (curr == NULL) {
         
         // trivial case for if the queue is empty
+        //printf("queue empty\n");
         diskQueues[unit] = &writeSteps[0];
         curr = diskQueues[unit];
     }
@@ -547,13 +551,15 @@ void diskWrite(USLOSS_Sysargs* args) {
 	// if the head has already passed the track we want to go to, we will need to put
 	// the request near the end of the queue, so iterate to the point where the queue
 	// requests "wrap around" back to track 0
-	while (curr->next != NULL && track > curr->track) {
+	while (curr->next != NULL && track < curr->next->track) {
+        //printf("wraparound; track = %d, need = %d\n", curr->next->track, track);
 	    curr = curr->next;
 	}
 
 	// now that the next queued request is for a track lower than the new one, iterate
 	// to the point just before a request asks for a track higher than the new one
-	while (curr->next != NULL && track <= curr->track) {
+	while (curr->next != NULL && track >= curr->next->track) {
+        //printf("look for next slot; track = %d, need = %d\n", curr->next->track, track);
 	    curr = curr->next;
 	}
 
@@ -562,6 +568,7 @@ void diskWrite(USLOSS_Sysargs* args) {
 	DiskProc* temp = curr->next;
 	curr->next = &writeSteps[0];
 	writeSteps[0].next = temp;
+    curr = curr->next;
     }
 
     // store curr's current next value for later
@@ -747,11 +754,16 @@ int diskDaemon(void* arg) {
 
 	// daemon needs to go to sleep if there are no requests ready
 	if (diskQueues[unit] == NULL) {
+        //dumpProcesses();
 	   MboxRecv(diskDaemonMailbox[unit], NULL, 0);
 	}
 
 	// we are ready to work with the disk
        	DiskProc* nextStep = diskQueues[unit];
+        if(nextStep == NULL) {
+            continue;
+        }
+        //printf("request of type %d on track %d\n", nextStep->requestType, nextStep->track);
 	
 	if (nextStep->requestType == 0) {
 

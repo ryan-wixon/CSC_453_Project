@@ -3,43 +3,28 @@ start4(): disk scheduling test, 8 children
           algorithm test           
           different tracks
 going to write track 5
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
-DEBUG: Daemon is trying to seek a track
-target track: 5
 going to write track 3
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 9
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 0
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 7
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 2
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 1
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
 going to write track 6
-blocks left is 1, buffer index is 0
-index at beginning of queue is -1
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently One flew West
-
-DEBUG: Daemon is trying to write a block
-WRITE: buffer index is currently 0
-WRITE: buffer is currently --did it work?
-
 after writing track 5
 process 12 quit with status 2
-DEBUG: Daemon is trying to seek a track
-target track: 3
 after writing track 3
 process 13 quit with status 3
-./run_testcases.student: line 37: 17796 Segmentation fault      (core dumped) ./$line -R
+after writing track 6
+process 19 quit with status 9
+after writing track 7
+process 16 quit with status 6
+after writing track 9
+process 14 quit with status 4
+after writing track 0
+process 15 quit with status 5
+after writing track 1
+process 18 quit with status 8
+after writing track 2
+process 17 quit with status 7
+start4(): done 33
+finish(): The simulation is now terminating.
