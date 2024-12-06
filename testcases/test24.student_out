@@ -3,4 +3,4 @@ start4(): started
 start4(): unit 1, sector size 512, track size 16, disk size 32
 
 start4(): writing to disk 1, track 0, sector 0
-./run_testcases.student: line 37:  1757 Segmentation fault      ./$line -R
+./run_testcases.student: line 37: 15365 Segmentation fault      (core dumped) ./$line -R

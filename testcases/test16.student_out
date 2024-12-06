@@ -5,10 +5,41 @@ start4(): disk scheduling test, 8 children
 going to write track 5
 blocks left is 1, buffer index is 0
 index at beginning of queue is -1
-WRITE:buffer index is currently 0
-WRITE:buffer is currently One flew West
-
+DEBUG: Daemon is trying to seek a track
+target track: 5
 going to write track 3
 blocks left is 1, buffer index is 0
-index at beginning of queue is 0
+index at beginning of queue is -1
 going to write track 9
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+going to write track 0
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+going to write track 7
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+going to write track 2
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+going to write track 1
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+going to write track 6
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently One flew West
+
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently --did it work?
+
+after writing track 5
+process 12 quit with status 2
+DEBUG: Daemon is trying to seek a track
+target track: 3
+after writing track 3
+process 13 quit with status 3
+./run_testcases.student: line 37: 17796 Segmentation fault      (core dumped) ./$line -R

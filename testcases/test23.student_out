@@ -9,4 +9,43 @@ start4(): Spawning 2 children to termfuncs
 ChildTR(): start
 start4(): Spawning 4 children to diskfuncs
 ChildDW0(): writing to disk 0, track 5, sector 0
-./run_testcases.student: line 37:  1688 Segmentation fault      ./$line -R
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 5
+ChildDW1(): writing to disk 1, track 5, sector 0
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 5
+ChildR0(): reading from disk 0, track 5, sector 0
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+ChildR1(): reading from disk 1, track 5, sector 0
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently ChildDW0(): A wonderful message to put on the disk...
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently ChildDW1(): A wonderful message to put on the disk...
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
+READ:buffer is currently 
+ChildDW0(): DiskWrite0 returned status = 0
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
+READ:buffer is currently 
+ChildDW1(): DiskWrite1 returned status = 0
+DEBUG: Daemon is trying to seek a track
+target track: 5
+ChildR0(): DiskRead returned status = 0
+ChildR0(): disk_buf_B contains: 'ChildDW0(): A wonderful message to put on the disk...'
+DEBUG: Daemon is trying to seek a track
+target track: 5
+ChildR1(): DiskRead returned status = 0
+ChildR1(): disk_buf_B contains: 'ChildDW1(): A wonderful message to put on the disk...'
+./run_testcases.student: line 37: 18253 Segmentation fault      (core dumped) ./$line -R
+----- term0.out -----
+C

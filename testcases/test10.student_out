@@ -6,11 +6,19 @@ start4(): unit 1, sector size 512, track size 16, disk size 32
 start4(): writing to disk 0, track 5, sector 0
 blocks left is 1, buffer index is 0
 index at beginning of queue is -1
-WRITE:buffer index is currently 0
-WRITE:buffer is currently A wonderful message to put on the disk...
+DEBUG: Daemon is trying to seek a track
+target track: 5
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently A wonderful message to put on the disk...
 start4(): DiskWrite returned status = 0
 
 start4(): reading from disk 0, track 5, sector 0
+blocks left is 1, buffer index is 0
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 5
+DEBUG: Daemon is trying to read a block
 READ:buffer index is 0
 READ:buffer is currently 
 start4(): DiskRead returned status = 0

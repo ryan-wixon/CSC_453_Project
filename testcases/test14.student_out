@@ -3,4 +3,4 @@ start4(): disk scheduling test, create 4 processes that write
           various places on the disk.  After the 4 processes are
           done, start4 reads the 4 locations & prints the
           results.  Uses disk 1.
-./run_testcases.student: line 37: 12427 Segmentation fault      (core dumped) ./$line -R
+./run_testcases.student: line 37: 17648 Segmentation fault      (core dumped) ./$line -R

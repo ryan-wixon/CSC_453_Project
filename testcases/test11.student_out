@@ -3,29 +3,77 @@ start4(): Testing disk 0
 blocks left is 3, buffer index is 0
 index at beginning of queue is -1
 blocks left is 2, buffer index is 512
-index at beginning of queue is 0
+index at beginning of queue is -1
 blocks left is 1, buffer index is 1024
-index at beginning of queue is 512
-WRITE:buffer index is currently 1024
-WRITE:buffer is currently This is a test
-READ:buffer index is 1024
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently This is a test
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 512
+WRITE: buffer is currently This is a test
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 1024
+WRITE: buffer is currently This is a test
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is -1
+blocks left is 1, buffer index is 1024
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
 READ:buffer is currently 
-start4(): Read from disk: ''
-start4(): Read from disk: ''
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 512
+READ:buffer is currently This is a test
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 1024
+READ:buffer is currently This is a test
+start4(): Read from disk: 'This is a test'
+start4(): Read from disk: 'Does it work?'
 start4(): Read from disk: 'One last chance'
 start4(): Testing disk 1
 blocks left is 3, buffer index is 0
 index at beginning of queue is -1
 blocks left is 2, buffer index is 512
-index at beginning of queue is 0
+index at beginning of queue is -1
 blocks left is 1, buffer index is 1024
-index at beginning of queue is 512
-WRITE:buffer index is currently 1024
-WRITE:buffer is currently This is a test
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently This is a test
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 512
+WRITE: buffer is currently This is a test
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 1024
+WRITE: buffer is currently This is a test
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is -1
+blocks left is 1, buffer index is 1024
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
+READ:buffer is currently This is a test
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 512
+READ:buffer is currently This is a test
+DEBUG: Daemon is trying to read a block
 READ:buffer index is 1024
-READ:buffer is currently 
-start4(): Read from disk: ''
-start4(): Read from disk: ''
+READ:buffer is currently This is a test
+start4(): Read from disk: 'This is a test'
+start4(): Read from disk: 'Does it work?'
 start4(): Read from disk: 'One last chance'
 start4(): Terminating
 finish(): The simulation is now terminating.

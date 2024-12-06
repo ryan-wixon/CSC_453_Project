@@ -17,8 +17,8 @@ Child_23(): writing to term3
 Child1(): read one: first line   (shortest first line)
 Child2(): read two: first line   (third longest line of the set)
 Child1(): read one: second line
-Child0(): read zero: first line   (second longest first line in the inputs)
 Child_21(): writing to term1
+Child0(): read zero: first line   (second longest first line in the inputs)
 Child_20(): writing to term0
 Child_23(): writing to term3
 Child_22(): writing to term2
@@ -29,17 +29,17 @@ Child3(): read three: second line
 Child1(): read one: third line, longer than previous ones
 Child2(): read two: third line, longer than previous ones
 Child_21(): writing to term1
-Child0(): read zero: third line, longer than previous ones
 Child_20(): writing to term0
+Child0(): read zero: third line, longer than previous ones
 Child_23(): writing to term3
 Child_22(): writing to term2
 Child3(): read three: third line, longer than previous ones
 Child1(): read one: fourth line, will be 80 characters long when I get through typing it in..
 Child_21(): writing to term1
 Child_20(): writing to term0
-Child2(): read two: fourth line, will be 80 characters long when I get through typing it in..
 Child_23(): writing to term3
 Child_22(): writing to term2
+Child2(): read two: fourth line, will be 80 characters long when I get through typing it in..
 Child1(): read one: fifth line
 Child1(): done
 Child0(): read zero: fourth line, will be 80 characters long when I get through typing it in.

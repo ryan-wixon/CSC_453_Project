@@ -5,25 +5,73 @@ start4(): Testing Disk 0
 blocks left is 3, buffer index is 0
 index at beginning of queue is -1
 blocks left is 2, buffer index is 512
-index at beginning of queue is 0
+index at beginning of queue is -1
 blocks left is 1, buffer index is 1024
-index at beginning of queue is 512
-WRITE:buffer index is currently 1024
-WRITE:buffer is currently 
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently 
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 512
+WRITE: buffer is currently 
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 1024
+WRITE: buffer is currently 
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is -1
+blocks left is 1, buffer index is 1024
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
+READ:buffer is currently 
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 512
+READ:buffer is currently 
+DEBUG: Daemon is trying to read a block
 READ:buffer index is 1024
 READ:buffer is currently 
-start4(): Buffer read back fm disk 0 invalid at byte 1
+start4(): Test of disk 0 succeeded.
 start4(): Testing Disk 1
 blocks left is 3, buffer index is 0
 index at beginning of queue is -1
 blocks left is 2, buffer index is 512
-index at beginning of queue is 0
+index at beginning of queue is -1
 blocks left is 1, buffer index is 1024
-index at beginning of queue is 512
-WRITE:buffer index is currently 1024
-WRITE:buffer is currently 
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 0
+WRITE: buffer is currently 
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 512
+WRITE: buffer is currently 
+DEBUG: Daemon is trying to write a block
+WRITE: buffer index is currently 1024
+WRITE: buffer is currently 
+blocks left is 3, buffer index is 0
+index at beginning of queue is -1
+blocks left is 2, buffer index is 512
+index at beginning of queue is -1
+blocks left is 1, buffer index is 1024
+index at beginning of queue is -1
+DEBUG: Daemon is trying to seek a track
+target track: 4
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 0
+READ:buffer is currently 
+DEBUG: Daemon is trying to read a block
+READ:buffer index is 512
+READ:buffer is currently 
+DEBUG: Daemon is trying to read a block
 READ:buffer index is 1024
 READ:buffer is currently 
-start4(): Buffer read back fm disk 1 invalid at byte 1
+start4(): Test of disk 1 succeeded.
 start4(): Done.
 finish(): The simulation is now terminating.
