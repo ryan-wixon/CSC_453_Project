@@ -520,9 +520,10 @@ void diskWrite(USLOSS_Sysargs* args) {
     int sectors = (int)(long)args->arg2;
     
     // input validation
-    if (unit < 0 || unit > 1) {
-	printf("ERROR: Invalid disk number given to diskWrite.\n");
-	args->arg4 = (void*)(long)-1;
+    if (unit < 0 || unit > 1 || startBlock < 0 || startBlock > 15) {
+        // need to return as soon as we see invalid input
+	    args->arg4 = (void*)(long)-1;
+        return;
     }
     args->arg4 = (void*)(long)0;
 
@@ -860,6 +861,7 @@ int diskDaemon(void* arg) {
             	
 	    // wake up the waiting process
             MboxSend(waker, NULL, 0);
+            continue;
         }
 
 	// the disk should never be busy here, but let's sanity check it anyway
@@ -882,7 +884,9 @@ int diskDaemon(void* arg) {
         }
             
 	// advance the queue as we are now ready to move to the next step
-        diskQueues[unit] = diskQueues[unit]->next;
+        if(diskQueues[unit] != NULL) {
+            diskQueues[unit] = diskQueues[unit]->next;
+        }
     }
 
     return 0; // should never reach this
